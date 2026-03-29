@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Checkout</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/backend.js"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/checkout-page.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --text:#10213a;
+      --muted:#64748b;
+      --line:rgba(15,23,42,.09);
+      --card:rgba(255,255,255,.86);
+      --red:#c90000;
+      --red-deep:#9f0000;
+      --blue:#2387ff;
+      --gold:#f5c84c;
+      --green:#14985f;
+      --ink:#0f172a;
+      --shadow:0 24px 50px rgba(15,23,42,.12);
+      --soft:0 12px 28px rgba(15,23,42,.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      padding:18px;
+      font-family:"Roboto",system-ui,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 560px at 10% 0%,rgba(35,135,255,.14),transparent 58%),
+        radial-gradient(860px 520px at 100% 4%,rgba(245,200,76,.18),transparent 56%),
+        linear-gradient(180deg,#fbfcff 0%,#eef4fb 100%);
+    }
+    .shell{width:min(1180px,100%);margin:0 auto;display:grid;gap:16px}
+    .top,.hero,.card{
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.65);
+      border-radius:28px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(16px);
+    }
+    .top{
+      padding:18px 20px;
+      background:linear-gradient(135deg,var(--red),var(--red-deep));
+      color:#fff;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .top h1{margin:0;font:800 22px "Poppins",sans-serif}
+    .top p{margin:5px 0 0;font-size:13px;opacity:.92}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn,.mini{
+      border:none;
+      border-radius:16px;
+      font:700 14px inherit;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      transition:.18s ease;
+    }
+    .btn{
+      height:44px;
+      padding:0 16px;
+      background:rgba(255,255,255,.14);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:var(--soft);
+    }
+    .mini{
+      height:46px;
+      padding:0 18px;
+      background:linear-gradient(135deg,var(--blue),#59b6ff);
+      color:#fff;
+      box-shadow:var(--soft);
+    }
+    .mini.green{background:linear-gradient(135deg,var(--green),#38c987)}
+    .btn:hover,.mini:hover{transform:translateY(-2px)}
+    .hero{
+      padding:22px;
+      background:
+        radial-gradient(circle at top left,rgba(255,255,255,.24),transparent 30%),
+        linear-gradient(135deg,rgba(35,135,255,.98),rgba(201,0,0,.9));
+      color:#fff;
+    }
+    .hero h2{margin:0;font:800 30px "Poppins",sans-serif}
+    .hero p{margin:8px 0 0;font-size:14px;line-height:1.65;color:rgba(255,255,255,.94)}
+    .meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:16px;
+    }
+    .meta span{
+      padding:10px 13px;
+      border-radius:999px;
+      background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.2);
+      font-size:12px;
+      font-weight:800;
+    }
+    .layout{
+      display:grid;
+      grid-template-columns:minmax(0,1.12fr) minmax(340px,.88fr);
+      gap:16px;
+      align-items:start;
+    }
+    .stack{display:grid;gap:16px}
+    .card{padding:18px}
+    .head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+    .head h3{margin:0;font:800 18px "Poppins",sans-serif}
+    .head p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.6}
+    .list,.checks,.form-stack{display:grid;gap:12px}
+    .item{
+      background:rgba(255,255,255,.9);
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:15px;
+      box-shadow:0 10px 22px rgba(15,23,42,.05);
+    }
+    .item.highlight{background:linear-gradient(180deg,rgba(201,0,0,.06),rgba(255,255,255,.92))}
+    .item-top{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-bottom:8px;
+    }
+    .item strong{font-size:16px}
+    .item p{margin:0;color:var(--muted);font-size:13px;line-height:1.65}
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      padding:7px 11px;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+    .tag.red{background:rgba(201,0,0,.12);color:#a60000}
+    .tag.blue{background:rgba(35,135,255,.12);color:#1368c5}
+    .tag.gold{background:rgba(245,200,76,.18);color:#8f6700}
+    .check-item{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      padding:12px 14px;
+      border-radius:16px;
+      background:rgba(255,255,255,.88);
+      border:1px solid var(--line);
+      color:#24324a;
+      font-size:13px;
+      font-weight:600;
+      line-height:1.55;
+    }
+    .check-item::before{
+      content:"";
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      background:linear-gradient(135deg,var(--gold),#ffde7a);
+      margin-top:5px;
+      flex:0 0 auto;
+      box-shadow:0 0 0 5px rgba(245,200,76,.18);
+    }
+    .field, textarea, select{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px 15px;
+      font:inherit;
+      background:#fff;
+      color:var(--ink);
+      box-shadow:0 10px 18px rgba(15,23,42,.04);
+      outline:none;
+    }
+    textarea{min-height:108px;resize:vertical}
+    .label{
+      display:block;
+      margin-bottom:6px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:#51627a;
+    }
+    .guide-box,.bank-box,.notice-box{
+      border-radius:18px;
+      padding:16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.92);
+      box-shadow:0 10px 18px rgba(15,23,42,.04);
+    }
+    .guide-title{
+      font:800 15px "Poppins",sans-serif;
+      margin-bottom:8px;
+      color:#14345a;
+    }
+    .guide-list{
+      margin:0;
+      padding-left:18px;
+      color:#41536d;
+      font-size:13px;
+      line-height:1.7;
+    }
+    .bank-grid{display:grid;gap:10px}
+    .bank-row{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      padding:10px 0;
+      border-bottom:1px dashed rgba(15,23,42,.08);
+    }
+    .bank-row:last-child{border-bottom:none;padding-bottom:0}
+    .bank-row span{font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.06em}
+    .bank-row strong{text-align:right;font-size:14px;color:#13243f}
+    .banking-status{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      margin-bottom:10px;
+    }
+    .banking-status.warn{
+      background:rgba(245,200,76,.18);
+      color:#8f6700;
+      border:1px solid rgba(245,200,76,.28);
+    }
+    .banking-copy{
+      margin:8px 0 0;
+      color:#50627a;
+      font-size:13px;
+      line-height:1.65;
+    }
+    .helper{
+      margin:8px 2px 0;
+      color:#51627a;
+      font-size:12px;
+      line-height:1.55;
+    }
+    .checkbox{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding:14px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:rgba(255,255,255,.88);
+      font-size:13px;
+      color:#32445e;
+      line-height:1.6;
+    }
+    .checkbox input{
+      margin-top:3px;
+      accent-color:var(--red);
+      width:18px;
+      height:18px;
+      flex:0 0 auto;
+    }
+    .proof-link{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      color:#0f66c8;
+      font-weight:800;
+      text-decoration:none;
+    }
+    .proof-link:hover{text-decoration:underline}
+    .empty{
+      text-align:center;
+      color:var(--muted);
+      padding:20px 14px;
+      border-radius:18px;
+      border:1px dashed rgba(15,23,42,.14);
+      background:rgba(255,255,255,.74);
+      font-size:13px;
+      font-weight:600;
+    }
+    @media (max-width:920px){
+      .layout{grid-template-columns:1fr}
+    }
+    @media (max-width:640px){
+      body{padding:12px}
+      .top,.hero,.card{border-radius:24px}
+      .btn{width:100%}
+      .actions{width:100%}
+      .actions a{flex:1}
+      .bank-row{flex-direction:column}
+      .bank-row strong{text-align:left}
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div>
+        <h1>Checkout</h1>
+        <p>Confirm your Kagie payment details so your application pack and support services can move into verification.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="cart.html">Back to cart</a>
+        <a class="btn" href="home.html">Home</a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h2 id="heroTitle">Secure checkout</h2>
+      <p id="heroText">We are loading your Kagie order and payment guidance.</p>
+      <div class="meta">
+        <span id="totalMeta">R0 total</span>
+        <span id="itemMeta">0 items</span>
+        <span id="statusMeta">Awaiting payment</span>
+      </div>
+    </section>
+
+    <section class="layout">
+      <section class="card">
+        <div class="head">
+          <div>
+            <h3>Order Summary</h3>
+            <p>Everything here will be attached to this checkout and then pushed into Kagie's live processing flow.</p>
+          </div>
+        </div>
+        <div class="list" id="summary"></div>
+        <div class="head" style="margin-top:18px">
+          <div>
+            <h3>Before You Confirm</h3>
+            <p>Use this quick checklist so the payment verification team receives the right order and reference.</p>
+          </div>
+        </div>
+        <div class="checks" id="orderChecklist"></div>
+      </section>
+
+      <div class="stack">
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>How To Pay</h3>
+              <p>Select your payment method to see the correct next steps for Kagie's manual verification flow.</p>
+            </div>
+          </div>
+          <label class="label" for="method">Payment method</label>
+          <select class="field" id="method">
+            <option value="EFT">EFT</option>
+            <option value="Cash Deposit">Cash Deposit</option>
+            <option value="Card Transfer">Card Transfer</option>
+            <option value="Mobile Payment">Mobile Payment</option>
+          </select>
+          <div class="guide-box" id="methodGuide" style="margin-top:12px"></div>
+          <div class="bank-box" id="bankingPanel" style="margin-top:12px"></div>
+          <div class="helper" id="supportLine"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Payment Confirmation</h3>
+              <p>Capture the payer details and the exact banking reference Kagie should use while checking your payment.</p>
+            </div>
+          </div>
+          <div class="form-stack">
+            <div>
+              <label class="label" for="payerName">Payer full name</label>
+              <input class="field" id="payerName" type="text" placeholder="Payer full name" />
+            </div>
+            <div>
+              <label class="label" for="payerPhone">Payer phone number</label>
+              <input class="field" id="payerPhone" type="text" placeholder="Payer phone number" />
+            </div>
+            <div>
+              <label class="label" for="reference">Payment reference</label>
+              <input class="field" id="reference" type="text" placeholder="Payment reference or proof number" />
+              <div class="helper" id="referenceHint"></div>
+            </div>
+            <div>
+              <label class="label" for="note">Payment note</label>
+              <textarea class="field" id="note" placeholder="Optional note for Kagie payment verification"></textarea>
+            </div>
+            <div class="notice-box">
+              <strong style="display:block;font:800 15px 'Poppins',sans-serif;margin-bottom:6px;color:#18385f">Proof of payment</strong>
+              <div style="color:#51627a;font-size:13px;line-height:1.65">
+                If Kagie asks for proof, upload it afterwards from the documents page under the document type <strong>Proof of Payment</strong>.
+              </div>
+              <div style="margin-top:10px">
+                <a class="proof-link" href="upload.html">Open Upload Documents</a>
+              </div>
+            </div>
+            <label class="checkbox" for="confirmCheck">
+              <input id="confirmCheck" type="checkbox" />
+              <span>I confirm that I used the correct Kagie payment reference and I understand that my payment will stay on <strong>Pending Verification</strong> until the team checks it.</span>
+            </label>
+            <div class="helper" id="paymentNotice"></div>
+            <button class="mini green" id="confirmBtn" type="button">Confirm payment</button>
+          </div>
+        </section>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Forgot Student Number</title>
+  <script src="../js/data.js"></script>
+  <script src="../js/backend.js"></script>
+  <script>
+    const currentUser = window.KagieAPI?.currentUser?.();
+    if (!currentUser || currentUser.role !== "user") {
+      window.location.href = "../login.html";
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#f4f7fb;--text:#10203a;--muted:#5f718c;--yellow:#f5c84c;--blue:#2fa4ff;--glass:rgba(255,255,255,.84);--line:rgba(15,23,42,.08);--shadow:0 22px 48px rgba(15,23,42,.12)}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);background:radial-gradient(900px 520px at 10% 0%, rgba(245,200,76,.20), transparent 60%),radial-gradient(900px 520px at 90% 10%, rgba(47,164,255,.12), transparent 60%),var(--bg)}
+    .shell{width:min(460px,100%);margin:0 auto;display:grid;gap:16px}
+    .topbar,.hero,.card{background:var(--glass);border:1px solid rgba(255,255,255,.72);border-radius:26px;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+    .topbar{background:linear-gradient(135deg,var(--yellow),#efd977);color:#6b5000;padding:18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .topbar h1{margin:0;font:800 22px "Poppins",sans-serif}
+    .nav{display:flex;gap:10px;flex-wrap:wrap}
+    .nav a{padding:11px 14px;border-radius:14px;color:#6b5000;text-decoration:none;font-weight:800;background:rgba(255,255,255,.36);border:1px solid rgba(255,255,255,.48)}
+    .hero{padding:22px;background:linear-gradient(135deg, rgba(245,200,76,.98), rgba(47,164,255,.84));color:#fff}
+    .hero h2{margin:0;font:800 28px "Poppins",sans-serif;line-height:1.05}
+    .hero p{margin:10px 0 0;font-size:14px;line-height:1.65;color:rgba(255,255,255,.94)}
+    .pill{display:inline-flex;margin-top:16px;padding:10px 13px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);font-size:13px;font-weight:800}
+    .card{padding:18px}
+    .card h3{margin:0 0 8px;font:800 18px "Poppins",sans-serif}
+    .card p{margin:0 0 14px;color:var(--muted);font-size:13px;line-height:1.6}
+    .form{display:grid;gap:12px}
+    .field{display:grid;gap:6px}
+    .field label{font-size:12px;font-weight:800;color:var(--muted)}
+    .field input,.field textarea{width:100%;border:1px solid var(--line);border-radius:16px;background:#fff;padding:14px;font:inherit;outline:none;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+    .field textarea{min-height:110px;resize:vertical}
+    .field input:focus,.field textarea:focus{border-color:rgba(47,164,255,.55);box-shadow:0 0 0 4px rgba(47,164,255,.10)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+    .btn{border:none;border-radius:16px;padding:14px 16px;font:800 14px "Roboto",sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+    .primary{background:linear-gradient(135deg,var(--yellow),#efd977);color:#6b5000}
+    .ghost{background:#fff;color:var(--text);box-shadow:0 10px 20px rgba(15,23,42,.08)}
+    .msg{min-height:20px;margin-top:8px;font-size:14px;font-weight:700}
+    .msg.ok{color:#15803d}.msg.err{color:#b91c1c}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <h1>Forgot Student Number</h1>
+      <div class="nav">
+        <a href="index.html">Services</a>
+        <a href="../cart.html">Cart</a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h2>Recover the student number tied to your institution account.</h2>
+      <p>Kagie records your identity and contact details so an assistant can help verify your account and prepare the correct student-number recovery process.</p>
+      <div class="pill" id="pricePill">Loading price...</div>
+    </section>
+
+    <section class="card">
+      <h3>Recovery details</h3>
+      <p>This works best when the name and ID details below match the institution record you used when applying.</p>
+      <form class="form" id="serviceForm">
+        <div class="field">
+          <label for="institution">Institution</label>
+          <input id="institution" name="institution" type="text" placeholder="e.g. UJ" required />
+        </div>
+        <div class="field">
+          <label for="fullName">Full name</label>
+          <input id="fullName" name="fullName" type="text" placeholder="Enter your full name" required />
+        </div>
+        <div class="field">
+          <label for="idNumber">South African ID number</label>
+          <input id="idNumber" name="idNumber" type="text" placeholder="Enter your ID number" required />
+        </div>
+        <div class="field">
+          <label for="phone">Cellphone</label>
+          <input id="phone" name="phone" type="text" placeholder="Phone number for follow-up" required />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" placeholder="Email on your application" />
+        </div>
+        <div class="field">
+          <label for="note">Extra note</label>
+          <textarea id="note" name="note" placeholder="Add any reference, year, or portal detail that may help."></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn primary" type="submit">Add service to cart</button>
+          <a class="btn ghost" href="../home.html">Back home</a>
+        </div>
+        <div class="msg" id="message" aria-live="polite"></div>
+      </form>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      const api = window.KagieAPI;
+      const user = api.requireRole("user");
+      const service = (api.getServiceCatalog() || []).find((item) => item.code === "forgot_student_number") || { name: "Forgot Student Number", price: 10 };
+      const form = document.getElementById("serviceForm");
+      const message = document.getElementById("message");
+      const profile = api.getProfile(user.id) || {};
+
+      document.getElementById("pricePill").textContent = `${service.name} | R${Number(service.price || 0).toLocaleString("en-ZA")}`;
+      document.getElementById("fullName").value = profile.fullName || user.fullName || "";
+      document.getElementById("idNumber").value = profile.idNumber || "";
+      document.getElementById("phone").value = profile.phone || user.phone || "";
+      document.getElementById("email").value = profile.email || user.email || "";
+
+      function setMessage(text, type) {
+        message.textContent = text || "";
+        message.className = type ? `msg ${type}` : "msg";
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        setMessage("");
+        const formData = new FormData(form);
+        const payload = Object.fromEntries(formData.entries());
+
+        if (!payload.institution || !payload.fullName || !payload.idNumber || !payload.phone) {
+          setMessage("Complete the required fields first.", "err");
+          return;
+        }
+
+        api.addCartItem({
+          type: "service",
+          serviceCode: "forgot_student_number",
+          serviceName: service.name,
+          servicePrice: service.price,
+          price: service.price,
+          institution: payload.institution.trim(),
+          fullName: payload.fullName.trim(),
+          idNumber: payload.idNumber.trim(),
+          phone: payload.phone.trim(),
+          email: payload.email.trim(),
+          note: payload.note.trim()
+        }, user.id);
+
+        setMessage("Service added to cart. Redirecting...", "ok");
+        setTimeout(() => {
+          window.location.href = "../cart.html";
+        }, 500);
+      });
+    })();
+  </script>
+</body>
+</html>

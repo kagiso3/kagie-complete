@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/data.js"></script>
+  <script src="js/backend.js"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/dashboard-page.js"></script>
+  <script>
+    if (!window.KagieDashboardPageLoaded) {
+      const currentUser = window.KagieAPI?.currentUser?.();
+      if (!currentUser || currentUser.role !== "user") {
+        window.location.href = "login.html";
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f4f7fb;--text:#10203a;--muted:#5f718c;--red:#c90000;--blue:#2fa4ff;--orange:#e45a2a;--yellow:#f5c84c;--green:#14945b;
+      --glass:rgba(255,255,255,.84);--line:rgba(15,23,42,.08);--shadow:0 22px 48px rgba(15,23,42,.12);--soft:0 10px 22px rgba(15,23,42,.08)
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);
+      background:
+        radial-gradient(1000px 520px at 12% 0%, rgba(47,164,255,.15), transparent 60%),
+        radial-gradient(1000px 560px at 88% 8%, rgba(245,200,76,.16), transparent 60%),
+        radial-gradient(1000px 520px at 50% 100%, rgba(228,90,42,.08), transparent 60%),
+        var(--bg)
+    }
+    .shell{width:min(1360px,100%);margin:0 auto;display:grid;gap:16px}
+    .topbar,.hero,.stat,.card{background:var(--glass);border:1px solid rgba(255,255,255,.72);border-radius:28px;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+    .topbar{background:linear-gradient(135deg,var(--red),#a70000);color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .topbar h1{margin:0;font:800 24px "Poppins",sans-serif}
+    .topbar p{margin:4px 0 0;font-size:13px;opacity:.92}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn,.mini{border:none;border-radius:16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-family:"Roboto",sans-serif;font-weight:800;transition:transform .18s ease}
+    .btn:hover,.mini:hover{transform:translateY(-2px)}
+    .btn{height:44px;padding:0 16px;background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.18)}
+    .mini{height:36px;padding:0 12px;font-size:13px}
+    .blue{background:linear-gradient(135deg,var(--blue),#67caff);color:#fff}
+    .orange{background:linear-gradient(135deg,var(--orange),#ff986f);color:#fff}
+    .green{background:linear-gradient(135deg,var(--green),#44d684);color:#fff}
+    .yellow{background:linear-gradient(135deg,var(--yellow),#efd977);color:#6b5000}
+    .hero{padding:22px;background:linear-gradient(135deg, rgba(47,164,255,.96), rgba(201,0,0,.88));color:#fff}
+    .hero-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+    .hero h2{margin:0;font:800 30px "Poppins",sans-serif;line-height:1.03}
+    .hero p{margin:10px 0 0;max-width:720px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.92)}
+    .hero-pill{padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);font-size:13px;font-weight:900}
+    .progress-wrap{display:grid;gap:10px;margin-top:18px}
+    .progress-bar{height:14px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden;border:1px solid rgba(255,255,255,.12)}
+    .progress-fill{height:100%;width:0;background:linear-gradient(135deg,#fff,var(--yellow));border-radius:999px}
+    .stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+    .stat{padding:18px}
+    .label{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:8px}
+    .value{font:800 30px "Poppins",sans-serif;line-height:1}
+    .sub{margin-top:8px;font-size:12px;color:var(--muted);line-height:1.5}
+    .layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(360px,.92fr);gap:16px}
+    .stack,.list{display:grid;gap:16px}
+    .card{padding:18px}
+    .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .head h3{margin:0;font:800 19px "Poppins",sans-serif}
+    .head p{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.6}
+    .item{background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:20px;padding:15px;box-shadow:var(--soft);display:grid;gap:12px}
+    .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .title{font-size:16px;font-weight:900}
+    .meta{font-size:13px;color:var(--muted);line-height:1.6}
+    .chips,.action-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .chip{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;font-size:11px;font-weight:900;border:1px solid transparent}
+    .c-blue{background:rgba(47,164,255,.12);color:var(--blue);border-color:rgba(47,164,255,.18)}
+    .c-yellow{background:rgba(245,200,76,.18);color:#8c6b00;border-color:rgba(245,200,76,.25)}
+    .c-red{background:rgba(201,0,0,.12);color:var(--red);border-color:rgba(201,0,0,.16)}
+    .c-orange{background:rgba(228,90,42,.12);color:var(--orange);border-color:rgba(228,90,42,.16)}
+    .c-green{background:rgba(20,148,91,.12);color:var(--green);border-color:rgba(20,148,91,.18)}
+    .empty{text-align:center;padding:18px 12px;color:var(--muted);font-size:13px;font-weight:700}
+    .timeline{border-left:2px solid rgba(47,164,255,.18);padding-left:14px;display:grid;gap:12px}
+    .timeline-item{position:relative}
+    .timeline-item::before{content:"";position:absolute;left:-21px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 4px rgba(47,164,255,.12)}
+    @media (max-width:1180px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.layout{grid-template-columns:1fr}}
+    @media (max-width:720px){body{padding:12px}.stats{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <h1>Student Dashboard</h1>
+        <p>Track your Kagie application, payment progress, documents, deadlines, and support updates in one place.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="home.html">Home</a>
+        <button class="btn" id="logoutBtn" type="button">Logout</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-row">
+        <div>
+          <h2 id="heroTitle">Hello</h2>
+          <p id="heroText">We are loading your application progress and support history.</p>
+        </div>
+        <div class="hero-pill" id="heroPill">Loading...</div>
+      </div>
+      <div class="progress-wrap">
+        <div class="row">
+          <strong>Readiness</strong>
+          <span id="progressLabel">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+    </section>
+
+    <section class="stats" id="stats"></section>
+
+    <section class="layout">
+      <div class="stack">
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Latest Application</h3>
+              <p>Your main application snapshot, payment state, and assistant assignment.</p>
+            </div>
+          </div>
+          <div class="list" id="latest"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Application History</h3>
+              <p>All Kagie applications saved under your account.</p>
+            </div>
+          </div>
+          <div class="list" id="applications"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Timeline</h3>
+              <p>Status changes and key events from your latest application.</p>
+            </div>
+          </div>
+          <div class="timeline" id="timeline"></div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Smart Alerts</h3>
+              <p>Kagie guidance based on your current application and notifications.</p>
+            </div>
+          </div>
+          <div class="list" id="alerts"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Pending Tasks</h3>
+              <p>What you still need to complete or wait for.</p>
+            </div>
+          </div>
+          <div class="list" id="tasks"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Documents</h3>
+              <p>Your uploaded documents and latest review state.</p>
+            </div>
+          </div>
+          <div class="list" id="documents"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Notifications and Updates</h3>
+              <p>Unread notices, deadlines, and Kagie update feed items.</p>
+            </div>
+          </div>
+          <div class="list" id="notifications"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Assistant Activity</h3>
+              <p>Recent support messages and internal note activity affecting your application.</p>
+            </div>
+          </div>
+          <div class="list" id="assistantActivity"></div>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      if (window.KagieDashboardPageLoaded) return;
+      const api = window.KagieAPI;
+      const user = api.requireRole("user");
+      const summary = api.getDashboardSummary(user.id);
+      const updates = api.getUpdateFeed(user.id);
+      const supportMessages = api.getSupportMessages(`support_${user.id}`).filter((item) => item.senderRole !== "user").slice(-4).reverse();
+      const $ = (id) => document.getElementById(id);
+
+      function safe(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[char]));
+      }
+
+      function fmtDate(value) {
+        if (!value) return "No date";
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? "No date" : date.toLocaleString("en-ZA", { year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
+      }
+
+      function fmtMoney(value) {
+        return `R${Number(value || 0).toLocaleString("en-ZA")}`;
+      }
+
+      function chip(status) {
+        const text = String(status || "").toLowerCase();
+        if (text.includes("accept") || text.includes("approve") || text.includes("verify")) return "c-green";
+        if (text.includes("reject")) return "c-red";
+        if (text.includes("missing") || text.includes("pending")) return "c-yellow";
+        if (text.includes("draft") || text.includes("review") || text.includes("processing")) return "c-orange";
+        return "c-blue";
+      }
+
+      const latest = summary.latestApplication || {};
+      const readiness = Number(summary.readiness || 0);
+      $("heroTitle").textContent = `Hello, ${user.fullName || "Student"}`;
+      $("heroText").textContent = latest.status ? `Your latest application is currently "${latest.status}".` : "Start filling out your Kagie application to unlock tracking.";
+      $("heroPill").textContent = `${summary.unreadNotifications || 0} unread notifications`;
+      $("progressLabel").textContent = `${readiness}%`;
+      $("progressFill").style.width = `${readiness}%`;
+
+      const stats = [
+        ["Applications", summary.applications.length, "Saved application records"],
+        ["Documents", summary.documents.length, "Uploaded support files"],
+        ["Deadlines", summary.deadlines.length, "Institution deadlines detected"],
+        ["Cart total", fmtMoney(summary.cartTotal), "Current cart value"],
+        ["Unread", summary.unreadNotifications, "Notifications needing attention"]
+      ];
+
+      $("stats").innerHTML = stats.map(([label, value, note]) => `
+        <div class="stat">
+          <div class="label">${safe(label)}</div>
+          <div class="value">${safe(value)}</div>
+          <div class="sub">${safe(note)}</div>
+        </div>
+      `).join("");
+
+      $("latest").innerHTML = latest.id ? `
+        <div class="item">
+          <div class="row">
+            <div>
+              <div class="title">${safe(latest.applicant || user.fullName || "Latest application")}</div>
+              <div class="meta">Application ID: ${safe(latest.id)}<br>Submitted: ${safe(fmtDate(latest.submittedAt || latest.createdAt))}<br>Updated: ${safe(fmtDate(latest.updatedAt || latest.createdAt))}</div>
+            </div>
+            <div class="chips">
+              <span class="chip ${chip(latest.status)}">${safe(latest.status || "Draft")}</span>
+              <span class="chip ${chip(latest.paymentStatus)}">${safe(latest.paymentStatus || "Payment Pending")}</span>
+            </div>
+          </div>
+          <div class="meta">Institutions: ${safe((latest.institutions || []).length)} | Pack: ${safe(latest.package?.name || latest.package?.packName || "Not selected")} | Payment amount: ${safe(fmtMoney(latest.payment?.amount || 0))}</div>
+          <div class="action-row">
+            <a class="mini blue" href="forms.html">Update application</a>
+            <a class="mini orange" href="upload.html">Manage documents</a>
+            <a class="mini green" href="notifications.html">Open notifications</a>
+          </div>
+        </div>
+      ` : '<div class="empty">No application snapshot is available yet.</div>';
+
+      $("applications").innerHTML = summary.applications.length ? summary.applications.map((app) => `
+        <div class="item">
+          <div class="row">
+            <div>
+              <div class="title">${safe(app.applicant || user.fullName || "Application")}</div>
+              <div class="meta">Application ID: ${safe(app.id)}<br>Updated: ${safe(fmtDate(app.updatedAt || app.createdAt))}<br>Institutions: ${safe((app.institutions || []).length)}</div>
+            </div>
+            <div class="chips">
+              <span class="chip ${chip(app.status)}">${safe(app.status || "Draft")}</span>
+              <span class="chip ${chip(app.paymentStatus)}">${safe(app.paymentStatus || "Payment Pending")}</span>
+            </div>
+          </div>
+        </div>
+      `).join("") : '<div class="empty">No applications found yet.</div>';
+
+      $("timeline").innerHTML = (latest.timeline || []).length ? latest.timeline.map((entry) => `
+        <div class="timeline-item">
+          <div class="title">${safe(entry.title || "Timeline event")}</div>
+          <div class="meta">${safe(fmtDate(entry.createdAt))} | ${safe(entry.status || "Update")}</div>
+        </div>
+      `).join("") : '<div class="empty">No timeline history yet.</div>';
+
+      $("alerts").innerHTML = summary.smartAlerts.length ? summary.smartAlerts.map((alert) => `
+        <div class="item">
+          <div class="title">${safe(alert)}</div>
+        </div>
+      `).join("") : '<div class="empty">No smart alerts right now.</div>';
+
+      $("tasks").innerHTML = summary.pendingTasks.length ? summary.pendingTasks.map((task) => `
+        <div class="item">
+          <div class="title">${safe(task)}</div>
+        </div>
+      `).join("") : '<div class="empty">You have no pending tasks at the moment.</div>';
+
+      const reviewMap = new Map((summary.reviews || []).map((review) => [review.doc.id, review.review]));
+      $("documents").innerHTML = summary.documents.length ? summary.documents.map((doc) => {
+        const review = reviewMap.get(doc.id);
+        return `
+          <div class="item">
+            <div class="row">
+              <div>
+                <div class="title">${safe(doc.name || "Document")}</div>
+                <div class="meta">Category: ${safe(doc.category || "General")}<br>Uploaded: ${safe(fmtDate(doc.createdAt))}</div>
+              </div>
+              <div class="chips">
+                <span class="chip ${chip(doc.status)}">${safe(doc.status || "Pending Review")}</span>
+                ${review?.status ? `<span class="chip ${chip(review.status)}">${safe(review.status)}</span>` : ""}
+              </div>
+            </div>
+            <div class="meta">${safe(review?.comment || "No review comment yet.")}</div>
+          </div>
+        `;
+      }).join("") : '<div class="empty">No documents uploaded yet.</div>';
+
+      const notificationCards = [
+        ...summary.notifications.map((notification) => ({
+          title: notification.title,
+          meta: `${fmtDate(notification.createdAt)} | ${notification.read ? "Read" : "Unread"}`
+        })),
+        ...summary.deadlines.slice(0, 3).map((deadline) => ({
+          title: `Deadline: ${deadline.institutionName}`,
+          meta: deadline.deadline
+        })),
+        ...updates.slice(0, 3).map((update) => ({
+          title: update.title,
+          meta: update.ctaLabel || update.type || "Update"
+        }))
+      ].slice(0, 8);
+
+      $("notifications").innerHTML = notificationCards.length ? notificationCards.map((item) => `
+        <div class="item">
+          <div class="title">${safe(item.title || "Update")}</div>
+          <div class="meta">${safe(item.meta || "")}</div>
+        </div>
+      `).join("") : '<div class="empty">No notifications or updates yet.</div>';
+
+      const activityItems = [
+        ...supportMessages.map((message) => ({
+          title: `Support: ${message.senderName || "Assistant"}`,
+          text: message.text || "",
+          date: fmtDate(message.createdAt)
+        })),
+        ...summary.notes.slice(0, 3).map((note) => ({
+          title: "Application note added",
+          text: note.text || "",
+          date: fmtDate(note.createdAt)
+        }))
+      ].slice(0, 8);
+
+      $("assistantActivity").innerHTML = activityItems.length ? activityItems.map((item) => `
+        <div class="item">
+          <div class="title">${safe(item.title)}</div>
+          <div class="meta">${safe(item.text)}<br>${safe(item.date)}</div>
+        </div>
+      `).join("") : '<div class="empty">No assistant activity yet.</div>';
+
+      $("logoutBtn").addEventListener("click", async () => {
+        try {
+          await Promise.resolve(api.logout());
+        } finally {
+          window.location.href = "login.html";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

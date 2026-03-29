@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Assistant Applicant View</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/backend.js"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/assistant-applicant-view-page.js"></script>
+  <script>
+    const currentUser = window.KagieAPI?.currentUser?.();
+    if (currentUser && currentUser.role !== "assistant_admin") {
+      window.location.href = "../login.html";
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f4f7fb;--text:#10203a;--muted:#5f718c;--red:#c90000;--blue:#2fa4ff;--orange:#e45a2a;--yellow:#f5c84c;--green:#14945b;
+      --glass:rgba(255,255,255,.84);--line:rgba(15,23,42,.08);--shadow:0 22px 48px rgba(15,23,42,.12);--soft:0 10px 22px rgba(15,23,42,.08)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);background:radial-gradient(1000px 520px at 12% 0%, rgba(47,164,255,.15), transparent 60%),radial-gradient(1000px 560px at 88% 8%, rgba(245,200,76,.16), transparent 60%),var(--bg)}
+    .shell{width:min(1320px,100%);margin:0 auto;display:grid;gap:16px}
+    .topbar,.hero,.card{background:var(--glass);border:1px solid rgba(255,255,255,.72);border-radius:28px;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+    .topbar{background:linear-gradient(135deg,var(--red),#a70000);color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .topbar h1{margin:0;font:800 24px "Poppins",sans-serif}
+    .topbar p{margin:4px 0 0;font-size:13px;opacity:.92}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn,.mini{border:none;border-radius:16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-family:"Roboto",sans-serif;font-weight:800;transition:transform .18s ease}
+    .btn:hover,.mini:hover{transform:translateY(-2px)}
+    .btn{height:44px;padding:0 16px;background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.18)}
+    .mini{height:36px;padding:0 12px;font-size:13px}
+    .blue{background:linear-gradient(135deg,var(--blue),#67caff);color:#fff}
+    .orange{background:linear-gradient(135deg,var(--orange),#ff986f);color:#fff}
+    .green{background:linear-gradient(135deg,var(--green),#44d684);color:#fff}
+    .yellow{background:linear-gradient(135deg,var(--yellow),#efd977);color:#6b5000}
+    .red{background:linear-gradient(135deg,var(--red),#ef4444);color:#fff}
+    .hero{padding:22px;background:linear-gradient(135deg, rgba(47,164,255,.96), rgba(201,0,0,.88));color:#fff}
+    .hero-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+    .hero h2{margin:0;font:800 30px "Poppins",sans-serif;line-height:1.03}
+    .hero p{margin:10px 0 0;font-size:14px;line-height:1.7;color:rgba(255,255,255,.92)}
+    .chips{display:flex;gap:10px;flex-wrap:wrap}
+    .chip{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;font-size:11px;font-weight:900;border:1px solid transparent}
+    .c-blue{background:rgba(47,164,255,.12);color:var(--blue);border-color:rgba(47,164,255,.18)}
+    .c-yellow{background:rgba(245,200,76,.18);color:#8c6b00;border-color:rgba(245,200,76,.25)}
+    .c-red{background:rgba(201,0,0,.12);color:var(--red);border-color:rgba(201,0,0,.16)}
+    .c-orange{background:rgba(228,90,42,.12);color:var(--orange);border-color:rgba(228,90,42,.16)}
+    .c-green{background:rgba(20,148,91,.12);color:var(--green);border-color:rgba(20,148,91,.18)}
+    .layout{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);gap:16px}
+    .stack,.list,.form{display:grid;gap:16px}
+    .card{padding:18px}
+    .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .head h3{margin:0;font:800 19px "Poppins",sans-serif}
+    .head p{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.6}
+    .details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .box,.item{background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:20px;padding:15px;box-shadow:var(--soft)}
+    .box .label{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:6px}
+    .box .value{font-size:14px;font-weight:800;line-height:1.55;word-break:break-word}
+    .item{display:grid;gap:12px}
+    .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .title{font-size:16px;font-weight:900}
+    .meta{font-size:13px;color:var(--muted);line-height:1.6}
+    .field{display:grid;gap:6px}
+    .field label{font-size:12px;font-weight:800;color:var(--muted)}
+    .field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:16px;background:#fff;padding:14px;font:inherit;outline:none;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+    .field textarea{min-height:110px;resize:vertical}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(47,164,255,.55);box-shadow:0 0 0 4px rgba(47,164,255,.10)}
+    .action-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .msg{min-height:20px;font-size:14px;font-weight:700}
+    .msg.ok{color:#15803d}.msg.err{color:#b91c1c}
+    .empty{text-align:center;padding:18px 12px;color:var(--muted);font-size:13px;font-weight:700}
+    @media (max-width:1120px){.layout{grid-template-columns:1fr}.details{grid-template-columns:1fr}}
+    @media (max-width:720px){body{padding:12px}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <h1>Applicant Workspace</h1>
+        <p>Assistant-only view for document review, notes, status updates, learner support, and callback follow-up.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="dashboard.html">Back to dashboard</a>
+        <button class="btn" id="logoutBtn" type="button">Logout</button>
+      </div>
+    </header>
+
+    <section class="hero" id="hero"></section>
+
+    <section class="layout" id="layout" hidden>
+      <div class="stack">
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Applicant Details</h3>
+              <p>Learner profile and academic context saved in Kagie.</p>
+            </div>
+          </div>
+          <div class="details" id="details"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Institutions and Choices</h3>
+              <p>Current institution list linked to the learner application.</p>
+            </div>
+          </div>
+          <div class="list" id="institutions"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Documents</h3>
+              <p>Approve, reject, or flag documents as missing while reviewing the learner pack.</p>
+            </div>
+          </div>
+          <div class="list" id="documents"></div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Assistant Controls</h3>
+              <p>Update statuses and keep a clean internal note history.</p>
+            </div>
+          </div>
+          <form class="form" id="controlForm">
+            <div class="field"><label for="statusSelect">Application status</label><select id="statusSelect"><option>Under Review</option><option>Missing Documents</option><option>Ready to Apply</option><option>Applied</option><option>Pending Feedback</option><option>Accepted</option><option>Rejected</option><option>Application being processed</option></select></div>
+            <div class="field"><label for="noteInput">Internal note</label><textarea id="noteInput" placeholder="Add an internal note for other Kagie staff."></textarea></div>
+            <div class="action-row">
+              <button class="mini green" type="submit">Save update</button>
+              <button class="mini orange" type="button" data-status="Under Review">Review</button>
+              <button class="mini yellow" type="button" data-status="Missing Documents">Missing docs</button>
+              <button class="mini blue" type="button" data-status="Ready to Apply">Ready</button>
+              <button class="mini green" type="button" data-status="Applied">Applied</button>
+            </div>
+            <div class="msg" id="controlMsg" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Internal Notes</h3>
+              <p>Recent notes from assistants and admins.</p>
+            </div>
+          </div>
+          <div class="list" id="notes"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Support Thread</h3>
+              <p>Reply directly to the learner from inside Kagie.</p>
+            </div>
+          </div>
+          <div class="list" id="support"></div>
+          <form class="form" id="supportForm">
+            <div class="field"><label for="supportMessage">Reply to learner</label><textarea id="supportMessage" placeholder="Type your update or question."></textarea></div>
+            <div class="action-row">
+              <button class="mini blue" type="submit">Send reply</button>
+            </div>
+            <div class="msg" id="supportMsg" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Callback Requests</h3>
+              <p>Follow up on learner callback requests linked to this applicant.</p>
+            </div>
+          </div>
+          <div class="list" id="callbacks"></div>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (() => { if (window.KagieAssistantApplicantViewPageLoaded) return;
+      const api = window.KagieAPI;
+      const assistant = api.requireRole("assistant_admin");
+      const appId = new URLSearchParams(window.location.search).get("id");
+      const $ = (id) => document.getElementById(id);
+
+      const el = {
+        hero: $("hero"),
+        layout: $("layout"),
+        details: $("details"),
+        institutions: $("institutions"),
+        documents: $("documents"),
+        statusSelect: $("statusSelect"),
+        noteInput: $("noteInput"),
+        controlForm: $("controlForm"),
+        controlMsg: $("controlMsg"),
+        notes: $("notes"),
+        support: $("support"),
+        supportForm: $("supportForm"),
+        supportMessage: $("supportMessage"),
+        supportMsg: $("supportMsg"),
+        callbacks: $("callbacks"),
+        logoutBtn: $("logoutBtn")
+      };
+
+      function safe(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[char]));
+      }
+
+      function fmtDate(value) {
+        if (!value) return "No date";
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? "No date" : date.toLocaleString("en-ZA", { year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
+      }
+
+      function chip(status) {
+        const text = String(status || "").toLowerCase();
+        if (text.includes("accept") || text.includes("approve") || text.includes("resolve")) return "c-green";
+        if (text.includes("reject")) return "c-red";
+        if (text.includes("missing") || text.includes("pending")) return "c-yellow";
+        if (text.includes("draft") || text.includes("review")) return "c-orange";
+        return "c-blue";
+      }
+
+      function setMessage(node, text, type) {
+        node.textContent = text || "";
+        node.className = type ? `msg ${type}` : "msg";
+      }
+
+      function detailBoxes(pairs) {
+        return pairs.map(([label, value]) => `
+          <div class="box">
+            <div class="label">${safe(label)}</div>
+            <div class="value">${safe(value || "-")}</div>
+          </div>
+        `).join("");
+      }
+
+      function loadApp() {
+        const app = appId ? api.getApplication(appId) : null;
+        if (!app) {
+          el.hero.innerHTML = '<div class="hero-row"><div><h2>Application not found</h2><p>This applicant record could not be loaded.</p></div></div>';
+          return null;
+        }
+        if (app.assignedAssistantId !== assistant.id) {
+          el.hero.innerHTML = '<div class="hero-row"><div><h2>Access blocked</h2><p>This application is not assigned to your assistant account.</p></div></div>';
+          return null;
+        }
+        return app;
+      }
+
+      function render() {
+        const app = loadApp();
+        if (!app) return;
+
+        const profile = api.getProfile(app.userId) || {};
+        const user = api.getUserById(app.userId) || {};
+        const docs = api.getDocuments(app.userId);
+        const notes = api.getNotes(app.id);
+        const reviews = api.getDocumentReviewsForUser(app.userId);
+        const reviewMap = new Map(reviews.map((review) => [review.doc.id, review.review]));
+        const threadId = `support_${app.userId}`;
+        const supportMessages = api.getSupportMessages(threadId);
+        const callbackItems = api.getCallRequests().filter((item) => item.requesterId === app.userId);
+
+        el.layout.hidden = false;
+        el.hero.innerHTML = `
+          <div class="hero-row">
+            <div>
+              <h2>${safe(user.fullName || app.applicant || "Applicant")}</h2>
+              <p>Email: ${safe(user.email || "-")}<br>Application ID: ${safe(app.id)}<br>Assigned assistant: ${safe(assistant.fullName || "Assistant")}</p>
+            </div>
+            <div class="chips">
+              <span class="chip c-blue">${safe(app.status || "Under Review")}</span>
+              <span class="chip c-blue">${safe(app.paymentStatus || "Payment Pending")}</span>
+            </div>
+          </div>
+        `;
+
+        el.details.innerHTML = detailBoxes([
+          ["Full name", profile.fullName || user.fullName],
+          ["Email", profile.email || user.email],
+          ["Phone", profile.phone || user.phone],
+          ["ID number", profile.idNumber],
+          ["Province", profile.province],
+          ["School", profile.schoolName || profile.schoolAttended],
+          ["Average", profile.average],
+          ["Guardian", profile.guardianName],
+          ["Guardian phone", profile.guardianPhone],
+          ["Home language", profile.homeLanguage]
+        ]);
+
+        el.statusSelect.value = app.status || "Under Review";
+
+        el.institutions.innerHTML = (app.items || []).length ? app.items.map((item, index) => `
+          <div class="item">
+            <div class="title">${safe(index + 1)}. ${safe(item.institution || item.institutionName || "Institution")}</div>
+            <div class="meta">Province: ${safe(item.province || "-")}<br>Faculty: ${safe(item.faculty || "-")}<br>Choice 1: ${safe(item.choice1 || "-")}<br>Choice 2: ${safe(item.choice2 || "-")}<br>Choice 3: ${safe(item.choice3 || "-")}</div>
+          </div>
+        `).join("") : '<div class="empty">No institutions saved yet.</div>';
+
+        el.documents.innerHTML = docs.length ? docs.map((doc) => {
+          const review = reviewMap.get(doc.id);
+          return `
+            <div class="item">
+              <div class="row">
+                <div>
+                  <div class="title">${safe(doc.name || "Document")}</div>
+                  <div class="meta">Category: ${safe(doc.category || "General")}<br>Uploaded: ${safe(fmtDate(doc.createdAt))}</div>
+                </div>
+                <div class="chips">
+                  <span class="chip ${chip(doc.status)}">${safe(doc.status || "Pending Review")}</span>
+                  ${review?.status ? `<span class="chip ${chip(review.status)}">${safe(review.status)}</span>` : ""}
+                </div>
+              </div>
+              <div class="meta">${safe(review?.comment || "No review comment yet.")}</div>
+              <div class="action-row">
+                <button class="mini green" type="button" onclick="window.assistantReviewDoc('${safe(doc.id)}','Approved')">Approve</button>
+                <button class="mini yellow" type="button" onclick="window.assistantReviewDoc('${safe(doc.id)}','Pending Review')">Pending</button>
+                <button class="mini red" type="button" onclick="window.assistantReviewDoc('${safe(doc.id)}','Rejected')">Reject</button>
+              </div>
+            </div>
+          `;
+        }).join("") : '<div class="empty">No documents uploaded yet.</div>';
+
+        el.notes.innerHTML = notes.length ? notes.map((note) => `
+          <div class="item">
+            <div class="title">${safe(api.getUserById(note.assistantId)?.fullName || "Kagie staff")}</div>
+            <div class="meta">${safe(note.noteText || note.text || "-")}<br>${safe(fmtDate(note.createdAt))}</div>
+          </div>
+        `).join("") : '<div class="empty">No notes recorded yet.</div>';
+
+        el.support.innerHTML = supportMessages.length ? supportMessages.map((message) => `
+          <div class="item">
+            <div class="row">
+              <div>
+                <div class="title">${safe(message.senderName || "Support")}</div>
+                <div class="meta">${safe(message.text || "")}<br>${safe(fmtDate(message.createdAt))}</div>
+              </div>
+              <span class="chip ${message.senderRole === "user" ? "c-yellow" : "c-blue"}">${safe(message.senderRole || "message")}</span>
+            </div>
+          </div>
+        `).join("") : '<div class="empty">No support messages yet.</div>';
+
+        el.callbacks.innerHTML = callbackItems.length ? callbackItems.map((call) => `
+          <div class="item">
+            <div class="row">
+              <div>
+                <div class="title">${safe(call.requesterName || "Learner")}</div>
+                <div class="meta">${safe(call.phone || "-")}<br>Preferred time: ${safe(call.preferredTime || "-")}<br>${safe(fmtDate(call.createdAt))}</div>
+              </div>
+              <span class="chip ${chip(call.status)}">${safe(call.status || "Pending")}</span>
+            </div>
+            <div class="meta">${safe(call.reason || "No reason supplied.")}</div>
+            <div class="action-row">
+              <button class="mini yellow" type="button" onclick="window.assistantCallback('${safe(call.id)}','Contacted')">Contacted</button>
+              <button class="mini green" type="button" onclick="window.assistantCallback('${safe(call.id)}','Resolved')">Resolved</button>
+            </div>
+          </div>
+        `).join("") : '<div class="empty">No callback requests for this learner.</div>';
+      }
+
+      window.assistantReviewDoc = async function(docId, status) {
+        try {
+          await Promise.resolve(api.setDocumentReview(docId, { status, comment: `Updated by ${assistant.fullName}` }));
+          render();
+        } catch (error) {
+          alert(error.message || "Could not update document review.");
+        }
+      };
+
+      window.assistantCallback = async function(callId, status) {
+        try {
+          await Promise.resolve(api.updateCallRequest(callId, { status }));
+          render();
+        } catch (error) {
+          alert(error.message || "Could not update callback request.");
+        }
+      };
+
+      el.controlForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const app = loadApp();
+        if (!app) return;
+        setMessage(el.controlMsg, "");
+        try {
+          await Promise.resolve(api.updateApplication(app.id, { status: el.statusSelect.value }));
+          const note = el.noteInput.value.trim();
+          if (note) {
+            await Promise.resolve(api.addApplicationNote(app.id, note));
+            el.noteInput.value = "";
+          }
+          setMessage(el.controlMsg, "Assistant update saved.", "ok");
+          render();
+        } catch (error) {
+          setMessage(el.controlMsg, error.message || "Could not save update.", "err");
+        }
+      });
+
+      document.querySelectorAll("[data-status]").forEach((button) => {
+        button.addEventListener("click", () => {
+          el.statusSelect.value = button.getAttribute("data-status");
+        });
+      });
+
+      el.supportForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const app = loadApp();
+        if (!app) return;
+        const text = el.supportMessage.value.trim();
+        if (!text) {
+          setMessage(el.supportMsg, "Write a reply first.", "err");
+          return;
+        }
+        try {
+          await Promise.resolve(api.sendSupportMessage(`support_${app.userId}`, text));
+          el.supportMessage.value = "";
+          setMessage(el.supportMsg, "Reply sent to learner.", "ok");
+          render();
+        } catch (error) {
+          setMessage(el.supportMsg, error.message || "Could not send reply.", "err");
+        }
+      });
+
+      el.logoutBtn.addEventListener("click", async () => {
+        try {
+          await Promise.resolve(api.logout());
+        } finally {
+          window.location.href = "../login.html";
+        }
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>

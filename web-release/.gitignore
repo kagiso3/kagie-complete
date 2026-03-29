@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.expo/
+.turbo/
+.vscode/
+.DS_Store
+Thumbs.db
+coverage/
+*.log
+.env
+.env.local
+.env.*.local
+kagie-mobile/.expo/
+kagie-mobile/.env
+kagie-api/.env
+!packages/shared/dist/
+!packages/shared/dist/**

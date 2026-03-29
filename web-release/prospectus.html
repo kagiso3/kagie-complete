@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Prospectus</title>
+  <script src="js/backend.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/sa-catalog.js"></script>
+  <script>
+    const currentUser=window.KagieAPI?.currentUser?.();
+    if(!currentUser||currentUser.role!=="user"){window.location.href="login.html";}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#f4f7fb;--text:#0f172a;--muted:#64748b;--line:rgba(15,23,42,.08);--card:rgba(255,255,255,.84);--red:#c90000;--blue:#2fa4ff;--yellow:#f5c84c;--shadow:0 20px 44px rgba(15,23,42,.12);--soft:0 10px 22px rgba(15,23,42,.08)}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);background:radial-gradient(900px 520px at 15% 0%,rgba(47,164,255,.14),transparent 60%),radial-gradient(900px 560px at 85% 10%,rgba(245,200,76,.16),transparent 60%),var(--bg)}.shell{width:min(1040px,100%);margin:0 auto;display:grid;gap:16px}.top,.hero,.card{background:var(--card);border:1px solid rgba(255,255,255,.65);border-radius:26px;box-shadow:var(--shadow);backdrop-filter:blur(14px)}.top{padding:18px 20px;background:linear-gradient(135deg,var(--blue),#146fc4);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.top h1{margin:0;font:800 22px "Poppins",sans-serif}.top p{margin:5px 0 0;font-size:13px;opacity:.92}.actions{display:flex;gap:10px;flex-wrap:wrap}.btn,.mini,.filter{border:none;border-radius:14px;font:700 14px inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;transition:.18s ease}.btn{height:44px;padding:0 16px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.18);box-shadow:var(--soft)}.mini{height:36px;padding:0 12px;background:linear-gradient(135deg,var(--blue),#67caff);color:#fff}.filter{padding:10px 14px;background:#fff;border:1px solid var(--line);color:var(--text)}.filter.active{background:rgba(47,164,255,.1);color:var(--blue);border-color:rgba(47,164,255,.2)}.btn:hover,.mini:hover,.filter:hover{transform:translateY(-2px)}
+    .hero{padding:20px;background:linear-gradient(135deg,rgba(47,164,255,.96),rgba(245,200,76,.92));color:#fff}.hero h2{margin:0;font:800 30px "Poppins",sans-serif}.hero p{margin:8px 0 0;font-size:14px;line-height:1.6;color:rgba(255,255,255,.95)}.hero .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.hero .row span{padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);font-size:12px;font-weight:800}
+    .card{padding:18px}.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}.head h3{margin:0;font:800 18px "Poppins",sans-serif}.head p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.55}.filters,.list{display:flex;gap:10px;flex-wrap:wrap}.filters{margin-bottom:14px}.search{width:100%;border:1px solid var(--line);border-radius:16px;padding:14px;font:inherit;background:#fff;outline:none;box-shadow:0 8px 18px rgba(15,23,42,.04);margin-bottom:14px}.list{display:grid}.item{display:grid;grid-template-columns:84px 1fr auto;gap:14px;align-items:center;background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.04)}.logo{width:84px;height:84px;border-radius:20px;background:linear-gradient(135deg,#fff,#eef6ff);border:1px solid rgba(47,164,255,.12);display:grid;place-items:center;overflow:hidden;font:800 18px "Poppins",sans-serif;color:var(--blue)}.logo img{width:100%;height:100%;object-fit:contain;padding:10px}.item strong{font-size:16px}.item p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.6}.item-actions{display:grid;gap:8px}.badge{display:inline-flex;padding:8px 12px;border-radius:999px;font-size:11px;font-weight:900;background:rgba(245,200,76,.18);color:#8c6b00;border:1px solid rgba(245,200,76,.25)}.empty{text-align:center;color:var(--muted);padding:18px 12px;font-size:13px;font-weight:600}
+    @media (max-width:760px){body{padding:12px}.item{grid-template-columns:1fr}.btn{width:100%}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div><h1>Prospectus Guides</h1><p>Browse Kagie's institution guides and download a quick prospectus summary for planning.</p></div>
+      <div class="actions"><a class="btn" href="home.html">Home</a><a class="btn" href="Dashboard.html">Dashboard</a></div>
+    </header>
+    <section class="hero">
+      <h2>Explore tertiary options</h2>
+      <p>Search universities, universities of technology, and TVET colleges, then download a Kagie-ready guide with faculties, courses, and deadlines.</p>
+      <div class="row"><span id="countMeta">0 guides</span><span>South African focus</span></div>
+    </section>
+    <section class="card">
+      <div class="head"><div><h3>Institution Library</h3><p>Filter by institution type or search by name and province.</p></div></div>
+      <input class="search" id="search" type="text" placeholder="Search institution or province..." />
+      <div class="filters"><button class="filter active" data-type="all">All</button><button class="filter" data-type="University">University</button><button class="filter" data-type="University of Technology">University of Technology</button><button class="filter" data-type="TVET">TVET</button></div>
+      <div class="list" id="list"></div>
+    </section>
+  </div>
+  <script>
+    (()=>{const items=window.KagieData?.institutions||[],$=id=>document.getElementById(id),filters=[...document.querySelectorAll("[data-type]")];let active="all";const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));const guide=i=>`Kagie Prospectus Guide\n\nInstitution: ${i.name}\nType: ${i.type}\nProvince: ${i.province}\nApplication Deadline: ${i.applicationDeadline||"Check institution website"}\n\nFaculties and Courses:\n${i.faculties.map(f=>`- ${f.name}: ${f.courses.join(", ")}`).join("\n")}\n\nPrepared by Kagie to help you shortlist institutions and course options for your application workflow.`;function downloadGuide(id){const item=items.find(i=>i.id===id);if(!item)return;const blob=new Blob([guide(item)],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`${item.shortName||item.name}-kagie-guide.txt`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}window.downloadGuide=downloadGuide;
+      function render(){const q=$("search").value.trim().toLowerCase();const visible=items.filter(i=>(active==="all"||i.type===active)&&(`${i.name} ${i.province} ${i.type}`.toLowerCase().includes(q)));$("countMeta").textContent=`${visible.length} guide${visible.length===1?"":"s"}`;$("list").innerHTML=visible.length?visible.map(i=>`<div class="item"><div class="logo">${i.logo?`<img src="${esc(i.logo)}" alt="${esc(i.shortName||i.name)} logo" />`:esc(i.shortName||i.name.split(" ").map(p=>p[0]).slice(0,3).join(""))}</div><div><span class="badge">${esc(i.type)}</span><div style="margin-top:8px"><strong>${esc(i.name)}</strong><p>Province: ${esc(i.province)}<br>Deadline: ${esc(i.applicationDeadline||"Check institution directly")}<br>Faculties: ${esc(i.faculties.length)}</p></div></div><div class="item-actions"><button class="mini" type="button" onclick="downloadGuide('${esc(i.id)}')">Download guide</button></div></div>`).join(""):`<div class="empty">No prospectus guides match this filter.</div>`}
+      filters.forEach(btn=>btn.addEventListener("click",()=>{filters.forEach(b=>b.classList.remove("active"));btn.classList.add("active");active=btn.dataset.type;render()}));$("search").addEventListener("input",render);render()})();
+  </script>
+</body>
+</html>
