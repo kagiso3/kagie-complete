@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Master Admin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/backend.js"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/master-dashboard-page.js"></script>
+  <script>
+    const currentUser = window.KagieAPI?.currentUser?.();
+    if (currentUser && currentUser.role !== "master_admin") {
+      window.location.href = "../login.html";
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f4f7fb;--text:#10203a;--muted:#5f718c;--red:#c90000;--blue:#2fa4ff;--orange:#e45a2a;--yellow:#f5c84c;--green:#14945b;
+      --glass:rgba(255,255,255,.84);--line:rgba(15,23,42,.08);--shadow:0 22px 48px rgba(15,23,42,.12);--soft:0 10px 22px rgba(15,23,42,.08)
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);
+      background:
+        radial-gradient(1000px 520px at 12% 0%, rgba(47,164,255,.15), transparent 60%),
+        radial-gradient(1000px 560px at 88% 8%, rgba(245,200,76,.16), transparent 60%),
+        radial-gradient(1000px 520px at 50% 100%, rgba(228,90,42,.08), transparent 60%),
+        var(--bg)
+    }
+    .shell{width:min(1380px,100%);margin:0 auto;display:grid;gap:16px}
+    .topbar,.hero,.stat,.card{background:var(--glass);border:1px solid rgba(255,255,255,.72);border-radius:28px;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+    .topbar{
+      background:linear-gradient(135deg,var(--red),#a70000);
+      color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap
+    }
+    .topbar h1{margin:0;font:800 24px "Poppins",sans-serif}
+    .topbar p{margin:4px 0 0;font-size:13px;opacity:.92}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn,.mini{
+      border:none;border-radius:16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-family:"Roboto",sans-serif;font-weight:800;transition:transform .18s ease
+    }
+    .btn:hover,.mini:hover{transform:translateY(-2px)}
+    .btn{height:44px;padding:0 16px;background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.18)}
+    .mini{height:36px;padding:0 12px;font-size:13px}
+    .blue{background:linear-gradient(135deg,var(--blue),#67caff);color:#fff}
+    .orange{background:linear-gradient(135deg,var(--orange),#ff986f);color:#fff}
+    .green{background:linear-gradient(135deg,var(--green),#44d684);color:#fff}
+    .yellow{background:linear-gradient(135deg,var(--yellow),#efd977);color:#6b5000}
+    .red{background:linear-gradient(135deg,var(--red),#ef4444);color:#fff}
+    .hero{
+      padding:22px;
+      background:linear-gradient(135deg, rgba(47,164,255,.96), rgba(201,0,0,.88));
+      color:#fff
+    }
+    .hero-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+    .hero h2{margin:0;font:800 30px "Poppins",sans-serif;line-height:1.03}
+    .hero p{margin:10px 0 0;max-width:720px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.92)}
+    .hero-pill{padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);font-size:13px;font-weight:900}
+    .stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+    .stat{padding:18px}
+    .label{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:8px}
+    .value{font:800 30px "Poppins",sans-serif;line-height:1}
+    .sub{margin-top:8px;font-size:12px;color:var(--muted);line-height:1.5}
+    .layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(360px,.9fr);gap:16px}
+    .stack,.list{display:grid;gap:16px}
+    .card{padding:18px}
+    .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .head h3{margin:0;font:800 19px "Poppins",sans-serif}
+    .head p{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.6}
+    .form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:12px;align-items:end}
+    .notify-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
+    .field{display:grid;gap:6px}
+    .field label{font-size:12px;font-weight:800;color:var(--muted)}
+    .field input,.field select,.field textarea{
+      width:100%;border:1px solid var(--line);border-radius:16px;background:#fff;padding:14px;font:inherit;outline:none;box-shadow:0 8px 18px rgba(15,23,42,.04)
+    }
+    .field textarea{min-height:110px;resize:vertical}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(47,164,255,.55);box-shadow:0 0 0 4px rgba(47,164,255,.10)}
+    .item{
+      background:rgba(255,255,255,.88);
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:15px;
+      box-shadow:var(--soft);
+      display:grid;
+      gap:12px
+    }
+    .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .title{font-size:16px;font-weight:900}
+    .meta{font-size:13px;color:var(--muted);line-height:1.6}
+    .chips,.action-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .chip{
+      display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;
+      font-size:11px;font-weight:900;border:1px solid transparent
+    }
+    .c-blue{background:rgba(47,164,255,.12);color:var(--blue);border-color:rgba(47,164,255,.18)}
+    .c-yellow{background:rgba(245,200,76,.18);color:#8c6b00;border-color:rgba(245,200,76,.25)}
+    .c-red{background:rgba(201,0,0,.12);color:var(--red);border-color:rgba(201,0,0,.16)}
+    .c-orange{background:rgba(228,90,42,.12);color:var(--orange);border-color:rgba(228,90,42,.16)}
+    .c-green{background:rgba(20,148,91,.12);color:var(--green);border-color:rgba(20,148,91,.18)}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+    .toolbar input{flex:1;min-width:220px;border:1px solid var(--line);border-radius:16px;background:#fff;padding:14px;font:inherit;outline:none}
+    .msg{min-height:20px;font-size:14px;font-weight:700}
+    .msg.ok{color:#15803d}.msg.err{color:#b91c1c}
+    .empty{text-align:center;padding:18px 12px;color:var(--muted);font-size:13px;font-weight:700}
+    @media (max-width:1160px){
+      .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .layout{grid-template-columns:1fr}
+      .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .notify-grid{grid-template-columns:1fr}
+    }
+    @media (max-width:720px){
+      body{padding:12px}
+      .stats,.form-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <h1>Master Admin Dashboard</h1>
+        <p>Control assistant accounts, application flow, payments, callbacks, and Kagie-wide notifications.</p>
+      </div>
+      <div class="actions">
+        <button class="btn" id="refreshBtn" type="button">Refresh</button>
+        <button class="btn" id="logoutBtn" type="button">Logout</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-row">
+        <div>
+          <h2>Run Kagie from one live control center.</h2>
+          <p>Everything below is powered by the same Kagie data engine the learner and assistant dashboards use, so status changes, notes, assignments, and notifications stay aligned across the MVP.</p>
+        </div>
+        <div class="hero-pill" id="heroSummary">Loading...</div>
+      </div>
+    </section>
+
+    <section class="stats" id="stats"></section>
+
+    <section class="layout">
+      <div class="stack">
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Create Assistant Account</h3>
+              <p>Assistant accounts are created by the master admin, not by public sign-up.</p>
+            </div>
+          </div>
+          <form id="assistantForm" class="form-grid">
+            <div class="field"><label for="assistantName">Full name</label><input id="assistantName" type="text" required /></div>
+            <div class="field"><label for="assistantEmail">Email</label><input id="assistantEmail" type="email" required /></div>
+            <div class="field"><label for="assistantPhone">Phone</label><input id="assistantPhone" type="text" /></div>
+            <div class="field"><label for="assistantPassword">Password</label><input id="assistantPassword" type="text" placeholder="123456" /></div>
+            <button class="mini green" type="submit">Create assistant</button>
+          </form>
+          <div class="msg" id="assistantMsg" aria-live="polite"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Send Global Notification</h3>
+              <p>Broadcast platform-wide notices to all Kagie accounts.</p>
+            </div>
+          </div>
+          <form id="notifyForm" class="stack">
+            <div class="notify-grid">
+              <div class="field"><label for="notifyTitle">Title</label><input id="notifyTitle" type="text" required /></div>
+              <div class="field"><label for="notifyType">Type</label><select id="notifyType"><option value="info">Info</option><option value="success">Success</option><option value="warning">Warning</option></select></div>
+              <button class="mini blue" type="submit">Send notice</button>
+            </div>
+            <div class="field"><label for="notifyMessage">Message</label><textarea id="notifyMessage" required placeholder="Write the message that should appear in learner and staff notifications."></textarea></div>
+          </form>
+          <div class="msg" id="notifyMsg" aria-live="polite"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>All Applications</h3>
+              <p>Search applicants, assign assistants, update statuses, and inspect payment visibility.</p>
+            </div>
+          </div>
+          <div class="toolbar">
+            <input id="searchInput" type="text" placeholder="Search applicant, email, institution, or application ID" />
+          </div>
+          <div class="list" id="applications"></div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Assistants</h3>
+              <p>Current support staff and their assigned workload.</p>
+            </div>
+          </div>
+          <div class="list" id="assistants"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Learners</h3>
+              <p>Student accounts, latest application state, and document volume.</p>
+            </div>
+          </div>
+          <div class="list" id="users"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Payment Visibility</h3>
+              <p>Applications still waiting for verification or other payment follow-up.</p>
+            </div>
+          </div>
+          <div class="list" id="payments"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Callbacks</h3>
+              <p>Outstanding support callback requests across the platform.</p>
+            </div>
+          </div>
+          <div class="list" id="callbacks"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Activity Summary</h3>
+              <p>Recent assistant and admin actions recorded by Kagie.</p>
+            </div>
+          </div>
+          <div class="list" id="activity"></div>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (() => { if (window.KagieMasterDashboardPageLoaded) return;
+      const api = window.KagieAPI;
+      const admin = api.requireRole("master_admin");
+      const $ = (id) => document.getElementById(id);
+
+      const el = {
+        heroSummary: $("heroSummary"),
+        stats: $("stats"),
+        assistantForm: $("assistantForm"),
+        assistantName: $("assistantName"),
+        assistantEmail: $("assistantEmail"),
+        assistantPhone: $("assistantPhone"),
+        assistantPassword: $("assistantPassword"),
+        assistantMsg: $("assistantMsg"),
+        notifyForm: $("notifyForm"),
+        notifyTitle: $("notifyTitle"),
+        notifyType: $("notifyType"),
+        notifyMessage: $("notifyMessage"),
+        notifyMsg: $("notifyMsg"),
+        searchInput: $("searchInput"),
+        applications: $("applications"),
+        assistants: $("assistants"),
+        users: $("users"),
+        payments: $("payments"),
+        callbacks: $("callbacks"),
+        activity: $("activity"),
+        refreshBtn: $("refreshBtn"),
+        logoutBtn: $("logoutBtn")
+      };
+
+      function safe(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[char]));
+      }
+
+      function fmtDate(value) {
+        if (!value) return "No date";
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? "No date" : date.toLocaleString("en-ZA", { year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
+      }
+
+      function fmtMoney(value) {
+        return `R${Number(value || 0).toLocaleString("en-ZA")}`;
+      }
+
+      function statusChip(status) {
+        const text = String(status || "").toLowerCase();
+        if (text.includes("accept") || text.includes("verify") || text.includes("resolve")) return "c-green";
+        if (text.includes("reject")) return "c-red";
+        if (text.includes("missing") || text.includes("pending")) return "c-yellow";
+        if (text.includes("draft") || text.includes("submit")) return "c-orange";
+        return "c-blue";
+      }
+
+      function setMessage(node, text, type) {
+        node.textContent = text || "";
+        node.className = type ? `msg ${type}` : "msg";
+      }
+
+      function appItems(app) {
+        return Array.isArray(app.items) && app.items.length ? app.items : Array.isArray(app.institutions) ? app.institutions : [];
+      }
+
+      function renderStats() {
+        const summary = api.getAdminSummary();
+        const totals = summary.totals;
+        const cards = [
+          ["Learners", totals.users, "Registered student accounts"],
+          ["Assistants", totals.assistants, "Support staff accounts"],
+          ["Applications", totals.applications, "Tracked learner applications"],
+          ["Pending verification", totals.pendingVerification, "Payments awaiting review"],
+          ["Callbacks", totals.pendingCallbacks, "Open callback requests"]
+        ];
+        el.heroSummary.textContent = `${admin.fullName || "Master Admin"} | ${totals.applications} live applications`;
+        el.stats.innerHTML = cards.map(([label, value, note]) => `
+          <div class="stat">
+            <div class="label">${safe(label)}</div>
+            <div class="value">${safe(value)}</div>
+            <div class="sub">${safe(note)}</div>
+          </div>
+        `).join("");
+      }
+
+      function renderApplications() {
+        const applications = api.getAllApplicationsForAdmin();
+        const assistants = api.getUsersByRole("assistant_admin");
+        const query = (el.searchInput.value || "").trim().toLowerCase();
+        const filtered = applications.filter((app) => {
+          const user = api.getUserById(app.userId) || {};
+          const institutions = appItems(app).map((item) => item.institutionName || item.institution || "").join(" ");
+          const haystack = [app.id, app.applicant, user.fullName, user.email, institutions].join(" ").toLowerCase();
+          return !query || haystack.includes(query);
+        });
+
+        if (!filtered.length) {
+          el.applications.innerHTML = '<div class="empty">No applications match the current search.</div>';
+          return;
+        }
+
+        el.applications.innerHTML = filtered.map((app) => {
+          const user = api.getUserById(app.userId) || {};
+          const assigned = app.assistantId ? api.getUserById(app.assistantId) : null;
+          const institutions = appItems(app);
+          const paymentAmount = app.payment?.amount || 0;
+          return `
+            <div class="item">
+              <div class="row">
+                <div>
+                  <div class="title">${safe(user.fullName || app.applicant || "Applicant")}</div>
+                  <div class="meta">${safe(user.email || "No email")}<br>Application ID: ${safe(app.id)}<br>Updated: ${safe(fmtDate(app.updatedAt || app.createdAt))}</div>
+                </div>
+                <div class="chips">
+                  <span class="chip ${statusChip(app.status)}">${safe(app.status || "Draft")}</span>
+                  <span class="chip ${statusChip(app.paymentStatus)}">${safe(app.paymentStatus || "Payment Pending")}</span>
+                </div>
+              </div>
+              <div class="meta">Institutions: ${safe(institutions.length)} | Assigned assistant: ${safe(assigned?.fullName || "Unassigned")} | Payment amount: ${safe(fmtMoney(paymentAmount))}</div>
+              <div class="action-row">
+                <select id="assign_${safe(app.id)}">
+                  <option value="">Unassigned</option>
+                  ${assistants.map((assistant) => `<option value="${safe(assistant.id)}" ${assistant.id === app.assistantId ? "selected" : ""}>${safe(assistant.fullName)}</option>`).join("")}
+                </select>
+                <button class="mini blue" type="button" onclick="window.masterAssign('${safe(app.id)}')">Save assignment</button>
+                <button class="mini orange" type="button" onclick="window.masterStatus('${safe(app.id)}','Under Review')">Review</button>
+                <button class="mini yellow" type="button" onclick="window.masterStatus('${safe(app.id)}','Ready to Apply')">Ready</button>
+                <button class="mini green" type="button" onclick="window.masterStatus('${safe(app.id)}','Accepted')">Accept</button>
+                <button class="mini red" type="button" onclick="window.masterStatus('${safe(app.id)}','Rejected')">Reject</button>
+                <a class="mini blue" href="application-view.html?id=${encodeURIComponent(app.id)}">Open</a>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderAssistants() {
+        const assistants = api.getUsersByRole("assistant_admin");
+        const applications = api.getAllApplicationsForAdmin();
+        if (!assistants.length) {
+          el.assistants.innerHTML = '<div class="empty">No assistant accounts yet.</div>';
+          return;
+        }
+        el.assistants.innerHTML = assistants.map((assistant) => `
+          <div class="item">
+            <div class="row">
+              <div>
+                <div class="title">${safe(assistant.fullName)}</div>
+                <div class="meta">${safe(assistant.email)}<br>Phone: ${safe(assistant.phone || "Not set")}</div>
+              </div>
+              <span class="chip c-blue">${applications.filter((app) => app.assistantId === assistant.id).length} assigned</span>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      function renderUsers() {
+        const users = api.getAllUsers().filter((user) => user.role === "user").slice(0, 12);
+        if (!users.length) {
+          el.users.innerHTML = '<div class="empty">No learner accounts found.</div>';
+          return;
+        }
+        el.users.innerHTML = users.map((user) => {
+          const latest = api.getLatestApplication(user.id);
+          const docs = api.getDocumentsByUser(user.id);
+          return `
+            <div class="item">
+              <div class="row">
+                <div>
+                  <div class="title">${safe(user.fullName)}</div>
+                  <div class="meta">${safe(user.email)}<br>Phone: ${safe(user.phone || "Not set")}<br>Documents: ${safe(docs.length)}</div>
+                </div>
+                <span class="chip ${statusChip(latest?.status || "Draft")}">${safe(latest?.status || "Draft only")}</span>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderPayments() {
+        const applications = api.getAllApplicationsForAdmin().filter((app) => app.paymentStatus !== "Verified").slice(0, 10);
+        if (!applications.length) {
+          el.payments.innerHTML = '<div class="empty">No payments need attention right now.</div>';
+          return;
+        }
+        el.payments.innerHTML = applications.map((app) => {
+          const user = api.getUserById(app.userId) || {};
+          return `
+            <div class="item">
+              <div class="row">
+                <div>
+                  <div class="title">${safe(user.fullName || app.applicant || "Applicant")}</div>
+                  <div class="meta">${safe(app.payment?.method || "No method")}<br>${safe(app.payment?.reference || "No reference")}<br>${safe(fmtMoney(app.payment?.amount || 0))}</div>
+                </div>
+                <span class="chip ${statusChip(app.paymentStatus)}">${safe(app.paymentStatus || "Payment Pending")}</span>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderCallbacks() {
+        const callbacks = api.getAllCallRequests();
+        if (!callbacks.length) {
+          el.callbacks.innerHTML = '<div class="empty">No callback requests yet.</div>';
+          return;
+        }
+        el.callbacks.innerHTML = callbacks.map((call) => `
+          <div class="item">
+            <div class="row">
+              <div>
+                <div class="title">${safe(call.studentName || call.requesterName || "Learner")}</div>
+                <div class="meta">${safe(call.phone || "-")}<br>Preferred time: ${safe(call.preferredTime || "-")}<br>${safe(fmtDate(call.createdAt))}</div>
+              </div>
+              <span class="chip ${statusChip(call.status)}">${safe(call.status || "Pending")}</span>
+            </div>
+            <div class="meta">${safe(call.reason || "No reason supplied.")}</div>
+            <div class="action-row">
+              <button class="mini yellow" type="button" onclick="window.masterCallback('${safe(call.id)}','Contacted')">Contacted</button>
+              <button class="mini green" type="button" onclick="window.masterCallback('${safe(call.id)}','Resolved')">Resolved</button>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      function renderActivity() {
+        const activity = api.getAllAssistantActivity().slice(0, 10);
+        if (!activity.length) {
+          el.activity.innerHTML = '<div class="empty">No assistant or admin activity yet.</div>';
+          return;
+        }
+        el.activity.innerHTML = activity.map((item) => `
+          <div class="item">
+            <div class="title">${safe(item.action || "Activity")}</div>
+            <div class="meta">Actor: ${safe(item.assistantName || "Unknown")}<br>${safe(item.details || "No details")}<br>${safe(fmtDate(item.createdAt))}</div>
+          </div>
+        `).join("");
+      }
+
+      function renderAll() {
+        renderStats();
+        renderApplications();
+        renderAssistants();
+        renderUsers();
+        renderPayments();
+        renderCallbacks();
+        renderActivity();
+      }
+
+      window.masterAssign = async function(appId) {
+        const select = document.getElementById(`assign_${appId}`);
+        if (!select) return;
+        try {
+          if (select.value) {
+            await Promise.resolve(api.assignAssistant(appId, select.value));
+          } else {
+            await Promise.resolve(api.updateApplication(appId, { assistantId: null }));
+          }
+          renderAll();
+        } catch (error) {
+          alert(error.message || "Could not update assignment.");
+        }
+      };
+
+      window.masterStatus = async function(appId, status) {
+        try {
+          await Promise.resolve(api.updateApplication(appId, { status }));
+          renderAll();
+        } catch (error) {
+          alert(error.message || "Could not update status.");
+        }
+      };
+
+      window.masterCallback = async function(callId, status) {
+        try {
+          await Promise.resolve(api.updateCallRequest(callId, { status }));
+          renderAll();
+        } catch (error) {
+          alert(error.message || "Could not update callback.");
+        }
+      };
+
+      el.assistantForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setMessage(el.assistantMsg, "");
+        try {
+          await Promise.resolve(api.createAssistantAccount({
+            fullName: el.assistantName.value.trim(),
+            email: el.assistantEmail.value.trim(),
+            phone: el.assistantPhone.value.trim(),
+            password: el.assistantPassword.value.trim() || "123456"
+          }));
+          el.assistantForm.reset();
+          setMessage(el.assistantMsg, "Assistant account created successfully.", "ok");
+          renderAll();
+        } catch (error) {
+          setMessage(el.assistantMsg, error.message || "Could not create assistant account.", "err");
+        }
+      });
+
+      el.notifyForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setMessage(el.notifyMsg, "");
+        try {
+          await Promise.resolve(api.pushGlobalNotification(
+            el.notifyTitle.value.trim(),
+            el.notifyMessage.value.trim(),
+            el.notifyType.value
+          ));
+          el.notifyForm.reset();
+          setMessage(el.notifyMsg, "Global notification sent.", "ok");
+        } catch (error) {
+          setMessage(el.notifyMsg, error.message || "Could not send notification.", "err");
+        }
+      });
+
+      el.searchInput.addEventListener("input", renderApplications);
+      el.refreshBtn.addEventListener("click", renderAll);
+      el.logoutBtn.addEventListener("click", async () => {
+        try {
+          await Promise.resolve(api.logout());
+        } finally {
+          window.location.href = "../login.html";
+        }
+      });
+
+      renderAll();
+    })();
+  </script>
+</body>
+</html>

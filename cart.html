@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Cart</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/backend.js"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/cart-page.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#f4f7fb;--text:#0f172a;--muted:#64748b;--line:rgba(15,23,42,.08);--card:rgba(255,255,255,.84);--red:#c90000;--blue:#2fa4ff;--green:#13a35d;--yellow:#f5c84c;--shadow:0 20px 44px rgba(15,23,42,.12);--soft:0 10px 22px rgba(15,23,42,.08)}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);background:radial-gradient(900px 520px at 15% 0%,rgba(47,164,255,.14),transparent 60%),radial-gradient(900px 560px at 85% 10%,rgba(245,200,76,.16),transparent 60%),var(--bg)}.shell{width:min(980px,100%);margin:0 auto;display:grid;gap:16px}.top,.hero,.card,.stat{background:var(--card);border:1px solid rgba(255,255,255,.65);border-radius:26px;box-shadow:var(--shadow);backdrop-filter:blur(14px)}.top{padding:18px 20px;background:linear-gradient(135deg,var(--red),#a70000);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.top h1{margin:0;font:800 22px "Poppins",sans-serif}.top p{margin:5px 0 0;font-size:13px;opacity:.92}.actions{display:flex;gap:10px;flex-wrap:wrap}.btn,.mini{border:none;border-radius:14px;font:700 14px inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;transition:.18s ease}.btn{height:44px;padding:0 16px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.18);box-shadow:var(--soft)}.mini{height:36px;padding:0 12px;background:linear-gradient(135deg,var(--blue),#67caff);color:#fff}.mini.red{background:linear-gradient(135deg,var(--red),#ff6b6b)}.mini.green{background:linear-gradient(135deg,var(--green),#44d684)}.btn:hover,.mini:hover{transform:translateY(-2px)}
+    .hero{padding:20px;background:linear-gradient(135deg,rgba(47,164,255,.96),rgba(201,0,0,.88));color:#fff}.hero h2{margin:0;font:800 30px "Poppins",sans-serif}.hero p{margin:8px 0 0;font-size:14px;line-height:1.6;color:rgba(255,255,255,.92)}.stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.stats span{padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);font-size:12px;font-weight:800}
+    .card{padding:18px}.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}.head h3{margin:0;font:800 18px "Poppins",sans-serif}.head p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.55}.list{display:grid;gap:12px}.item{background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.04)}.item strong{font-size:16px}.item p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.6}.row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}.badge{padding:8px 12px;border-radius:999px;font-size:11px;font-weight:900;background:rgba(47,164,255,.1);color:var(--blue);border:1px solid rgba(47,164,255,.18)}details{margin-top:12px}summary{cursor:pointer;font-weight:800;color:var(--blue)}.choice{margin-top:8px;padding:10px 12px;border-radius:14px;background:rgba(47,164,255,.08);border:1px solid rgba(47,164,255,.12);font-size:12px;color:var(--muted)}.footer{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}.empty{text-align:center;color:var(--muted);padding:18px 12px;font-size:13px;font-weight:600}
+    @media (max-width:640px){body{padding:12px}.btn{width:100%}.footer{justify-content:stretch}.footer .mini{width:100%}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div><h1>Cart</h1><p>Review application packs, institutions, and extra services before checkout.</p></div>
+      <div class="actions"><a class="btn" href="home.html">Home</a><a class="btn" href="forms.html">Forms</a></div>
+    </header>
+    <section class="hero">
+      <h2 id="heroTitle">Your Kagie cart</h2>
+      <p id="heroText">We are loading your saved application pack and support services.</p>
+      <div class="stats"><span id="itemMeta">0 items</span><span id="instMeta">0 institutions</span><span id="totalMeta">R0 total</span></div>
+    </section>
+    <section class="card">
+      <div class="head"><div><h3>Items</h3><p>Remove anything you no longer want before moving to payment.</p></div></div>
+      <div class="list" id="list"></div>
+      <div class="footer"><a class="mini" href="forms.html">Back to forms</a><button class="mini red" id="clearCartBtn" type="button">Clear cart</button><button class="mini green" id="checkoutBtn" type="button">Proceed to checkout</button></div>
+    </section>
+  </div>
+  <script>
+    (()=>{if(window.KagieCartPageLoaded)return;const api=window.KagieAPI,user=api.requireRole("user"),$=id=>document.getElementById(id),esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));const money=v=>`R${Number(v||0).toLocaleString("en-ZA")}`;const items=()=>api.getCart(user.id)||[];function render(){const cart=items(),packs=cart.filter(i=>i.type==="application_pack"),services=cart.filter(i=>i.type==="service"||i.type==="service_request"),instCount=packs.reduce((s,i)=>s+Number(i.institutionCount||i.institutions?.length||0),0),total=api.getCartTotal(user.id);$("heroTitle").textContent=`Hello, ${user.fullName||"Student"}`;$("heroText").textContent=cart.length?"Review your saved Kagie items below before checkout.":"Your cart is empty right now.";$("itemMeta").textContent=`${cart.length} item${cart.length===1?"":"s"}`;$("instMeta").textContent=`${instCount} institution${instCount===1?"":"s"}`;$("totalMeta").textContent=`${money(total)} total`;const html=[];packs.forEach(item=>html.push(`<div class="item"><div class="row"><div><span class="badge">Application pack</span><div style="margin-top:8px"><strong>${esc(item.packName||item.name||"Application Pack")}</strong><p>Price: ${esc(money(item.packPrice||item.price))}<br>Institution limit: ${esc(item.institutionLimit==="unlimited"?"Unlimited":item.institutionLimit||0)}</p></div></div><button class="mini red" data-remove="${esc(item.id)}" type="button">Remove</button></div><details><summary>View institutions</summary>${(item.institutions||[]).length?(item.institutions||[]).map(inst=>`<div class="choice">${esc(inst.institutionName||inst.institution||"Institution")}<br>Faculty: ${esc(inst.faculty||"-")}<br>Choice 1: ${esc(inst.choice1||"-")}<br>Choice 2: ${esc(inst.choice2||"-")}<br>Choice 3: ${esc(inst.choice3||"-")}</div>`).join(""):`<div class="empty">No institutions stored in this pack.</div>`}</details></div>`));services.forEach(item=>html.push(`<div class="item"><div class="row"><div><span class="badge">Support service</span><div style="margin-top:8px"><strong>${esc(item.serviceName||item.name||"Service")}</strong><p>Price: ${esc(money(item.price))}<br>Code: ${esc(item.serviceCode||"-")}</p></div></div><button class="mini red" data-remove="${esc(item.id)}" type="button">Remove</button></div></div>`));$("list").innerHTML=html.length?html.join(""):`<div class="empty">No cart items yet. Add a pack in Forms or a service in More Service.</div>`;$("checkoutBtn").disabled=!cart.length;$("checkoutBtn").style.opacity=cart.length?"1":".6";$("clearCartBtn").disabled=!cart.length;$("clearCartBtn").style.opacity=cart.length?"1":".6"}
+      $("list").addEventListener("click",e=>{const id=e.target.getAttribute("data-remove");if(!id)return;api.removeCartItem(id,user.id);render()});$("checkoutBtn").addEventListener("click",()=>{if(!(items().length)){return}window.location.href="checkout.html"});$("clearCartBtn").addEventListener("click",()=>{if(!(items().length)){return}if(!confirm("Clear every item from your cart and start again?")){return}api.clearCart(user.id);render()});render()})();
+  </script>
+</body>
+</html>
