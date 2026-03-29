@@ -1,0 +1,9 @@
+.git/
+.vscode/
+node_modules/
+tmp_national_ordinary_schools.xls
+FINAL_QA_CHECKLIST.md
+PRODUCTION_ROLLOUT.md
+KAGIE_PROJECT_BIBLE.md
+DEPLOY_NOW.md
+README.md

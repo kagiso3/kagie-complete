@@ -13,3 +13,5 @@ coverage/
 kagie-mobile/.expo/
 kagie-mobile/.env
 kagie-api/.env
+!packages/shared/dist/
+!packages/shared/dist/**
