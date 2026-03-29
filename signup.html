@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kagie | Create Account</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg-left:#ebe4e6;
+      --bg-right:#e5e7eb;
+      --card:rgba(248,248,249,.82);
+      --text:#0f1836;
+      --muted:#6f7e98;
+      --line:#363636;
+      --red1:#ff4d4d;
+      --red2:#df0000;
+      --shadow:0 28px 60px rgba(0,0,0,.10);
+      --button-shadow:0 18px 32px rgba(223,0,0,.22);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:"Poppins",sans-serif;
+      background:
+        radial-gradient(circle at left top, rgba(255,255,255,.55), transparent 32%),
+        linear-gradient(90deg,var(--bg-left) 0%, var(--bg-right) 100%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      overflow:hidden;
+    }
+
+    .auth-card{
+      width:100%;
+      max-width:620px;
+      background:var(--card);
+      border-radius:34px;
+      padding:40px 36px 34px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(10px);
+      border:1px solid rgba(255,255,255,.65);
+      transform:translateY(24px) scale(.98);
+      opacity:0;
+      animation:cardIn .8s cubic-bezier(.2,.9,.2,1) forwards;
+    }
+
+    @keyframes cardIn{
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+
+    h1{
+      margin:0;
+      text-align:center;
+      font-size:54px;
+      line-height:.95;
+      font-weight:900;
+      color:var(--text);
+      letter-spacing:-.03em;
+      opacity:0;
+      transform:translateY(10px);
+      animation:fadeUp .6s .15s ease forwards;
+    }
+
+    .top-text{
+      text-align:center;
+      margin:14px 0 28px;
+      color:var(--muted);
+      font-size:16px;
+      opacity:0;
+      transform:translateY(10px);
+      animation:fadeUp .6s .25s ease forwards;
+    }
+
+    .top-text a{
+      color:#111827;
+      text-decoration:none;
+      font-weight:800;
+    }
+
+    .field{
+      margin-bottom:22px;
+      position:relative;
+      opacity:0;
+      transform:translateY(12px);
+      animation:fadeUp .55s ease forwards;
+    }
+    .field:nth-of-type(1){animation-delay:.3s}
+    .field:nth-of-type(2){animation-delay:.38s}
+    .field:nth-of-type(3){animation-delay:.46s}
+    .field:nth-of-type(4){animation-delay:.54s}
+    .field:nth-of-type(5){animation-delay:.62s}
+
+    .input{
+      width:100%;
+      height:64px;
+      border:2.5px solid var(--line);
+      border-radius:10px;
+      background:rgba(255,255,255,.2);
+      padding:0 20px;
+      font-size:16px;
+      font-weight:700;
+      outline:none;
+      transition:.25s ease;
+    }
+
+    .input::placeholder{
+      color:#777b87;
+      text-transform:uppercase;
+      letter-spacing:.18em;
+      font-weight:700;
+    }
+
+    .input:focus{
+      border-color:#d00000;
+      box-shadow:0 0 0 4px rgba(224,0,0,.08);
+      transform:translateY(-1px);
+    }
+
+    .field-label{
+      position:absolute;
+      top:-10px;
+      left:14px;
+      background:rgba(250,250,251,.95);
+      padding:0 8px;
+      font-size:12px;
+      letter-spacing:.24em;
+      font-weight:800;
+      color:#d00000;
+      text-transform:uppercase;
+    }
+
+    .input-wrap{
+      position:relative;
+    }
+
+    .toggle-pass{
+      position:absolute;
+      right:16px;
+      top:50%;
+      transform:translateY(-50%);
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      font-weight:700;
+      color:#6b7280;
+    }
+
+    .btn{
+      width:100%;
+      height:64px;
+      border:none;
+      border-radius:10px;
+      background:linear-gradient(180deg,var(--red1),var(--red2));
+      color:#fff;
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:.05em;
+      cursor:pointer;
+      box-shadow:var(--button-shadow);
+      margin-top:8px;
+      transition:.25s ease;
+      opacity:0;
+      transform:translateY(12px);
+      animation:fadeUp .6s .72s ease forwards;
+    }
+
+    .btn:hover{transform:translateY(-2px)}
+    .btn:disabled{opacity:.7;cursor:not-allowed;transform:none}
+
+    .message{
+      min-height:24px;
+      text-align:center;
+      font-size:14px;
+      font-weight:600;
+      margin-top:14px;
+    }
+    .message.error{color:#b00020}
+    .message.success{color:#0f8a43}
+
+    @keyframes fadeUp{
+      to{opacity:1;transform:translateY(0)}
+    }
+
+    @media (max-width:700px){
+      .auth-card{padding:32px 20px 26px}
+      h1{font-size:42px}
+    }
+  </style>
+</head>
+<body>
+  <main class="auth-card">
+    <h1>Create new<br>Account</h1>
+    <p class="top-text">Already Registered? <a href="login.html">Log in here.</a></p>
+
+    <form id="signupForm">
+      <div class="field">
+        <input class="input" id="fullName" type="text" placeholder="Name" required>
+      </div>
+
+      <div class="field">
+        <input class="input" id="email" type="email" placeholder="Email" required>
+      </div>
+
+      <div class="field">
+        <div class="input-wrap">
+          <input class="input" id="password" type="password" placeholder="Password" required minlength="6">
+          <button class="toggle-pass" type="button" id="togglePassword">Show</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="field-label">Date of Birth</span>
+        <input class="input" id="dob" type="date" required>
+      </div>
+
+      <div class="field">
+        <input class="input" id="schoolAttended" type="text" placeholder="School Attended" required>
+      </div>
+
+      <button class="btn" id="signupBtn" type="submit">SIGN UP</button>
+      <div class="message" id="message"></div>
+    </form>
+  </main>
+
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/backend.js"></script>
+
+<script>
+  const form = document.getElementById("signupForm");
+  const password = document.getElementById("password");
+  const togglePassword = document.getElementById("togglePassword");
+  const signupBtn = document.getElementById("signupBtn");
+  const message = document.getElementById("message");
+
+  // 🔥 CONNECT SUPABASE
+  KagieAPI.configureSupabase({
+    enabled: true,
+    url: "https://ztfcxnowjtvonltevrqe.supabase.co",
+    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0ZmN4bm93anR2b25sdGV2cnFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTU1NDIsImV4cCI6MjA4ODkzMTU0Mn0.gNQNE1OpKr9Nkph6bd4JGZ_Yt3A9w1MtpZoGDYqnQxw"
+  });
+
+  togglePassword.addEventListener("click", () => {
+    const nextType = password.type === "password" ? "text" : "password";
+    password.type = nextType;
+    togglePassword.textContent = nextType === "password" ? "Show" : "Hide";
+  });
+
+  function setMessage(text, type = "") {
+    message.textContent = text;
+    message.className = `message ${type}`.trim();
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setMessage("");
+
+    signupBtn.disabled = true;
+    signupBtn.textContent = "Creating...";
+
+    try {
+      const fullName = document.getElementById("fullName").value.trim();
+      const email = document.getElementById("email").value.trim().toLowerCase();
+      const dob = document.getElementById("dob").value;
+      const schoolAttended = document.getElementById("schoolAttended").value.trim();
+
+      if (!fullName || !email || !password.value) {
+        throw new Error("Please fill all required fields");
+      }
+
+      // ✅ CORRECT FUNCTION
+      const user = await KagieAPI.registerUser({
+        fullName,
+        email,
+        password: password.value,
+        dob,
+        schoolName: schoolAttended
+      });
+
+      console.log("Signup success:", user);
+
+      setMessage("Account created successfully 🎉 Redirecting...", "success");
+
+      setTimeout(() => {
+        window.location.href = "login.html";
+      }, 1200);
+
+    } catch (err) {
+      console.error("Signup error:", err);
+      setMessage(err.message || "Signup failed", "error");
+      signupBtn.disabled = false;
+      signupBtn.textContent = "SIGN UP";
+    }
+  });
+</script>
+</body>
+</html>

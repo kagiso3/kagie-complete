@@ -1,0 +1,2196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kagie Recommendation AI</title>
+  <script src="js/backend.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f4f8ff;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --line:rgba(255,255,255,.72);
+      --glass:rgba(255,255,255,.58);
+      --glass-2:rgba(255,255,255,.78);
+      --blue:#0a84ff;
+      --blue-2:#50a7ff;
+      --orange:#ff7a00;
+      --orange-2:#ff9e45;
+      --green:#12b76a;
+      --danger:#ef4444;
+      --shadow:0 18px 40px rgba(15,23,42,.10);
+      --shadow-hover:0 22px 46px rgba(15,23,42,.16);
+      --radius:28px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    html{scroll-behavior:smooth}
+
+    body{
+      margin:0;
+      font-family:'Inter',sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(10,132,255,.12), transparent 26%),
+        radial-gradient(circle at bottom right, rgba(255,122,0,.10), transparent 26%),
+        linear-gradient(180deg,#f8fbff 0%, #edf4ff 100%);
+      overflow-x:hidden;
+    }
+
+    body::before,
+    body::after{
+      content:"";
+      position:fixed;
+      width:280px;
+      height:280px;
+      border-radius:50%;
+      filter:blur(20px);
+      pointer-events:none;
+      z-index:0;
+    }
+
+    body::before{
+      background:rgba(10,132,255,.08);
+      top:-80px;
+      left:-80px;
+    }
+
+    body::after{
+      background:rgba(255,122,0,.08);
+      right:-90px;
+      bottom:-90px;
+    }
+
+    .app{
+      max-width:1400px;
+      margin:0 auto;
+      padding:20px;
+      position:relative;
+      z-index:1;
+    }
+
+    .glass{
+      background:linear-gradient(145deg, rgba(255,255,255,.82), rgba(255,255,255,.58));
+      border:1px solid rgba(255,255,255,.85);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      padding:18px 20px;
+      border-radius:28px;
+      margin-bottom:20px;
+      position:sticky;
+      top:14px;
+      z-index:10;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      min-width:0;
+      flex:1;
+    }
+
+    .logo{
+      width:58px;
+      height:58px;
+      border-radius:18px;
+      display:grid;
+      place-items:center;
+      flex-shrink:0;
+      background:linear-gradient(135deg,var(--blue),var(--blue-2));
+      color:#fff;
+      font-size:1.45rem;
+      font-weight:900;
+      position:relative;
+      overflow:hidden;
+      box-shadow:0 14px 30px rgba(10,132,255,.28);
+    }
+
+    .logo::after{
+      content:"";
+      position:absolute;
+      inset:-30%;
+      background:linear-gradient(120deg, transparent 20%, rgba(255,255,255,.45) 50%, transparent 80%);
+      transform:translateX(-120%);
+      animation:logoSweep 4s linear infinite;
+    }
+
+    @keyframes logoSweep{
+      to{transform:translateX(120%)}
+    }
+
+    .brand-text{
+      min-width:0;
+    }
+
+    .brand-text h1{
+      margin:0;
+      font-size:1.15rem;
+      line-height:1.1;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+
+    .brand-text p{
+      margin:4px 0 0;
+      color:var(--muted);
+      font-size:.92rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .pill{
+      border:none;
+      border-radius:999px;
+      padding:12px 18px;
+      font-weight:800;
+      font-size:.94rem;
+      cursor:pointer;
+      transition:.25s ease;
+      background:rgba(255,255,255,.88);
+      color:var(--ink);
+      box-shadow:0 10px 22px rgba(31,41,55,.08);
+    }
+
+    .pill:hover{transform:translateY(-2px)}
+
+    .pill.primary{
+      background:linear-gradient(135deg,var(--blue),var(--blue-2));
+      color:#fff;
+      box-shadow:0 14px 28px rgba(10,132,255,.24);
+    }
+
+    .aps-orb{
+      min-width:115px;
+      padding:12px 16px;
+      border-radius:20px;
+      text-align:center;
+    }
+
+    .aps-orb strong{
+      display:block;
+      font-size:1.45rem;
+      line-height:1;
+      font-weight:900;
+      color:var(--blue);
+    }
+
+    .aps-orb span{
+      display:block;
+      color:var(--muted);
+      font-size:.78rem;
+      margin-top:5px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:22px;
+      margin-bottom:22px;
+    }
+
+    .hero-left,
+    .input-card,
+    .result-panel,
+    .analytics-card{
+      border-radius:var(--radius);
+    }
+
+    .hero-left{
+      padding:28px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .hero-left::before{
+      content:"";
+      position:absolute;
+      width:220px;
+      height:220px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(255,122,0,.18), transparent 70%);
+      right:-70px;
+      top:-60px;
+      pointer-events:none;
+    }
+
+    .hero-left::after{
+      content:"";
+      position:absolute;
+      width:210px;
+      height:210px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(10,132,255,.14), transparent 70%);
+      left:-90px;
+      bottom:-90px;
+      pointer-events:none;
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      background:rgba(255,255,255,.76);
+      border:1px solid rgba(255,255,255,.9);
+      border-radius:999px;
+      padding:9px 14px;
+      font-size:.78rem;
+      font-weight:900;
+      color:var(--orange);
+      text-transform:uppercase;
+      letter-spacing:.7px;
+      position:relative;
+      z-index:1;
+    }
+
+    .status-dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:var(--blue);
+      box-shadow:0 0 0 0 rgba(10,132,255,.6);
+      animation:pulse 2s infinite;
+    }
+
+    @keyframes pulse{
+      0%{box-shadow:0 0 0 0 rgba(10,132,255,.5)}
+      70%{box-shadow:0 0 0 10px rgba(10,132,255,0)}
+      100%{box-shadow:0 0 0 0 rgba(10,132,255,0)}
+    }
+
+    .hero-left h2{
+      margin:16px 0 10px;
+      font-size:clamp(2rem, 4vw, 3.3rem);
+      line-height:1.02;
+      font-weight:900;
+      max-width:860px;
+      position:relative;
+      z-index:1;
+    }
+
+    .animated-text{
+      background:linear-gradient(90deg,var(--blue),var(--orange),var(--blue));
+      background-size:200% auto;
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      animation:textFlow 5s linear infinite;
+    }
+
+    @keyframes textFlow{
+      to{background-position:200% center}
+    }
+
+    .hero-left p{
+      margin:0;
+      max-width:820px;
+      color:#334155;
+      line-height:1.7;
+      font-size:1rem;
+      position:relative;
+      z-index:1;
+    }
+
+    .hero-stats{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:14px;
+      margin-top:22px;
+      position:relative;
+      z-index:1;
+    }
+
+    .mini-stat{
+      background:rgba(255,255,255,.72);
+      border:1px solid rgba(255,255,255,.9);
+      border-radius:22px;
+      padding:16px;
+      box-shadow:0 10px 22px rgba(31,41,55,.05);
+    }
+
+    .mini-stat .num{
+      display:block;
+      font-size:1.55rem;
+      font-weight:900;
+      color:var(--blue);
+      margin-bottom:6px;
+    }
+
+    .mini-stat .label{
+      display:block;
+      color:var(--muted);
+      font-size:.85rem;
+      font-weight:700;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:420px minmax(0,1fr);
+      gap:22px;
+      align-items:start;
+    }
+
+    .left-col{
+      display:flex;
+      flex-direction:column;
+      gap:22px;
+      position:sticky;
+      top:110px;
+    }
+
+    .input-card,
+    .analytics-card,
+    .result-panel{
+      padding:22px;
+    }
+
+    .section-title{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+
+    .section-title h3{
+      margin:0;
+      font-size:1.08rem;
+      font-weight:900;
+    }
+
+    .section-title p{
+      margin:4px 0 0;
+      color:var(--muted);
+      font-size:.9rem;
+    }
+
+    .badge-lite{
+      padding:9px 12px;
+      border-radius:999px;
+      background:rgba(10,132,255,.10);
+      color:var(--blue);
+      font-size:.8rem;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .subject-row{
+      display:grid;
+      grid-template-columns:1fr 95px 46px;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .select,
+    .mark-input{
+      width:100%;
+      border:none;
+      outline:none;
+      border-radius:16px;
+      padding:13px 14px;
+      background:rgba(255,255,255,.8);
+      color:var(--ink);
+      font:inherit;
+      box-shadow:inset 0 0 0 1px rgba(148,163,184,.18);
+    }
+
+    .select:focus,
+    .mark-input:focus{
+      box-shadow:inset 0 0 0 2px rgba(10,132,255,.24), 0 0 0 4px rgba(10,132,255,.08);
+    }
+
+    .remove-btn{
+      border:none;
+      border-radius:16px;
+      background:rgba(255,255,255,.82);
+      color:var(--danger);
+      font-weight:900;
+      font-size:1.2rem;
+      cursor:pointer;
+      box-shadow:0 10px 18px rgba(31,41,55,.06);
+    }
+
+    .controls{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .btn{
+      border:none;
+      border-radius:18px;
+      padding:13px 16px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:.95rem;
+      transition:.2s ease;
+    }
+
+    .btn:hover{
+      transform:translateY(-2px);
+    }
+
+    .btn.add{
+      background:rgba(255,255,255,.84);
+      color:var(--ink);
+      box-shadow:0 12px 22px rgba(31,41,55,.06);
+    }
+
+    .btn.secondary{
+      background:rgba(255,255,255,.84);
+      color:var(--ink);
+      box-shadow:0 12px 22px rgba(31,41,55,.06);
+    }
+
+    .btn.calculate{
+      background:linear-gradient(135deg,var(--blue),var(--blue-2));
+      color:#fff;
+      box-shadow:0 14px 28px rgba(10,132,255,.24);
+    }
+
+    .interest-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+
+    .chip{
+      padding:12px 14px;
+      border-radius:16px;
+      text-align:center;
+      background:rgba(255,255,255,.72);
+      border:1px solid rgba(255,255,255,.88);
+      font-weight:800;
+      font-size:.9rem;
+      cursor:pointer;
+      user-select:none;
+      transition:.2s ease;
+      box-shadow:0 10px 20px rgba(31,41,55,.04);
+    }
+
+    .chip:hover{
+      transform:translateY(-1px);
+    }
+
+    .chip.active{
+      background:linear-gradient(135deg,var(--blue),var(--blue-2));
+      color:#fff;
+      border-color:transparent;
+    }
+
+    .ring-wrap{
+      display:grid;
+      grid-template-columns:130px 1fr;
+      gap:18px;
+      align-items:center;
+      margin-bottom:18px;
+    }
+
+    .ring{
+      width:126px;
+      height:126px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      position:relative;
+      background:conic-gradient(var(--blue) 0 var(--ring-angle), rgba(10,132,255,.12) var(--ring-angle) 360deg);
+      box-shadow:0 14px 24px rgba(31,41,55,.08);
+    }
+
+    .ring::before{
+      content:"";
+      position:absolute;
+      width:88px;
+      height:88px;
+      border-radius:50%;
+      background:rgba(255,255,255,.95);
+      box-shadow:inset 0 0 0 1px rgba(148,163,184,.12);
+    }
+
+    .ring-inner{
+      position:relative;
+      z-index:1;
+      text-align:center;
+    }
+
+    .ring-inner strong{
+      display:block;
+      font-size:1.7rem;
+      line-height:1;
+      color:var(--blue);
+      font-weight:900;
+    }
+
+    .ring-inner span{
+      display:block;
+      font-size:.72rem;
+      font-weight:800;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-top:4px;
+    }
+
+    .aps-note{
+      color:#334155;
+      line-height:1.7;
+      font-size:.94rem;
+    }
+
+    .bar-group{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .bar-item{
+      display:grid;
+      grid-template-columns:72px 1fr 45px;
+      gap:10px;
+      align-items:center;
+    }
+
+    .bar-label{
+      font-size:.88rem;
+      font-weight:800;
+      color:#334155;
+    }
+
+    .bar-track{
+      height:11px;
+      border-radius:999px;
+      background:rgba(255,255,255,.7);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .bar-fill{
+      height:100%;
+      width:0%;
+      border-radius:999px;
+      background:linear-gradient(90deg,var(--blue),var(--orange));
+      position:relative;
+      transition:width .65s ease;
+    }
+
+    .bar-fill::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(120deg, transparent 10%, rgba(255,255,255,.5) 45%, transparent 80%);
+      transform:translateX(-120%);
+      animation:barSweep 2.8s linear infinite;
+    }
+
+    @keyframes barSweep{
+      to{transform:translateX(120%)}
+    }
+
+    .bar-value{
+      font-weight:900;
+      color:var(--blue);
+      text-align:right;
+      font-size:.88rem;
+    }
+
+    .right-col{
+      display:flex;
+      flex-direction:column;
+      gap:22px;
+      min-width:0;
+    }
+
+    .result-panel{
+      min-height:720px;
+    }
+
+    .result-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+      flex-wrap:wrap;
+      margin-bottom:16px;
+    }
+
+    .result-head h3{
+      margin:0;
+      font-size:1.15rem;
+      font-weight:900;
+    }
+
+    .result-head p{
+      margin:5px 0 0;
+      color:var(--muted);
+      font-size:.92rem;
+    }
+
+    .result-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .small-btn{
+      padding:11px 14px;
+      border:none;
+      border-radius:16px;
+      cursor:pointer;
+      font-weight:800;
+      background:rgba(255,255,255,.84);
+      box-shadow:0 10px 20px rgba(31,41,55,.07);
+      transition:.2s ease;
+    }
+
+    .small-btn:hover{
+      transform:translateY(-2px);
+    }
+
+    .small-btn.active{
+      background:linear-gradient(135deg,var(--blue),var(--blue-2));
+      color:#fff;
+    }
+
+    .swipe-stage{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:20px;
+    }
+
+    .card-stack-area{
+      min-height:560px;
+      position:relative;
+    }
+
+    .stack-card{
+      position:absolute;
+      inset:0;
+      border-radius:32px;
+      overflow:hidden;
+      transition:transform .35s ease, opacity .35s ease, box-shadow .35s ease;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      padding:22px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.9), rgba(255,255,255,.56)),
+        radial-gradient(circle at top right, rgba(10,132,255,.16), transparent 28%);
+      border:1px solid rgba(255,255,255,.9);
+      box-shadow:var(--shadow);
+    }
+
+    .stack-card:hover{
+      box-shadow:var(--shadow-hover);
+    }
+
+    .stack-card:nth-child(1){transform:translateY(0) scale(1); z-index:3}
+    .stack-card:nth-child(2){transform:translateY(18px) scale(.97); z-index:2; opacity:.84}
+    .stack-card:nth-child(3){transform:translateY(34px) scale(.94); z-index:1; opacity:.68}
+
+    .stack-card.dismiss-left{
+      transform:translateX(-120%) rotate(-16deg);
+      opacity:0;
+    }
+
+    .stack-card.dismiss-right{
+      transform:translateX(120%) rotate(16deg);
+      opacity:0;
+    }
+
+    .stack-card.dismiss-up{
+      transform:translateY(-120%) scale(.9);
+      opacity:0;
+    }
+
+    .course-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:14px;
+      margin-bottom:14px;
+    }
+
+    .course-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 12px;
+      border-radius:999px;
+      font-weight:900;
+      font-size:.78rem;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+    }
+
+    .match-strong{
+      background:rgba(10,132,255,.15);
+      color:var(--blue);
+    }
+
+    .match-good{
+      background:rgba(255,122,0,.2);
+      color:var(--orange);
+    }
+
+    .match-possible{
+      background:rgba(100,116,139,.15);
+      color:#475569;
+    }
+
+    .course-score{
+      padding:11px 14px;
+      border-radius:18px;
+      background:rgba(255,255,255,.78);
+      font-weight:900;
+      color:var(--blue);
+      font-size:.92rem;
+      white-space:nowrap;
+    }
+
+    .stack-card h4{
+      margin:0 0 10px;
+      font-size:1.8rem;
+      line-height:1.05;
+      font-weight:900;
+    }
+
+    .meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-bottom:14px;
+    }
+
+    .meta span{
+      padding:10px 12px;
+      border-radius:14px;
+      background:rgba(255,255,255,.72);
+      font-size:.82rem;
+      font-weight:800;
+      color:#334155;
+      border:1px solid rgba(255,255,255,.92);
+    }
+
+    .reason-list{
+      margin:0;
+      padding-left:18px;
+      color:#334155;
+      line-height:1.65;
+      font-size:.94rem;
+      font-weight:500;
+    }
+
+    .course-footer{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:14px;
+      align-items:end;
+      margin-top:18px;
+    }
+
+    .require-box{
+      background:rgba(255,255,255,.64);
+      border:1px solid rgba(255,255,255,.92);
+      border-radius:20px;
+      padding:14px 15px;
+    }
+
+    .require-box strong{
+      display:block;
+      margin-bottom:8px;
+      font-size:.9rem;
+      font-weight:900;
+    }
+
+    .require-box p{
+      margin:0;
+      color:var(--muted);
+      font-size:.88rem;
+      line-height:1.6;
+    }
+
+    .swipe-controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .action-btn{
+      width:52px;
+      height:52px;
+      border:none;
+      border-radius:50%;
+      cursor:pointer;
+      background:rgba(255,255,255,.88);
+      box-shadow:0 12px 22px rgba(31,41,55,.08);
+      font-size:1.08rem;
+      font-weight:900;
+      transition:.2s ease;
+    }
+
+    .action-btn:hover{
+      transform:translateY(-2px);
+    }
+
+    .reject{color:var(--danger)}
+    .save{color:var(--orange)}
+    .apply{color:var(--blue)}
+
+    .course-list-panel{
+      max-height:560px;
+      overflow:auto;
+      padding-right:4px;
+    }
+
+    .course-list-panel::-webkit-scrollbar{
+      width:8px;
+    }
+
+    .course-list-panel::-webkit-scrollbar-thumb{
+      background:rgba(148,163,184,.35);
+      border-radius:999px;
+    }
+
+    .mini-course{
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(255,255,255,.92);
+      border-radius:20px;
+      padding:16px;
+      margin-bottom:12px;
+      cursor:pointer;
+      transition:.22s ease;
+      box-shadow:0 10px 20px rgba(31,41,55,.04);
+    }
+
+    .mini-course:hover{
+      transform:translateY(-2px);
+      box-shadow:0 14px 24px rgba(31,41,55,.08);
+    }
+
+    .mini-course h5{
+      margin:0 0 8px;
+      font-size:1rem;
+      font-weight:900;
+    }
+
+    .mini-course p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.55;
+      font-size:.88rem;
+    }
+
+    .empty-state{
+      min-height:500px;
+      display:grid;
+      place-items:center;
+      text-align:center;
+      padding:28px;
+      color:var(--muted);
+    }
+
+    .empty-icon{
+      width:90px;
+      height:90px;
+      border-radius:30px;
+      margin:0 auto 16px;
+      display:grid;
+      place-items:center;
+      font-size:2rem;
+      background:rgba(255,255,255,.78);
+      box-shadow:0 14px 28px rgba(31,41,55,.08);
+      animation:floatMini 3s ease-in-out infinite;
+    }
+
+    @keyframes floatMini{
+      0%,100%{transform:translateY(0)}
+      50%{transform:translateY(-6px)}
+    }
+
+    .toast-wrap{
+      position:fixed;
+      top:22px;
+      right:22px;
+      z-index:50;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .toast{
+      min-width:260px;
+      max-width:360px;
+      padding:14px 16px;
+      border-radius:18px;
+      color:#fff;
+      font-weight:700;
+      box-shadow:0 16px 28px rgba(2,6,23,.18);
+      animation:toastIn .35s ease;
+    }
+
+    .toast.success{background:linear-gradient(135deg,var(--blue),var(--blue-2))}
+    .toast.info{background:linear-gradient(135deg,var(--orange),var(--orange-2))}
+    .toast.warn{background:linear-gradient(135deg,#f59e0b,var(--orange))}
+
+    @keyframes toastIn{
+      from{opacity:0;transform:translateY(-10px) translateX(10px)}
+      to{opacity:1;transform:translateY(0) translateX(0)}
+    }
+
+    @media (max-width:1150px){
+      .grid,
+      .swipe-stage{
+        grid-template-columns:1fr;
+      }
+
+      .left-col{
+        position:relative;
+        top:auto;
+      }
+
+      .card-stack-area{
+        min-height:520px;
+      }
+    }
+
+    @media (max-width:760px){
+      html, body{
+        width:100%;
+        overflow-x:hidden;
+      }
+
+      body::before,
+      body::after{
+        display:none;
+      }
+
+      .app{
+        padding:10px;
+      }
+
+      .topbar{
+        position:relative;
+        top:auto;
+        padding:14px;
+        border-radius:20px;
+        margin-bottom:14px;
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .brand{
+        align-items:flex-start;
+        gap:10px;
+      }
+
+      .logo{
+        width:48px;
+        height:48px;
+        border-radius:14px;
+        font-size:1.2rem;
+      }
+
+      .brand-text{
+        min-width:0;
+        flex:1;
+      }
+
+      .brand-text h1{
+        font-size:1rem;
+        line-height:1.2;
+      }
+
+      .brand-text p{
+        font-size:.8rem;
+        white-space:normal;
+        overflow:visible;
+        text-overflow:unset;
+      }
+
+      .top-actions{
+        width:100%;
+        display:grid;
+        grid-template-columns:1fr;
+        gap:10px;
+      }
+
+      .top-actions > *{
+        width:100%;
+        min-width:0;
+      }
+
+      .aps-orb{
+        min-width:0;
+      }
+
+      .hero-left,
+      .input-card,
+      .analytics-card,
+      .result-panel{
+        padding:16px;
+        border-radius:20px;
+      }
+
+      .hero-left h2{
+        font-size:1.5rem;
+        line-height:1.15;
+      }
+
+      .hero-left p{
+        font-size:.92rem;
+      }
+
+      .hero-stats{
+        grid-template-columns:1fr;
+        gap:10px;
+      }
+
+      .mini-stat{
+        padding:14px;
+      }
+
+      .section-title{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:8px;
+      }
+
+      .subject-row{
+        grid-template-columns:1fr;
+        gap:10px;
+      }
+
+      .select,
+      .mark-input,
+      .remove-btn{
+        width:100%;
+        min-height:48px;
+      }
+
+      .controls{
+        grid-template-columns:1fr;
+        gap:10px;
+      }
+
+      .btn,
+      .pill,
+      .small-btn{
+        width:100%;
+        min-height:48px;
+      }
+
+      .interest-grid{
+        grid-template-columns:1fr 1fr;
+        gap:8px;
+      }
+
+      .chip{
+        padding:11px 10px;
+        font-size:.82rem;
+      }
+
+      .ring-wrap{
+        grid-template-columns:1fr;
+        justify-items:center;
+        text-align:center;
+        gap:14px;
+      }
+
+      .ring{
+        width:110px;
+        height:110px;
+      }
+
+      .ring-inner strong{
+        font-size:1.4rem;
+      }
+
+      .bar-item{
+        grid-template-columns:64px 1fr 42px;
+        gap:8px;
+      }
+
+      .result-head{
+        flex-direction:column;
+        align-items:stretch;
+        gap:12px;
+      }
+
+      .result-actions{
+        display:grid;
+        grid-template-columns:1fr;
+        gap:8px;
+      }
+
+      .swipe-stage{
+        grid-template-columns:1fr;
+        gap:14px;
+      }
+
+      .card-stack-area{
+        min-height:auto;
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+      }
+
+      .stack-card{
+        position:relative;
+        inset:auto;
+        transform:none !important;
+        opacity:1 !important;
+        margin:0;
+        padding:16px;
+        border-radius:20px;
+      }
+
+      .stack-card:nth-child(1),
+      .stack-card:nth-child(2),
+      .stack-card:nth-child(3){
+        transform:none;
+        opacity:1;
+      }
+
+      .course-top{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:8px;
+      }
+
+      .stack-card h4{
+        font-size:1.2rem;
+        line-height:1.2;
+      }
+
+      .meta{
+        gap:8px;
+      }
+
+      .meta span{
+        font-size:.76rem;
+        padding:8px 10px;
+      }
+
+      .reason-list{
+        padding-left:18px;
+        font-size:.88rem;
+      }
+
+      .course-footer{
+        grid-template-columns:1fr;
+        gap:12px;
+      }
+
+      .swipe-controls{
+        justify-content:center;
+        flex-wrap:wrap;
+      }
+
+      .action-btn{
+        width:46px;
+        height:46px;
+      }
+
+      .course-list-panel{
+        max-height:none;
+        overflow:visible;
+      }
+
+      .mini-course{
+        padding:14px;
+      }
+
+      .empty-state{
+        min-height:280px;
+        padding:18px;
+      }
+
+      .empty-icon{
+        width:70px;
+        height:70px;
+        border-radius:22px;
+        font-size:1.6rem;
+      }
+
+      .toast-wrap{
+        top:12px;
+        left:10px;
+        right:10px;
+      }
+
+      .toast{
+        min-width:0;
+        width:100%;
+        max-width:none;
+        padding:12px 14px;
+        font-size:.9rem;
+      }
+    }
+
+    @media (max-width:480px){
+      .app{
+        padding:8px;
+      }
+
+      .hero-left,
+      .input-card,
+      .analytics-card,
+      .result-panel,
+      .topbar{
+        padding:14px;
+        border-radius:18px;
+      }
+
+      .hero-left h2{
+        font-size:1.28rem;
+      }
+
+      .interest-grid{
+        grid-template-columns:1fr;
+      }
+
+      .chip{
+        font-size:.84rem;
+      }
+
+      .bar-item{
+        grid-template-columns:56px 1fr 38px;
+      }
+
+      .bar-label,
+      .bar-value{
+        font-size:.78rem;
+      }
+
+      .stack-card h4{
+        font-size:1.08rem;
+      }
+
+      .meta span{
+        width:100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar glass">
+      <div class="brand">
+        <div class="logo">K</div>
+        <div class="brand-text">
+          <h1>Kagie Recommendation AI</h1>
+          <p>Premium subject analysis • APS matching • Smart course discovery</p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <div class="aps-orb glass">
+          <strong id="apsDisplayTop">0</strong>
+          <span>Current APS</span>
+        </div>
+        <button class="pill" id="topSavedBtn">Saved Courses</button>
+        <button class="pill primary" id="quickCalculateBtn">Analyze Now</button>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="hero-left glass">
+        <div class="eyebrow">
+          <span class="status-dot"></span>
+          Smart Recommendation Active
+        </div>
+        <h2 class="animated-text">Discover courses and institutions that truly match your marks.</h2>
+        <p>
+          This Kagie recommendation page calculates APS, analyzes subject strengths,
+          and presents your best-fit courses in a swipe-ready experience with modern visuals.
+        </p>
+
+        <div class="hero-stats">
+          <div class="mini-stat">
+            <span class="num" id="heroAps">0</span>
+            <span class="label">APS Score</span>
+          </div>
+          <div class="mini-stat">
+            <span class="num" id="heroQualifyCount">0</span>
+            <span class="label">Matched Courses</span>
+          </div>
+          <div class="mini-stat">
+            <span class="num" id="heroSubjects">6</span>
+            <span class="label">Subjects Added</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="left-col">
+        <div class="input-card glass">
+          <div class="section-title">
+            <div>
+              <h3>My Marks</h3>
+              <p>Add subjects and percentages</p>
+            </div>
+            <div class="badge-lite" id="subjectCounter">6 Subjects</div>
+          </div>
+
+          <div id="subjectRows"></div>
+
+          <div class="controls">
+            <button class="btn add" id="addSubjectBtn">+ Add Subject</button>
+            <button class="btn calculate" id="calculateBtn">Calculate & Recommend</button>
+          </div>
+
+          <div style="margin-top:16px;">
+            <div class="section-title" style="margin-bottom:10px;">
+              <div>
+                <h3 style="font-size:1rem;">Career Interests</h3>
+                <p>Select preferred fields</p>
+              </div>
+            </div>
+
+            <div class="interest-grid" id="interestGrid">
+              <div class="chip active" data-interest="Technology">Technology</div>
+              <div class="chip" data-interest="Business">Business</div>
+              <div class="chip" data-interest="Health">Health</div>
+              <div class="chip" data-interest="Education">Education</div>
+              <div class="chip" data-interest="Law">Law</div>
+              <div class="chip" data-interest="Science">Science</div>
+              <div class="chip" data-interest="Engineering">Engineering</div>
+              <div class="chip" data-interest="Media">Media</div>
+            </div>
+
+            <div class="controls" style="margin-top:16px;">
+              <button class="btn secondary" id="loadSampleBtn">Load Example Data</button>
+              <button class="btn add" id="resetBtn">Reset Inputs</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="analytics-card glass">
+          <div class="section-title">
+            <div>
+              <h3>Performance Analytics</h3>
+              <p>Your profile strength and subject breakdown</p>
+            </div>
+            <div class="badge-lite" id="matchBadge">Awaiting Analysis</div>
+          </div>
+
+          <div class="ring-wrap">
+            <div class="ring" id="apsRing" style="--ring-angle:0deg;">
+              <div class="ring-inner">
+                <strong id="apsDisplay">0</strong>
+                <span>APS Score</span>
+              </div>
+            </div>
+
+            <div class="aps-note" id="apsNote">
+              Add or update your marks, then click <b>Calculate & Recommend</b> to see your APS score and best-fit courses.
+            </div>
+          </div>
+
+          <div class="bar-group">
+            <div class="bar-item">
+              <div class="bar-label">English</div>
+              <div class="bar-track"><div class="bar-fill" id="barEnglish"></div></div>
+              <div class="bar-value" id="valEnglish">0%</div>
+            </div>
+            <div class="bar-item">
+              <div class="bar-label">Maths</div>
+              <div class="bar-track"><div class="bar-fill" id="barMath"></div></div>
+              <div class="bar-value" id="valMath">0%</div>
+            </div>
+            <div class="bar-item">
+              <div class="bar-label">Science</div>
+              <div class="bar-track"><div class="bar-fill" id="barScience"></div></div>
+              <div class="bar-value" id="valScience">0%</div>
+            </div>
+            <div class="bar-item">
+              <div class="bar-label">Average</div>
+              <div class="bar-track"><div class="bar-fill" id="barAverage"></div></div>
+              <div class="bar-value" id="valAverage">0%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="right-col">
+        <div class="result-panel glass">
+          <div class="result-head">
+            <div>
+              <h3>Recommended Courses & Institutions</h3>
+              <p>Swipe through courses or use the quick actions to save and apply.</p>
+            </div>
+            <div class="result-actions">
+              <button class="small-btn active" id="showAllBtn">Show All Matches</button>
+              <button class="small-btn" id="showStrongBtn">Strong Only</button>
+              <button class="small-btn" id="showSavedBtn">Saved</button>
+            </div>
+          </div>
+
+          <div id="resultsContainer"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="toast-wrap" id="toastWrap"></div>
+  </div>
+
+  <script>
+    const api = window.KagieAPI;
+    const currentUser = api?.currentUser?.();
+    if (!currentUser || currentUser.role !== "user") {
+      window.location.href = "login.html";
+    }
+    const currentProfile = currentUser ? (api.getProfile(currentUser.id) || {}) : {};
+
+    const SUBJECT_OPTIONS = [
+      "English Home Language",
+      "English First Additional Language",
+      "Mathematics",
+      "Mathematical Literacy",
+      "Physical Sciences",
+      "Life Sciences",
+      "Geography",
+      "History",
+      "Business Studies",
+      "Accounting",
+      "Economics",
+      "Information Technology",
+      "Computer Applications Technology",
+      "Xitsonga",
+      "isiZulu Home Language",
+      "isiZulu First Additional Language",
+      "Xitsonga Home Language",
+      "Life Orientation",
+      "Tourism",
+      "Agricultural Sciences",
+      "Consumer Studies",
+      "Dramatic Arts",
+      "Visual Arts",
+      "Religion Studies"
+    ];
+
+    const COURSES = [
+      {
+        id:"c1",
+        courseName:"BSc Computer Science",
+        faculty:"Science",
+        institution:"University of KwaZulu-Natal",
+        province:"KwaZulu-Natal",
+        type:"University",
+        minAps:30,
+        requiredSubjects:[{name:"English", min:50},{name:"Mathematics", min:60}],
+        recommendedSubjects:[{name:"Physical Sciences", min:50},{name:"Information Technology", min:50}],
+        interestTags:["Technology","Science"]
+      },
+      {
+        id:"c2",
+        courseName:"Diploma in Information Technology",
+        faculty:"ICT",
+        institution:"Durban University of Technology",
+        province:"KwaZulu-Natal",
+        type:"University",
+        minAps:26,
+        requiredSubjects:[{name:"English", min:50},{name:"Mathematics", min:40}],
+        recommendedSubjects:[{name:"Computer Applications Technology", min:50},{name:"Information Technology", min:50}],
+        interestTags:["Technology"]
+      },
+      {
+        id:"c3",
+        courseName:"Bachelor of Education",
+        faculty:"Education",
+        institution:"University of Zululand",
+        province:"KwaZulu-Natal",
+        type:"University",
+        minAps:24,
+        requiredSubjects:[{name:"English", min:50}],
+        recommendedSubjects:[{name:"History", min:40},{name:"Geography", min:40}],
+        interestTags:["Education"]
+      },
+      {
+        id:"c4",
+        courseName:"Diploma in Nursing",
+        faculty:"Health Sciences",
+        institution:"Mangosuthu University of Technology",
+        province:"KwaZulu-Natal",
+        type:"University",
+        minAps:26,
+        requiredSubjects:[{name:"English", min:50},{name:"Life Sciences", min:50}],
+        recommendedSubjects:[{name:"Mathematics", min:40},{name:"Physical Sciences", min:40}],
+        interestTags:["Health","Science"]
+      },
+      {
+        id:"c5",
+        courseName:"BCom Accounting",
+        faculty:"Commerce",
+        institution:"University of Johannesburg",
+        province:"Gauteng",
+        type:"University",
+        minAps:32,
+        requiredSubjects:[{name:"English", min:50},{name:"Mathematics", min:60}],
+        recommendedSubjects:[{name:"Accounting", min:55},{name:"Business Studies", min:50}],
+        interestTags:["Business"]
+      },
+      {
+        id:"c6",
+        courseName:"Diploma in Public Management",
+        faculty:"Management Sciences",
+        institution:"Mangosuthu University of Technology",
+        province:"KwaZulu-Natal",
+        type:"University",
+        minAps:22,
+        requiredSubjects:[{name:"English", min:45}],
+        recommendedSubjects:[{name:"Business Studies", min:45},{name:"Economics", min:45}],
+        interestTags:["Business","Law"]
+      },
+      {
+        id:"c7",
+        courseName:"LLB",
+        faculty:"Law",
+        institution:"University of South Africa",
+        province:"Gauteng",
+        type:"University",
+        minAps:30,
+        requiredSubjects:[{name:"English", min:60}],
+        recommendedSubjects:[{name:"History", min:50},{name:"Business Studies", min:50}],
+        interestTags:["Law"]
+      },
+      {
+        id:"c8",
+        courseName:"BEng Civil Engineering",
+        faculty:"Engineering",
+        institution:"University of Pretoria",
+        province:"Gauteng",
+        type:"University",
+        minAps:34,
+        requiredSubjects:[{name:"English", min:50},{name:"Mathematics", min:70},{name:"Physical Sciences", min:65}],
+        recommendedSubjects:[{name:"Geography", min:50}],
+        interestTags:["Engineering","Science"]
+      },
+      {
+        id:"c9",
+        courseName:"Higher Certificate in Office Administration",
+        faculty:"Business Support",
+        institution:"TVET College",
+        province:"KwaZulu-Natal",
+        type:"College",
+        minAps:18,
+        requiredSubjects:[{name:"English", min:40}],
+        recommendedSubjects:[{name:"Business Studies", min:40},{name:"Computer Applications Technology", min:40}],
+        interestTags:["Business"]
+      },
+      {
+        id:"c10",
+        courseName:"BA Journalism and Media Studies",
+        faculty:"Humanities",
+        institution:"Rhodes University",
+        province:"Eastern Cape",
+        type:"University",
+        minAps:30,
+        requiredSubjects:[{name:"English", min:65}],
+        recommendedSubjects:[{name:"History", min:50},{name:"Dramatic Arts", min:50}],
+        interestTags:["Media"]
+      },
+      {
+        id:"c11",
+        courseName:"BSc Agriculture",
+        faculty:"Agriculture",
+        institution:"University of Fort Hare",
+        province:"Eastern Cape",
+        type:"University",
+        minAps:24,
+        requiredSubjects:[{name:"English", min:45}],
+        recommendedSubjects:[{name:"Life Sciences", min:45},{name:"Agricultural Sciences", min:50}],
+        interestTags:["Science"]
+      },
+      {
+        id:"c12",
+        courseName:"Diploma in Marketing",
+        faculty:"Management Sciences",
+        institution:"Cape Peninsula University of Technology",
+        province:"Western Cape",
+        type:"University",
+        minAps:24,
+        requiredSubjects:[{name:"English", min:50}],
+        recommendedSubjects:[{name:"Business Studies", min:50},{name:"Economics", min:45}],
+        interestTags:["Business","Media"]
+      }
+    ];
+
+    const DEFAULT_SUBJECTS = [
+      {name:"English Home Language", mark:72},
+      {name:"Mathematics", mark:64},
+      {name:"Life Sciences", mark:58},
+      {name:"Geography", mark:61},
+      {name:"Business Studies", mark:67},
+      {name:"Life Orientation", mark:80}
+    ];
+
+    function profileMarksToSubjects(profile){
+      return Array.isArray(profile?.marks) ? profile.marks
+        .map((item) => ({
+          name: item.subject || item.name || "",
+          mark: Number(item.percent ?? item.mark ?? item.percentage ?? 0)
+        }))
+        .filter((item) => item.name && Number.isFinite(item.mark) && item.mark >= 0) : [];
+    }
+
+    const PROFILE_SUBJECTS = profileMarksToSubjects(currentProfile);
+    let subjectData = JSON.parse(JSON.stringify(PROFILE_SUBJECTS.length ? PROFILE_SUBJECTS : DEFAULT_SUBJECTS));
+    let results = [];
+    let filteredResults = [];
+    let savedCourses = [];
+    let selectedInterests = ["Technology"];
+    let currentView = "all";
+
+    const els = {
+      subjectRows: document.getElementById("subjectRows"),
+      subjectCounter: document.getElementById("subjectCounter"),
+      addSubjectBtn: document.getElementById("addSubjectBtn"),
+      calculateBtn: document.getElementById("calculateBtn"),
+      quickCalculateBtn: document.getElementById("quickCalculateBtn"),
+      topSavedBtn: document.getElementById("topSavedBtn"),
+      loadSampleBtn: document.getElementById("loadSampleBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      apsDisplay: document.getElementById("apsDisplay"),
+      apsDisplayTop: document.getElementById("apsDisplayTop"),
+      apsNote: document.getElementById("apsNote"),
+      apsRing: document.getElementById("apsRing"),
+      heroAps: document.getElementById("heroAps"),
+      heroQualifyCount: document.getElementById("heroQualifyCount"),
+      heroSubjects: document.getElementById("heroSubjects"),
+      resultsContainer: document.getElementById("resultsContainer"),
+      matchBadge: document.getElementById("matchBadge"),
+      toastWrap: document.getElementById("toastWrap"),
+      interestGrid: document.getElementById("interestGrid"),
+      showAllBtn: document.getElementById("showAllBtn"),
+      showStrongBtn: document.getElementById("showStrongBtn"),
+      showSavedBtn: document.getElementById("showSavedBtn")
+    };
+
+    function markToPoints(mark){
+      if (mark >= 80) return 7;
+      if (mark >= 70) return 6;
+      if (mark >= 60) return 5;
+      if (mark >= 50) return 4;
+      if (mark >= 40) return 3;
+      if (mark >= 30) return 2;
+      return 1;
+    }
+
+    function calculateAPS(subjects){
+      return subjects.reduce((total, s) => {
+        if ((s.name || "").toLowerCase().includes("life orientation")) return total;
+        return total + markToPoints(Number(s.mark || 0));
+      }, 0);
+    }
+
+    function normalizeText(v){
+      return String(v || "").toLowerCase().trim();
+    }
+
+    function findSubject(subjects, reqName){
+      const req = normalizeText(reqName);
+      return subjects.find(s => normalizeText(s.name).includes(req));
+    }
+
+    function getAvg(subjects){
+      if (!subjects.length) return 0;
+      return Math.round(subjects.reduce((a,b)=>a + Number(b.mark || 0), 0) / subjects.length);
+    }
+
+    function getMainSubjectMark(subjects, type){
+      const checks = {
+        english:["english"],
+        math:["mathematics","mathematical literacy"],
+        science:["physical sciences","life sciences","agricultural sciences"]
+      };
+      const list = checks[type] || [];
+      const found = subjects
+        .filter(s => list.some(k => normalizeText(s.name).includes(k)))
+        .map(s => Number(s.mark || 0));
+      if (!found.length) return 0;
+      return Math.max(...found);
+    }
+
+    function getRecommendations(userSubjects){
+      const aps = calculateAPS(userSubjects);
+      const avg = getAvg(userSubjects);
+
+      return COURSES.map(course => {
+        let score = 0;
+        let passedRequired = true;
+        const reasons = [];
+
+        if (aps >= course.minAps){
+          score += 28;
+          reasons.push(`APS met: ${aps}/${course.minAps}`);
+        } else {
+          passedRequired = false;
+          reasons.push(`APS below requirement: ${aps}/${course.minAps}`);
+        }
+
+        course.requiredSubjects.forEach(req => {
+          const found = findSubject(userSubjects, req.name);
+
+          if (!found){
+            passedRequired = false;
+            reasons.push(`${req.name} not found`);
+            return;
+          }
+
+          if (Number(found.mark) >= req.min){
+            score += 23;
+            reasons.push(`${req.name} passed (${found.mark}% ≥ ${req.min}%)`);
+          } else {
+            passedRequired = false;
+            reasons.push(`${req.name} below minimum (${found.mark}% < ${req.min}%)`);
+          }
+        });
+
+        course.recommendedSubjects.forEach(req => {
+          const found = findSubject(userSubjects, req.name);
+          if (found && Number(found.mark) >= req.min){
+            score += 8;
+            reasons.push(`${req.name} strengthens this application`);
+          }
+        });
+
+        const interestMatches = course.interestTags.filter(tag => selectedInterests.includes(tag));
+        if (interestMatches.length){
+          score += 12;
+          reasons.push(`Matches selected interest: ${interestMatches.join(", ")}`);
+        }
+
+        if (avg >= 65) score += 8;
+        else if (avg >= 55) score += 4;
+
+        let match = "Low";
+        if (passedRequired && score >= 70) match = "Strong";
+        else if (passedRequired && score >= 54) match = "Good";
+        else if (score >= 38) match = "Possible";
+
+        return {
+          ...course,
+          aps,
+          avg,
+          score,
+          match,
+          reasons: reasons.slice(0, 5)
+        };
+      })
+      .filter(item => item.match !== "Low")
+      .sort((a,b) => b.score - a.score);
+    }
+
+    function renderSubjectRows(){
+      els.subjectRows.innerHTML = subjectData.map((row, index) => {
+        const options = SUBJECT_OPTIONS.map(sub => `
+          <option value="${sub}" ${sub === row.name ? "selected" : ""}>${sub}</option>
+        `).join("");
+
+        return `
+          <div class="subject-row">
+            <select class="select" data-index="${index}" data-type="name">
+              ${options}
+            </select>
+            <input
+              class="mark-input"
+              data-index="${index}"
+              data-type="mark"
+              type="number"
+              min="0"
+              max="100"
+              value="${row.mark}"
+              placeholder="%"
+            />
+            <button class="remove-btn" data-remove="${index}" ${subjectData.length <= 1 ? "disabled style='opacity:.5;cursor:not-allowed'" : ""}>×</button>
+          </div>
+        `;
+      }).join("");
+
+      els.subjectCounter.textContent = `${subjectData.length} Subject${subjectData.length === 1 ? "" : "s"}`;
+      els.heroSubjects.textContent = subjectData.length;
+    }
+
+    function setBar(value, barId, valId){
+      document.getElementById(barId).style.width = `${Math.max(0, Math.min(100, value))}%`;
+      document.getElementById(valId).textContent = `${value}%`;
+    }
+
+    function updateAnalytics(subjects, aps){
+      const english = getMainSubjectMark(subjects, "english");
+      const math = getMainSubjectMark(subjects, "math");
+      const science = getMainSubjectMark(subjects, "science");
+      const average = getAvg(subjects);
+
+      els.apsDisplay.textContent = aps;
+      els.apsDisplayTop.textContent = aps;
+      els.heroAps.textContent = aps;
+
+      const angle = Math.min((aps / 42) * 360, 360);
+      els.apsRing.style.setProperty("--ring-angle", `${angle}deg`);
+
+      setBar(english, "barEnglish", "valEnglish");
+      setBar(math, "barMath", "valMath");
+      setBar(science, "barScience", "valScience");
+      setBar(average, "barAverage", "valAverage");
+
+      let quality = "Developing profile";
+      if (aps >= 32) quality = "Excellent university profile";
+      else if (aps >= 28) quality = "Strong admission profile";
+      else if (aps >= 24) quality = "Good profile with multiple options";
+      else if (aps >= 20) quality = "Decent profile for flexible pathways";
+
+      els.apsNote.innerHTML = `
+        Your current APS is <b>${aps}</b> with an average of <b>${average}%</b>.
+        This gives you a <b>${quality}</b>. Stronger English, Mathematics, and Science marks unlock more opportunities.
+      `;
+    }
+
+    function setActiveFilterButton(){
+      [els.showAllBtn, els.showStrongBtn, els.showSavedBtn].forEach(btn => btn.classList.remove("active"));
+      if (currentView === "all") els.showAllBtn.classList.add("active");
+      if (currentView === "strong") els.showStrongBtn.classList.add("active");
+      if (currentView === "saved") els.showSavedBtn.classList.add("active");
+    }
+
+    function updateHeroCounts(){
+      els.heroQualifyCount.textContent = filteredResults.length || 0;
+    }
+
+    function renderEmptyState(title, text, icon="🎓"){
+      els.resultsContainer.innerHTML = `
+        <div class="empty-state">
+          <div>
+            <div class="empty-icon">${icon}</div>
+            <h3 style="margin:0 0 10px;font-size:1.35rem;">${title}</h3>
+            <p style="margin:0;line-height:1.6;">${text}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function cardTemplate(item){
+      const matchClass =
+        item.match === "Strong" ? "match-strong" :
+        item.match === "Good" ? "match-good" :
+        "match-possible";
+
+      return `
+        <div class="stack-card" data-id="${item.id}">
+          <div>
+            <div class="course-top">
+              <div class="course-chip ${matchClass}">
+                ${item.match} Match
+              </div>
+              <div class="course-score">Score ${item.score}</div>
+            </div>
+
+            <h4>${item.courseName}</h4>
+
+            <div class="meta">
+              <span>${item.institution}</span>
+              <span>${item.province}</span>
+              <span>${item.faculty}</span>
+              <span>APS ${item.minAps}</span>
+              <span>${item.type}</span>
+            </div>
+
+            <ul class="reason-list">
+              ${item.reasons.map(r => `<li>${r}</li>`).join("")}
+            </ul>
+          </div>
+
+          <div class="course-footer">
+            <div class="require-box">
+              <strong>Requirements</strong>
+              <p>
+                Required: ${item.requiredSubjects.map(s => `${s.name} ${s.min}%`).join(", ")}<br>
+                Recommended: ${item.recommendedSubjects.map(s => `${s.name} ${s.min}%`).join(", ")}
+              </p>
+            </div>
+
+            <div class="swipe-controls">
+              <button class="action-btn reject" data-action="reject" data-id="${item.id}">✕</button>
+              <button class="action-btn save" data-action="save" data-id="${item.id}">♥</button>
+              <button class="action-btn apply" data-action="apply" data-id="${item.id}">↑</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function attachMiniCourseButtons(){
+      document.querySelectorAll(".mini-course").forEach(item => {
+        item.addEventListener("click", () => {
+          const id = item.dataset.miniId;
+          const course = filteredResults.find(c => c.id === id);
+          if (!course) return;
+
+          filteredResults = [course, ...filteredResults.filter(c => c.id !== id)];
+          renderResults();
+        });
+      });
+    }
+
+    function attachCardButtons(){
+      document.querySelectorAll(".action-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const action = btn.dataset.action;
+          const id = btn.dataset.id;
+          const card = btn.closest(".stack-card");
+          const course = filteredResults.find(item => item.id === id);
+
+          if (!card || !course) return;
+
+          if (action === "reject"){
+            card.classList.add("dismiss-left");
+            showToast(`Skipped ${course.courseName}`, "warn");
+          }
+
+          if (action === "save"){
+            if (!savedCourses.find(c => c.id === course.id)){
+              savedCourses.push(course);
+              showToast(`${course.courseName} saved`, "success");
+            } else {
+              showToast(`${course.courseName} already saved`, "info");
+            }
+            card.classList.add("dismiss-right");
+          }
+
+          if (action === "apply"){
+            showToast(`Ready to apply for ${course.courseName}`, "success");
+            card.classList.add("dismiss-up");
+          }
+
+          setTimeout(() => {
+            if (currentView === "saved") {
+              if (action === "reject" || action === "apply") {
+                filteredResults = filteredResults.filter(item => item.id !== id);
+              } else {
+                filteredResults = [...savedCourses];
+              }
+            } else {
+              filteredResults = filteredResults.filter(item => item.id !== id);
+            }
+
+            updateHeroCounts();
+            renderResults();
+          }, 320);
+        });
+      });
+    }
+
+    function renderResults(){
+      if (!filteredResults.length){
+        if (currentView === "saved"){
+          renderEmptyState("No saved courses yet", "Save a course using the ♥ button and it will appear here.", "♥");
+        } else if (currentView === "strong"){
+          renderEmptyState("No strong matches yet", "Try improving your marks, changing interests, or viewing all matches.", "⭐");
+        } else {
+          renderEmptyState("No recommendations yet", "Add your subjects and marks, then click Calculate & Recommend.", "🎓");
+        }
+        return;
+      }
+
+      const topThree = filteredResults.slice(0,3);
+      const sideList = filteredResults.slice(0,10);
+
+      els.resultsContainer.innerHTML = `
+        <div class="swipe-stage">
+          <div class="card-stack-area">
+            ${topThree.map(card => cardTemplate(card)).join("")}
+          </div>
+
+          <div class="course-list-panel">
+            ${sideList.map(item => `
+              <div class="mini-course" data-mini-id="${item.id}">
+                <h5>${item.courseName}</h5>
+                <p><b>${item.institution}</b> • ${item.faculty} • ${item.match} Match • APS ${item.minAps}</p>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+
+      attachCardButtons();
+      attachMiniCourseButtons();
+    }
+
+    function showToast(message, type="info"){
+      const toast = document.createElement("div");
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      els.toastWrap.appendChild(toast);
+      setTimeout(() => toast.remove(), 2600);
+    }
+
+    function applyCurrentFilter(){
+      if (currentView === "all"){
+        filteredResults = [...results];
+      } else if (currentView === "strong"){
+        filteredResults = results.filter(r => r.match === "Strong");
+      } else if (currentView === "saved"){
+        filteredResults = [...savedCourses];
+      }
+
+      updateHeroCounts();
+      setActiveFilterButton();
+      renderResults();
+    }
+
+    function analyze(){
+      subjectData = subjectData.map(row => ({
+        name: row.name,
+        mark: Math.max(0, Math.min(100, Number(row.mark || 0)))
+      }));
+
+      const aps = calculateAPS(subjectData);
+      results = getRecommendations(subjectData);
+
+      if (currentView !== "saved") currentView = "all";
+
+      updateAnalytics(subjectData, aps);
+      els.matchBadge.textContent = results.length ? `${results[0].match} Path Ready` : "No Matches";
+
+      applyCurrentFilter();
+      showToast("Recommendations updated", "info");
+    }
+
+    function resetData(){
+      subjectData = [
+        {name:"English Home Language", mark:0},
+        {name:"Mathematics", mark:0},
+        {name:"Life Sciences", mark:0}
+      ];
+      results = [];
+      filteredResults = [];
+      currentView = "all";
+
+      renderSubjectRows();
+      updateAnalytics(subjectData, 0);
+      els.matchBadge.textContent = "Awaiting Analysis";
+      setActiveFilterButton();
+      renderEmptyState("No recommendations yet", "Add your subjects and marks, then click Calculate & Recommend.", "🎓");
+      updateHeroCounts();
+    }
+
+    function bindSubjectEvents(){
+      els.subjectRows.addEventListener("input", e => {
+        const index = Number(e.target.dataset.index);
+        const type = e.target.dataset.type;
+        if (Number.isNaN(index) || !type) return;
+        subjectData[index][type] = e.target.value;
+      });
+
+      els.subjectRows.addEventListener("click", e => {
+        const removeIndex = e.target.getAttribute("data-remove");
+        if (removeIndex === null) return;
+        if (subjectData.length <= 1) return;
+        subjectData.splice(Number(removeIndex), 1);
+        renderSubjectRows();
+      });
+    }
+
+    function bindInterestEvents(){
+      els.interestGrid.addEventListener("click", e => {
+        const chip = e.target.closest(".chip");
+        if (!chip) return;
+
+        const interest = chip.dataset.interest;
+        chip.classList.toggle("active");
+
+        let activeChips = [...document.querySelectorAll(".chip.active")].map(c => c.dataset.interest);
+
+        if (!activeChips.length){
+          chip.classList.add("active");
+          activeChips = [interest];
+        }
+
+        selectedInterests = activeChips;
+      });
+    }
+
+    els.addSubjectBtn.addEventListener("click", () => {
+      if (subjectData.length >= 10){
+        showToast("You can add up to 10 subjects", "warn");
+        return;
+      }
+      subjectData.push({name:"Business Studies", mark:0});
+      renderSubjectRows();
+    });
+
+    els.calculateBtn.addEventListener("click", analyze);
+    els.quickCalculateBtn.addEventListener("click", analyze);
+
+    els.topSavedBtn.addEventListener("click", () => {
+      currentView = "saved";
+      applyCurrentFilter();
+      showToast("Showing saved courses", "info");
+    });
+
+    els.loadSampleBtn.addEventListener("click", () => {
+      subjectData = JSON.parse(JSON.stringify(DEFAULT_SUBJECTS));
+      renderSubjectRows();
+      analyze();
+      showToast("Example data loaded", "success");
+    });
+
+    els.resetBtn.addEventListener("click", resetData);
+
+    els.showAllBtn.addEventListener("click", () => {
+      currentView = "all";
+      applyCurrentFilter();
+      showToast("Showing all matches", "info");
+    });
+
+    els.showStrongBtn.addEventListener("click", () => {
+      currentView = "strong";
+      applyCurrentFilter();
+      showToast("Showing strong matches only", "info");
+    });
+
+    els.showSavedBtn.addEventListener("click", () => {
+      currentView = "saved";
+      applyCurrentFilter();
+      showToast("Showing saved courses", "info");
+    });
+
+    renderSubjectRows();
+    bindSubjectEvents();
+    bindInterestEvents();
+    updateAnalytics(subjectData, calculateAPS(subjectData));
+    renderEmptyState("Loading recommendations...", "Your Kagie dashboard is getting ready.", "⚡");
+    analyze();
+  </script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kagie | Language</title>
+  <script src="js/backend.js"></script>
+  <style>
+    :root {
+      --bg: #f3f5f7;
+      --card: rgba(255, 255, 255, 0.9);
+      --text: #0f172a;
+      --muted: #64748b;
+      --red: #c90000;
+      --blue: #2fa4ff;
+      --shadow: 0 22px 45px rgba(15, 23, 42, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 480px at 20% 0%, rgba(47, 164, 255, 0.14), transparent 60%),
+        radial-gradient(900px 520px at 80% 8%, rgba(201, 0, 0, 0.08), transparent 60%),
+        var(--bg);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .card {
+      width: min(460px, 100%);
+      background: var(--card);
+      border-radius: 28px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(12px);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      line-height: 1.1;
+    }
+
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    select {
+      width: 100%;
+      height: 48px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 14px;
+      padding: 0 14px;
+      font: inherit;
+      outline: none;
+      background: #fff;
+    }
+
+    select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(47, 164, 255, 0.12);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    button,
+    a {
+      height: 48px;
+      border: none;
+      border-radius: 14px;
+      padding: 0 18px;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    button {
+      background: linear-gradient(135deg, var(--red), #ef4444);
+      color: #fff;
+    }
+
+    a {
+      background: rgba(47, 164, 255, 0.1);
+      color: var(--blue);
+    }
+
+    .message {
+      min-height: 20px;
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #15803d;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Language Preference</h1>
+    <p>Choose the language label used for your Kagie experience in this browser.</p>
+
+    <label for="language">Preferred Language</label>
+    <select id="language">
+      <option value="English">English</option>
+      <option value="isiZulu">isiZulu</option>
+      <option value="Xitsonga">Xitsonga</option>
+      <option value="Sesotho">Sesotho</option>
+      <option value="Afrikaans">Afrikaans</option>
+    </select>
+
+    <div class="actions">
+      <button type="button" id="saveBtn">Save Preference</button>
+      <a href="profile.html">Back to Profile</a>
+    </div>
+
+    <div class="message" id="message" aria-live="polite"></div>
+  </main>
+
+  <script>
+    const user = window.KagieAPI?.currentUser?.();
+    const storageKey = user ? `kagie_language_${user.id}` : "kagie_language";
+    const select = document.getElementById("language");
+    const message = document.getElementById("message");
+
+    select.value = localStorage.getItem(storageKey) || "English";
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      localStorage.setItem(storageKey, select.value);
+      message.textContent = "Language preference saved.";
+    });
+  </script>
+</body>
+</html>

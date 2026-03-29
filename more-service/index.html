@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | More Service</title>
+  <script src="../js/data.js"></script>
+  <script src="../js/backend.js"></script>
+  <script>
+    const currentUser = window.KagieAPI?.currentUser?.();
+    if (!currentUser || currentUser.role !== "user") {
+      window.location.href = "../login.html";
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f4f7fb;
+      --text:#10203a;
+      --muted:#5f718c;
+      --red:#c90000;
+      --blue:#2fa4ff;
+      --orange:#e45a2a;
+      --yellow:#f5c84c;
+      --line:rgba(15,23,42,.08);
+      --glass:rgba(255,255,255,.82);
+      --shadow:0 22px 48px rgba(15,23,42,.12);
+      --soft:0 10px 24px rgba(15,23,42,.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      padding:18px;
+      font-family:"Roboto",system-ui,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 480px at 12% 0%, rgba(47,164,255,.15), transparent 60%),
+        radial-gradient(900px 520px at 88% 10%, rgba(245,200,76,.18), transparent 60%),
+        radial-gradient(900px 520px at 50% 100%, rgba(228,90,42,.10), transparent 60%),
+        var(--bg);
+    }
+    .shell{
+      width:min(460px,100%);
+      margin:0 auto;
+      display:grid;
+      gap:16px;
+    }
+    .topbar,.hero,.panel,.service{
+      background:var(--glass);
+      border:1px solid rgba(255,255,255,.72);
+      border-radius:26px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+    }
+    .topbar{
+      background:linear-gradient(135deg,var(--red),#a70000);
+      color:#fff;
+      padding:18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .topbar h1{
+      margin:0;
+      font:800 22px "Poppins",sans-serif;
+    }
+    .topbar p{
+      margin:4px 0 0;
+      font-size:13px;
+      opacity:.92;
+    }
+    .top-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .chip-btn,.cta{
+      border:none;
+      border-radius:14px;
+      padding:11px 14px;
+      font:700 14px "Roboto",sans-serif;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      transition:transform .18s ease;
+    }
+    .chip-btn:hover,.cta:hover,.service:hover{transform:translateY(-2px)}
+    .chip-btn{
+      background:rgba(255,255,255,.16);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.18);
+    }
+    .hero{
+      padding:22px;
+      background:
+        radial-gradient(circle at top right, rgba(255,255,255,.32), transparent 28%),
+        linear-gradient(135deg, rgba(47,164,255,.96), rgba(228,90,42,.88));
+      color:#fff;
+    }
+    .hero h2{
+      margin:0;
+      font:800 28px "Poppins",sans-serif;
+      line-height:1.05;
+    }
+    .hero p{
+      margin:10px 0 0;
+      line-height:1.65;
+      font-size:14px;
+      max-width:320px;
+      color:rgba(255,255,255,.92);
+    }
+    .hero-stats{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+      margin-top:18px;
+    }
+    .hero-stat{
+      padding:14px 12px;
+      border-radius:18px;
+      background:rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.16);
+      text-align:center;
+    }
+    .hero-stat strong{
+      display:block;
+      font:800 22px "Poppins",sans-serif;
+    }
+    .hero-stat span{
+      display:block;
+      margin-top:4px;
+      font-size:11px;
+      font-weight:700;
+      opacity:.92;
+    }
+    .panel{
+      padding:18px;
+    }
+    .panel h3{
+      margin:0 0 6px;
+      font:800 18px "Poppins",sans-serif;
+    }
+    .panel p{
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.6;
+    }
+    .services{
+      display:grid;
+      gap:14px;
+    }
+    .service{
+      padding:18px;
+      display:grid;
+      gap:14px;
+      text-decoration:none;
+      color:inherit;
+      transition:transform .18s ease, box-shadow .18s ease;
+      box-shadow:var(--soft);
+      position:relative;
+      overflow:hidden;
+    }
+    .service::before{
+      content:"";
+      position:absolute;
+      width:170px;
+      height:170px;
+      border-radius:50%;
+      top:-60px;
+      right:-50px;
+      background:radial-gradient(circle, rgba(255,255,255,.35), transparent 70%);
+      pointer-events:none;
+    }
+    .service-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .service-name{
+      margin:0;
+      font:800 20px "Poppins",sans-serif;
+      line-height:1.1;
+    }
+    .service-price{
+      padding:9px 12px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:900;
+      background:rgba(255,255,255,.72);
+      border:1px solid rgba(255,255,255,.9);
+      white-space:nowrap;
+    }
+    .service p{
+      margin:0;
+      color:#334155;
+      font-size:13px;
+      line-height:1.6;
+      max-width:290px;
+    }
+    .service-footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .badge{
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      background:rgba(255,255,255,.68);
+      border:1px solid rgba(255,255,255,.9);
+      color:#334155;
+    }
+    .cta{
+      background:#fff;
+      color:var(--text);
+      box-shadow:0 10px 20px rgba(15,23,42,.08);
+      font-weight:800;
+    }
+    .tone-blue{background:linear-gradient(135deg, rgba(47,164,255,.98), rgba(103,193,255,.76))}
+    .tone-orange{background:linear-gradient(135deg, rgba(228,90,42,.98), rgba(255,152,111,.76))}
+    .tone-yellow{background:linear-gradient(135deg, rgba(245,200,76,.98), rgba(239,217,119,.8))}
+    .tone-red{background:linear-gradient(135deg, rgba(201,0,0,.98), rgba(239,68,68,.78)); color:#fff}
+    .tone-red p,.tone-red .badge{color:#fff}
+    .tone-red .badge,.tone-red .service-price,.tone-red .cta{
+      background:rgba(255,255,255,.16);
+      border-color:rgba(255,255,255,.18);
+      color:#fff;
+    }
+    @media (max-width:520px){
+      body{padding:12px}
+      .hero-stats{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <h1>More Service</h1>
+        <p>Paid convenience support for portal fixes and recovery requests.</p>
+      </div>
+      <div class="top-actions">
+        <a class="chip-btn" href="../home.html">Home</a>
+        <a class="chip-btn" href="../cart.html" id="cartBtn">Cart</a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h2>Premium support beyond your main application pack.</h2>
+      <p>Kagie can help recover portal details, update account information, and guide a re-application request while keeping everything inside one cart and one dashboard.</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <strong id="serviceCount">0</strong>
+          <span>Available services</span>
+        </div>
+        <div class="hero-stat">
+          <strong id="cartCount">0</strong>
+          <span>Items in cart</span>
+        </div>
+        <div class="hero-stat">
+          <strong id="lowestPrice">R0</strong>
+          <span>Starting from</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>What happens next</h3>
+      <p>Select a service, submit the required institution details, and Kagie will add it to your cart alongside your application pack. After checkout, the request appears in your dashboard flow and can be tracked with support updates.</p>
+    </section>
+
+    <section class="services" id="services"></section>
+  </div>
+
+  <script>
+    (() => {
+      const api = window.KagieAPI;
+      const user = api.requireRole("user");
+      const services = api.getServiceCatalog();
+      const cart = api.getCart(user.id);
+      const toneByCode = {
+        forgot_student_number: "tone-yellow",
+        forgot_pin: "tone-blue",
+        change_email: "tone-orange",
+        re_apply: "tone-red"
+      };
+      const pathByCode = {
+        forgot_student_number: "forgot-student-number.html",
+        forgot_pin: "forgot-pin.html",
+        change_email: "change-email.html",
+        re_apply: "re-apply.html"
+      };
+
+      const serviceList = document.getElementById("services");
+      document.getElementById("serviceCount").textContent = String(services.length);
+      document.getElementById("cartCount").textContent = String(cart.length);
+      document.getElementById("lowestPrice").textContent = `R${Math.min(...services.map((item) => Number(item.price || 0))).toLocaleString("en-ZA")}`;
+      document.getElementById("cartBtn").textContent = `Cart (${cart.length})`;
+
+      serviceList.innerHTML = services.map((service) => {
+        const route = pathByCode[service.code] || "index.html";
+        const countInCart = cart.filter((item) => item.serviceCode === service.code).length;
+        return `
+          <a class="service ${toneByCode[service.code] || "tone-blue"}" href="${route}">
+            <div class="service-top">
+              <h3 class="service-name">${service.name}</h3>
+              <span class="service-price">R${Number(service.price || 0).toLocaleString("en-ZA")}</span>
+            </div>
+            <p>${service.description || "Paid convenience support handled by Kagie."}</p>
+            <div class="service-footer">
+              <span class="badge">${countInCart ? `${countInCart} in cart` : "Quick support service"}</span>
+              <span class="cta">Open service</span>
+            </div>
+          </a>
+        `;
+      }).join("");
+    })();
+  </script>
+</body>
+</html>

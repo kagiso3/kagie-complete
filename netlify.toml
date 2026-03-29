@@ -1,0 +1,75 @@
+[build]
+  publish = "."
+
+  [build.environment]
+    NODE_VERSION = "20"
+    NPM_FLAGS = "--ignore-scripts"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[redirects]]
+  from = "/v1/admin/assistants"
+  to = "/.netlify/functions/admin-assistants"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/notification"
+  to = "/notifications.html"
+  status = 301
+
+[[redirects]]
+  from = "/documents"
+  to = "/documents.html"
+  status = 301
+
+[[redirects]]
+  from = "/forms"
+  to = "/forms.html"
+  status = 301
+
+[[redirects]]
+  from = "/kagie-api/*"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/kagie-mobile/*"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/packages/*"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/supabase/*"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/package.json"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/package-lock.json"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/tsconfig.base.json"
+  to = "/404.html"
+  status = 404

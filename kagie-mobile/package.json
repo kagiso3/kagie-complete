@@ -1,0 +1,25 @@
+{
+  "name": "kagie-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "typecheck": "tsc --noEmit",
+    "build:android": "eas build --platform android",
+    "submit:android": "eas submit --platform android"
+  },
+  "dependencies": {
+    "@kagie/shared": "file:../packages/shared",
+    "expo": "~55.0.0",
+    "expo-secure-store": "~15.0.7",
+    "expo-status-bar": "~55.0.4",
+    "react": "19.2.0",
+    "react-native": "0.83.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.9",
+    "typescript": "^5.9.2"
+  }
+}

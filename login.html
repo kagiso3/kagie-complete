@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kagie | Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg-left:#ebe4e6;
+      --bg-right:#e5e7eb;
+      --card:rgba(248,248,249,.84);
+      --text:#090909;
+      --muted:#72809a;
+      --line:#2e2e2e;
+      --red1:#ff4d4d;
+      --red2:#df0000;
+      --cyan:#36c4ee;
+      --cyan2:#7fe7ff;
+      --shadow:0 28px 60px rgba(0,0,0,.10);
+      --button-shadow:0 18px 32px rgba(223,0,0,.22);
+      --radius:38px;
+    }
+
+    * { box-sizing:border-box; }
+    html, body { min-height:100%; }
+
+    body{
+      margin:0;
+      font-family:"Poppins",sans-serif;
+      background:
+        radial-gradient(circle at left top, rgba(255,255,255,.55), transparent 32%),
+        linear-gradient(90deg,var(--bg-left) 0%, var(--bg-right) 100%);
+      color:var(--text);
+    }
+
+    .bg-blur{
+      position:fixed;
+      inset:-10%;
+      pointer-events:none;
+      filter:blur(55px);
+      opacity:.58;
+      z-index:0;
+    }
+
+    .blob{
+      position:absolute;
+      border-radius:50%;
+      animation:float 10s ease-in-out infinite;
+    }
+
+    .blob.one{
+      width:320px;height:320px;left:4%;top:6%;
+      background:rgba(255,255,255,.58);
+    }
+
+    .blob.two{
+      width:260px;height:260px;right:6%;bottom:10%;
+      background:rgba(255,0,0,.08);
+      animation-delay:-4s;
+    }
+
+    .blob.three{
+      width:240px;height:240px;right:18%;top:12%;
+      background:rgba(54,196,238,.08);
+      animation-delay:-2s;
+    }
+
+    @keyframes float{
+      0%,100%{transform:translateY(0) translateX(0)}
+      50%{transform:translateY(-18px) translateX(12px)}
+    }
+
+    .page{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      position:relative;
+      z-index:2;
+    }
+
+    .auth-card{
+      width:100%;
+      max-width:640px;
+      background:var(--card);
+      border-radius:var(--radius);
+      padding:56px 46px 42px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,.65);
+      transform:translateY(26px) scale(.98);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .7s ease, transform .7s cubic-bezier(.2,.9,.2,1);
+    }
+
+    .auth-card.show{
+      opacity:1;
+      transform:translateY(0) scale(1);
+      pointer-events:auto;
+    }
+
+    h1{
+      margin:0;
+      text-align:center;
+      font-size:56px;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:-.03em;
+    }
+
+    .sub{
+      margin:24px 0 36px;
+      text-align:center;
+      color:var(--muted);
+      font-size:18px;
+      font-weight:500;
+    }
+
+    .field{ margin-bottom:28px; }
+
+    .input-wrap{ position:relative; }
+
+    .input{
+      width:100%;
+      height:88px;
+      border:3px solid var(--line);
+      border-radius:12px;
+      background:rgba(255,255,255,.26);
+      padding:0 28px;
+      font-size:19px;
+      font-weight:700;
+      color:#111827;
+      outline:none;
+      transition:.25s ease;
+      font-family:inherit;
+    }
+
+    .input::placeholder{
+      color:#747784;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      font-weight:700;
+    }
+
+    .input:focus{
+      border-color:#d00000;
+      box-shadow:0 0 0 5px rgba(224,0,0,.08);
+      transform:translateY(-1px);
+    }
+
+    .toggle-pass{
+      position:absolute;
+      right:18px;
+      top:50%;
+      transform:translateY(-50%);
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      font-weight:700;
+      color:#6b7280;
+      font-family:inherit;
+      font-size:15px;
+      padding:6px 8px;
+    }
+
+    .btn{
+      width:100%;
+      height:86px;
+      border:none;
+      border-radius:12px;
+      background:linear-gradient(180deg,var(--red1),var(--red2));
+      color:#fff;
+      font-size:28px;
+      font-weight:800;
+      cursor:pointer;
+      box-shadow:var(--button-shadow);
+      transition:.25s ease;
+      margin:14px 0 24px;
+      font-family:inherit;
+    }
+
+    .btn:hover{ transform:translateY(-2px); }
+    .btn:disabled{ opacity:.7; cursor:not-allowed; transform:none; }
+
+    .links{
+      text-align:center;
+      display:grid;
+      gap:10px;
+    }
+
+    .links a{
+      color:#1d2233;
+      font-size:20px;
+      font-weight:700;
+      text-decoration:none;
+      transition:.2s ease;
+    }
+
+    .links a:hover{ color:#d00000; }
+
+    .message{
+      min-height:24px;
+      text-align:center;
+      font-size:14px;
+      font-weight:600;
+      margin-top:4px;
+    }
+
+    .message.error{ color:#b00020; }
+    .message.success{ color:#0f8a43; }
+
+    .hint{
+      margin-top:14px;
+      text-align:center;
+      color:#6b7280;
+      font-size:13px;
+    }
+
+    .splash{
+      position:fixed;
+      inset:0;
+      display:grid;
+      place-items:center;
+      z-index:20;
+      background:
+        radial-gradient(circle at left top, rgba(255,255,255,.58), transparent 32%),
+        linear-gradient(90deg,var(--bg-left) 0%, var(--bg-right) 100%);
+      transition:opacity .75s ease, visibility .75s ease;
+    }
+
+    .splash.hide{
+      opacity:0;
+      visibility:hidden;
+      pointer-events:none;
+    }
+
+    .splash-card{
+      width:min(460px, 92vw);
+      height:min(760px, 88vh);
+      border-radius:42px;
+      background:rgba(255,255,255,.40);
+      border:1px solid rgba(255,255,255,.72);
+      box-shadow:
+        0 24px 70px rgba(0,0,0,.10),
+        inset 0 1px 0 rgba(255,255,255,.75);
+      backdrop-filter:blur(14px);
+      position:relative;
+      overflow:hidden;
+      display:grid;
+      place-items:center;
+    }
+
+    .splash-card::before{
+      content:"";
+      position:absolute;
+      inset:-30%;
+      background:
+        radial-gradient(circle at 25% 30%, rgba(255,255,255,.55), transparent 20%),
+        radial-gradient(circle at 75% 70%, rgba(54,196,238,.12), transparent 18%),
+        radial-gradient(circle at 40% 80%, rgba(223,0,0,.08), transparent 18%);
+      animation:slowRotate 12s linear infinite;
+      pointer-events:none;
+    }
+
+    @keyframes slowRotate{
+      to{ transform:rotate(360deg); }
+    }
+
+    .splash-inner{
+      width:100%;
+      height:100%;
+      display:grid;
+      place-items:center;
+      position:relative;
+      padding:40px 24px 90px;
+      z-index:2;
+    }
+
+    .logo-block{
+      display:grid;
+      place-items:center;
+      gap:24px;
+      transform:translateY(18px);
+      opacity:0;
+      animation:splashIn .9s cubic-bezier(.2,.9,.2,1) forwards;
+    }
+
+    @keyframes splashIn{
+      to{ opacity:1; transform:translateY(0); }
+    }
+
+    .logo-row{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+      filter:drop-shadow(0 16px 28px rgba(0,0,0,.08));
+    }
+
+    .logo-word{
+      font-size:clamp(58px, 9vw, 82px);
+      font-weight:900;
+      letter-spacing:-.04em;
+      color:#d70000;
+      line-height:1;
+      text-transform:lowercase;
+      animation:logoPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes logoPulse{
+      0%,100%{ transform:scale(1); }
+      50%{ transform:scale(1.02); }
+    }
+
+    .mark{
+      width:96px;
+      height:96px;
+      position:relative;
+      margin-left:-4px;
+    }
+
+    .mark svg{
+      width:100%;
+      height:100%;
+      display:block;
+    }
+
+    .ring{
+      fill:none;
+      stroke:var(--cyan);
+      stroke-width:7;
+      stroke-linecap:round;
+      stroke-dasharray:240;
+      stroke-dashoffset:240;
+      animation:ringDraw 1s .35s ease forwards, ringGlow 2.3s 1.2s ease-in-out infinite;
+    }
+
+    .arrow-head{
+      fill:var(--cyan);
+      opacity:0;
+      transform-origin:64px 18px;
+      animation:arrowIn .45s .95s ease forwards;
+    }
+
+    @keyframes ringDraw{
+      to{ stroke-dashoffset:0; }
+    }
+
+    @keyframes arrowIn{
+      from{ opacity:0; transform:scale(.6); }
+      to{ opacity:1; transform:scale(1); }
+    }
+
+    @keyframes ringGlow{
+      0%,100%{ filter:drop-shadow(0 0 0 rgba(54,196,238,0)); }
+      50%{ filter:drop-shadow(0 0 12px rgba(54,196,238,.28)); }
+    }
+
+    .orbit{
+      position:absolute;
+      inset:-4px;
+      border-radius:50%;
+      animation:spin 1.4s 1s linear infinite;
+    }
+
+    .orbit::before{
+      content:"";
+      position:absolute;
+      top:5px;
+      left:50%;
+      transform:translateX(-50%);
+      width:11px;
+      height:11px;
+      border-radius:50%;
+      background:radial-gradient(circle at 35% 35%, #fff, var(--cyan2));
+      box-shadow:
+        0 0 0 5px rgba(54,196,238,.14),
+        0 0 18px rgba(54,196,238,.35);
+    }
+
+    @keyframes spin{
+      to{ transform:rotate(360deg); }
+    }
+
+    .shine{
+      width:min(230px, 58vw);
+      height:10px;
+      border-radius:999px;
+      background:
+        linear-gradient(90deg,
+          rgba(15,23,42,0) 0%,
+          rgba(54,196,238,.22) 35%,
+          rgba(223,0,0,.18) 55%,
+          rgba(15,23,42,0) 100%);
+      animation:shimmer 1.5s 1s ease-in-out infinite;
+    }
+
+    @keyframes shimmer{
+      0%,100%{ transform:translateX(-8px); }
+      50%{ transform:translateX(8px); }
+    }
+
+    .loading-wrap{
+      display:grid;
+      place-items:center;
+      gap:12px;
+    }
+
+    .loading-text{
+      color:#6c7283;
+      font-size:14px;
+      font-weight:700;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+    }
+
+    .progress{
+      width:min(220px, 60vw);
+      height:10px;
+      border-radius:999px;
+      background:rgba(15,23,42,.08);
+      overflow:hidden;
+      position:relative;
+      box-shadow:inset 0 1px 2px rgba(0,0,0,.04);
+    }
+
+    .progress::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      width:45%;
+      border-radius:999px;
+      background:linear-gradient(90deg, #ff6b6b, #df0000, #36c4ee);
+      animation:loadBar 1.3s ease-in-out infinite;
+    }
+
+    @keyframes loadBar{
+      0%{ transform:translateX(-110%); }
+      100%{ transform:translateX(260%); }
+    }
+
+    .dots{
+      display:flex;
+      gap:6px;
+      justify-content:center;
+      align-items:center;
+    }
+
+    .dots span{
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:#7a8396;
+      animation:dotBounce .9s ease-in-out infinite;
+    }
+
+    .dots span:nth-child(2){ animation-delay:.12s; }
+    .dots span:nth-child(3){ animation-delay:.24s; }
+
+    @keyframes dotBounce{
+      0%,100%{ transform:translateY(0); opacity:.45; }
+      50%{ transform:translateY(-5px); opacity:1; }
+    }
+
+    .phone-ui-top,
+    .phone-ui-bottom{
+      position:absolute;
+      left:0;
+      right:0;
+      opacity:.18;
+    }
+
+    .phone-ui-top{
+      top:24px;
+      height:34px;
+      border-bottom:1px solid rgba(0,0,0,.12);
+    }
+
+    .phone-ui-bottom{
+      bottom:24px;
+      height:42px;
+      border-top:1px solid rgba(0,0,0,.12);
+    }
+
+    @media (max-width:700px){
+      .auth-card{
+        max-width:100%;
+        padding:42px 24px 30px;
+        border-radius:30px;
+      }
+
+      h1{ font-size:44px; }
+      .sub{ font-size:16px; margin:18px 0 28px; }
+      .input{ height:74px; font-size:17px; }
+      .btn{ height:74px; font-size:22px; }
+      .links a{ font-size:16px; }
+
+      .splash-card{
+        width:min(94vw, 430px);
+        height:min(86vh, 760px);
+      }
+
+      .logo-word{ font-size:64px; }
+      .mark{ width:86px; height:86px; }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *, *::before, *::after {
+        animation:none !important;
+        transition:none !important;
+        scroll-behavior:auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-blur" aria-hidden="true">
+    <div class="blob one"></div>
+    <div class="blob two"></div>
+    <div class="blob three"></div>
+  </div>
+
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="splash-card">
+      <div class="phone-ui-top"></div>
+
+      <div class="splash-inner">
+        <div class="logo-block">
+          <div class="logo-row">
+            <div class="logo-word">kagie</div>
+
+            <div class="mark" aria-hidden="true">
+              <svg viewBox="0 0 96 96">
+                <path class="ring" d="M70 30 A26 26 0 1 1 52 18" />
+                <path class="arrow-head" d="M52 18 L66 18 L59 9 Z" />
+              </svg>
+              <div class="orbit"></div>
+            </div>
+          </div>
+
+          <div class="shine"></div>
+
+          <div class="loading-wrap">
+            <div class="progress"></div>
+            <div class="loading-text">Loading Kagie</div>
+            <div class="dots" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-ui-bottom"></div>
+    </div>
+  </div>
+
+  <div class="page">
+    <main class="auth-card" id="authCard">
+      <h1>Login</h1>
+      <p class="sub">Sign in to Kagie</p>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <div class="input-wrap">
+            <input class="input" id="email" type="email" placeholder="Email" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="input-wrap">
+            <input class="input" id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+            <button class="toggle-pass" type="button" id="togglePassword" aria-label="Show password">Show</button>
+          </div>
+        </div>
+
+        <button class="btn" id="loginBtn" type="submit">log in</button>
+        <div class="message" id="message" aria-live="polite"></div>
+      </form>
+
+      <div class="links">
+        <a href="signup.html">Create new Account</a>
+        <a href="forgot-password.html">Forgot Password?</a>
+        <a href="login.html?switch=1">Use another account</a>
+      </div>
+
+      <div class="hint">Use your Kagie account details</div>
+    </main>
+  </div>
+
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/backend.js"></script>
+
+<script>
+  const form = document.getElementById("loginForm");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const message = document.getElementById("message");
+  const loginBtn = document.getElementById("loginBtn");
+  const togglePassword = document.getElementById("togglePassword");
+  const splash = document.getElementById("splash");
+  const authCard = document.getElementById("authCard");
+  const switchAccount = new URLSearchParams(window.location.search).get("switch") === "1";
+
+  const SPLASH_DELAY = 1800;
+
+  // 🔥 CONFIGURE SUPABASE HERE
+  KagieAPI.configureSupabase({
+    enabled: true,
+    url: "https://ztfcxnowjtvonltevrqe.supabase.co",
+    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0ZmN4bm93anR2b25sdGV2cnFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTU1NDIsImV4cCI6MjA4ODkzMTU0Mn0.gNQNE1OpKr9Nkph6bd4JGZ_Yt3A9w1MtpZoGDYqnQxw"
+  });
+
+  function setMessage(text, type = "") {
+    message.textContent = text;
+    message.className = type ? `message ${type}` : "message";
+  }
+
+  function setLoading(isLoading) {
+    loginBtn.disabled = isLoading;
+    loginBtn.textContent = isLoading ? "Logging in..." : "log in";
+  }
+
+  function redirectByRole(user) {
+    const role = user?.role || "user";
+
+    if (role === "master_admin") {
+      window.location.href = "master-admin/dashboard.html";
+      return;
+    }
+
+    if (role === "assistant_admin") {
+      window.location.href = "assistant/dashboard.html";
+      return;
+    }
+
+    window.location.href = "home.html";
+  }
+
+  // 🔥 RESTORE SESSION (VERY IMPORTANT)
+  window.addEventListener("load", async () => {
+    if (switchAccount) {
+      try {
+        await Promise.resolve(KagieAPI.logout());
+        setMessage("You can now sign in with a different account.", "success");
+      } catch (e) {
+        console.warn("Switch account logout failed");
+      }
+
+      setTimeout(() => {
+        splash.classList.add("hide");
+        authCard.classList.add("show");
+      }, 350);
+      return;
+    }
+
+    try {
+      const restored = await KagieAPI.restoreSession();
+
+      if (restored) {
+        redirectByRole(restored);
+        return;
+      }
+    } catch (e) {
+      console.warn("Session restore failed");
+    }
+
+    setTimeout(() => {
+      splash.classList.add("hide");
+      authCard.classList.add("show");
+    }, SPLASH_DELAY);
+  });
+
+  togglePassword.addEventListener("click", () => {
+    const show = passwordInput.type === "password";
+    passwordInput.type = show ? "text" : "password";
+    togglePassword.textContent = show ? "Hide" : "Show";
+  });
+
+  // 🔥 FIXED LOGIN (ASYNC)
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setMessage("");
+
+    const userEmail = emailInput.value.trim().toLowerCase();
+    const userPassword = passwordInput.value;
+
+    if (!userEmail || !userPassword) {
+      setMessage("Enter your email and password.", "error");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const user = await KagieAPI.login(userEmail, userPassword);
+
+      setMessage("Login successful. Redirecting...", "success");
+
+      setTimeout(() => {
+        redirectByRole(user);
+      }, 600);
+
+    } catch (err) {
+      console.error(err);
+      setMessage(err.message || "Login failed", "error");
+      setLoading(false);
+    }
+  });
+</script>
+</body>
+</html>

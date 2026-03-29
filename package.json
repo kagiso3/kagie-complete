@@ -1,0 +1,26 @@
+{
+  "name": "kagie-platform",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "kagie-api",
+    "kagie-mobile"
+  ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "build:shared": "npm --workspace @kagie/shared run build",
+    "dev:api": "npm --workspace kagie-api run dev",
+    "build:api": "npm --workspace kagie-api run build",
+    "start:api": "npm --workspace kagie-api run start",
+    "dev:mobile": "npm --workspace kagie-mobile run start"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.56.1"
+  },
+  "devDependencies": {
+    "xlsx": "^0.18.5"
+  }
+}
