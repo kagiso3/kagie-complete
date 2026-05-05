@@ -73,12 +73,21 @@
       ]);
 
       const applications = (applicationsRaw || []).map(normalizeApp);
-      const users = (usersRaw || []).filter((user) => user.role === "user");
-      return { summary, applications, assistants: assistants || [], users, callbacks: callbacks || [], activity: activity || [] };
+      const allUsers = usersRaw || [];
+      const learners = allUsers.filter((user) => user.role === "user");
+      return {
+        summary,
+        applications,
+        assistants: assistants || [],
+        users: learners,
+        allUsers,
+        callbacks: callbacks || [],
+        activity: activity || []
+      };
     }
 
     async function renderAll() {
-      const { summary, applications, assistants, users, callbacks, activity } = await loadData();
+      const { summary, applications, assistants, users, allUsers, callbacks, activity } = await loadData();
       const totals = summary.totals || {};
       const query = (el.searchInput.value || "").trim().toLowerCase();
       const filteredApps = applications.filter((app) => {
@@ -88,15 +97,21 @@
         return !query || haystack.includes(query);
       });
 
+      const filteredUsers = users.filter((user) => {
+        if (!query) return true;
+        const haystack = [user.fullName, user.email, user.phone].join(" ").toLowerCase();
+        return haystack.includes(query);
+      });
+
       const cards = [
-        ["Learners", totals.users || 0, "Registered student accounts"],
-        ["Assistants", totals.assistants || 0, "Support staff accounts"],
+        ["Learners", users.length, `Loaded learners (${allUsers.length} total profiles)`],
+        ["Assistants", assistants.length, "Assistant admin accounts loaded"],
         ["Applications", totals.applications || 0, "Tracked learner applications"],
         ["Pending verification", totals.pendingVerification || 0, "Payments awaiting review"],
         ["Callbacks", totals.pendingCallbacks || 0, "Open callback requests"]
       ];
 
-      el.heroSummary.textContent = `${admin.fullName || "Master Admin"} | ${totals.applications || 0} live applications`;
+      el.heroSummary.textContent = `${admin.fullName || "Master Admin"} | ${totals.applications || 0} live applications | ${allUsers.length} users loaded (${assistants.length} assistant admin${assistants.length === 1 ? "" : "s"})`;
       el.stats.innerHTML = cards.map(([label, value, note]) => `
         <div class="stat">
           <div class="label">${esc(label)}</div>
@@ -137,26 +152,34 @@
         `;
       }).join("") : '<div class="empty">No applications match the current search.</div>';
 
-      el.assistants.innerHTML = assistants.length ? assistants.map((assistant) => `
+      el.assistants.innerHTML = assistants.length ? assistants.map((assistant) => {
+        const fullName = assistant.fullName || assistant.full_name || "Not provided";
+        const email = assistant.email || "Not provided";
+        const phone = assistant.phone || "Not provided";
+        return `
         <div class="item">
           <div class="row">
             <div>
-              <div class="title">${esc(assistant.fullName)}</div>
-              <div class="meta">${esc(assistant.email || "-")}<br>Phone: ${esc(assistant.phone || "Not set")}<br>${assistant.supabaseUserId ? "Supabase-linked account" : "Local-only assistant draft"}</div>
+              <div class="title">${esc(fullName)}</div>
+              <div class="meta">${esc(email)}<br>Phone: ${esc(phone)}<br>${assistant.supabaseUserId ? "Supabase-linked account" : "Local-only assistant draft"}</div>
             </div>
             <span class="chip c-blue">${applications.filter((app) => app.assignedAssistantId === assistant.id).length} assigned</span>
           </div>
         </div>
-      `).join("") : '<div class="empty">No assistant accounts yet.</div>';
+      `;
+      }).join("") : '<div class="empty">No assistant accounts yet.</div>';
 
-      el.users.innerHTML = users.length ? users.slice(0, 12).map((user) => {
+      el.users.innerHTML = filteredUsers.length ? filteredUsers.map((user) => {
         const latest = applications.find((app) => app.userId === user.id) || null;
+        const fullName = user.fullName || user.full_name || "Not provided";
+        const email = user.email || "Not provided";
+        const phone = user.phone || "Not provided";
         return `
           <div class="item">
             <div class="row">
               <div>
-                <div class="title">${esc(user.fullName)}</div>
-                <div class="meta">${esc(user.email || "-")}<br>Phone: ${esc(user.phone || "Not set")}</div>
+                <div class="title">${esc(fullName)}</div>
+                <div class="meta">${esc(email)}<br>Phone: ${esc(phone)}<br>Role: ${esc(user.role || "user")}</div>
               </div>
               <span class="chip ${statusChip(latest?.status || "Draft")}">${esc(latest?.status || "Draft only")}</span>
             </div>

@@ -404,7 +404,7 @@
       }
 
       function renderUsers() {
-        const users = api.getAllUsers().filter((user) => user.role === "user").slice(0, 12);
+        const users = api.getAllUsers().filter((user) => user.role === "user");
         if (!users.length) {
           el.users.innerHTML = '<div class="empty">No learner accounts found.</div>';
           return;
@@ -412,12 +412,15 @@
         el.users.innerHTML = users.map((user) => {
           const latest = api.getLatestApplication(user.id);
           const docs = api.getDocumentsByUser(user.id);
+          const fullName = user.fullName || user.full_name || "Not provided";
+          const email = user.email || "Not provided";
+          const phone = user.phone || "Not provided";
           return `
             <div class="item">
               <div class="row">
                 <div>
-                  <div class="title">${safe(user.fullName)}</div>
-                  <div class="meta">${safe(user.email)}<br>Phone: ${safe(user.phone || "Not set")}<br>Documents: ${safe(docs.length)}</div>
+                  <div class="title">${safe(fullName)}</div>
+                  <div class="meta">${safe(email)}<br>Phone: ${safe(phone)}<br>Documents: ${safe(docs.length)}</div>
                 </div>
                 <span class="chip ${statusChip(latest?.status || "Draft")}">${safe(latest?.status || "Draft only")}</span>
               </div>

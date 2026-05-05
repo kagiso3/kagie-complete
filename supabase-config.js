@@ -64,6 +64,11 @@
     window.KagieAPI.saveSettings(buildPublicSettings());
   }
 
+  try {
+    console.info("Supabase URL configured:", Boolean(SITE_CONFIG.supabase.url));
+    console.info("Supabase anon key configured:", Boolean(SITE_CONFIG.supabase.anonKey));
+  } catch (_) { /* ignore logging issues */ }
+
   window.KagieAPI.configureSupabase({
     enabled: true,
     url: SITE_CONFIG.supabase.url,
