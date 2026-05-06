@@ -1,238 +1,213 @@
-<br />
-<p align="center">
-  <a href="https://supabase.io">
-        <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/supabase/supabase/master/packages/common/assets/images/supabase-logo-wordmark--dark.svg">
-      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/supabase/supabase/master/packages/common/assets/images/supabase-logo-wordmark--light.svg">
-      <img alt="Supabase Logo" width="300" src="https://raw.githubusercontent.com/supabase/supabase/master/packages/common/assets/images/logo-preview.jpg">
-    </picture>
-  </a>
+# Kagie.app
 
-  <h1 align="center">Supabase JS SDK</h1>
+Kagie is a South African student application and support platform. This project already includes the working student flow, dashboard tracking, support tools, and admin surfaces. It is designed to be extended carefully, not rebuilt from scratch.
 
-  <h3 align="center">Isomorphic JavaScript SDK for Supabase - combining Auth, Database, Storage, Functions, and Realtime.</h3>
+See [KAGIE_PROJECT_BIBLE.md](./KAGIE_PROJECT_BIBLE.md) for the broader product vision and roadmap framing.
 
-  <p align="center">
-    <a href="https://supabase.com/docs/guides/getting-started">Guides</a>
-    ·
-    <a href="https://supabase.com/docs/reference/javascript/start">Reference Docs</a>
-    ·
-    <a href="https://supabase.github.io/supabase-js/supabase-js/v2/spec.json">TypeDoc</a>
-  </p>
-</p>
+## What Kagie does now
 
-<div align="center">
+The current Kagie project supports:
+
+- student signup and login
+- learner, guardian, school, and marks capture
+- APS-aware application preparation
+- institution and course selection
+- package-based application limits
+- add to cart and checkout
+- payment proof submission and tracking
+- notifications and reminders
+- application tracking dashboard
+- secure document uploads
+- profile and support flows
+- assistant and master admin dashboards
+- accommodation request flow
+- intercity transport request flow
+- PayFast secure checkout plus South African manual payment methods
 
-[![Build](https://github.com/supabase/supabase-js/workflows/CI/badge.svg)](https://github.com/supabase/supabase-js/actions?query=branch%3Amaster)
-[![Package](https://img.shields.io/npm/v/@supabase/supabase-js)](https://www.npmjs.com/package/@supabase/supabase-js)
-[![License: MIT](https://img.shields.io/npm/l/@supabase/supabase-js)](#license)
-[![pkg.pr.new](https://pkg.pr.new/badge/supabase/supabase-js)](https://pkg.pr.new/~/supabase/supabase-js)
+## Current package structure
 
-</div>
+- `Starter Pack` - `R250` - up to `10` institutions
+- `Smart Choice Pack` - `R350` - up to `15` institutions
+- `Ambition Pack` - `R450` - up to `20` institutions
+- `Unlimited Pro Pack` - `R800` - unlimited institutions, but still respects deadlines
 
-## Usage
+## Accommodation and transport
 
-First of all, you need to install the library:
+These two flows are now part of the live Kagie student experience.
 
-```sh
-npm install @supabase/supabase-js
-```
+### Accommodation
 
-Then you're able to import the library and establish the connection with the database:
+- browse housing listings
+- compare property, location, room type, distance, and pricing
+- select a listing and send a reservation request
+- track accommodation requests from the dashboard
+- master admin can add and edit listing photos, prices, addresses, provinces, and university links
 
-```js
-import { createClient } from '@supabase/supabase-js'
+Main files:
+- [more-service/accommodation-assist.html](./more-service/accommodation-assist.html)
+- [js/backend.js](./js/backend.js)
+- [master-admin/dashboard.html](./master-admin/dashboard.html)
 
-// Create a single supabase client for interacting with your database
-const supabase = createClient('https://xyzcompany.supabase.co', 'public-anon-key')
-```
+### Intercity transport
 
-### UMD
+- browse route options
+- filter by departure city, destination city, and company
+- view departure and arrival times in a bus schedule-style layout
+- choose a route and send a transport request
+- track transport requests from the dashboard
 
-You can use plain `<script>`s to import supabase-js from CDNs, like:
+Main files:
+- [more-service/transport-assist.html](./more-service/transport-assist.html)
+- [js/backend.js](./js/backend.js)
 
-```html
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-```
+## Payments
 
-or even:
+Kagie now supports two payment paths inside the existing cart and checkout flow:
 
-```html
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-```
+- `PayFast secure checkout` for online card and Instant EFT checkout
+- South African manual payment options such as `EFT`, `Cash Deposit`, `Card Transfer`, and `Mobile Payment`
 
-Then you can use it from a global `supabase` variable:
+### PayFast live setup
 
-```html
-<script>
-  const { createClient } = supabase
-  const _supabase = createClient('https://xyzcompany.supabase.co', 'public-anon-key')
+Add these server-side environment variables in Vercel before using live PayFast checkout:
 
-  console.log('Supabase Instance: ', _supabase)
-  // ...
-</script>
-```
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `PAYFAST_MERCHANT_ID`
+- `PAYFAST_MERCHANT_KEY`
+- `PAYFAST_PASSPHRASE`
 
-### ESM
+Then register this notify URL in PayFast:
 
-You can use `<script type="module">` to import supabase-js from CDNs, like:
+- `https://your-domain/v1/payments/payfast/itn`
 
-```html
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-  const supabase = createClient('https://xyzcompany.supabase.co', 'public-anon-key')
+Main files:
+- [checkout.html](./checkout.html)
+- [js/checkout-page.js](./js/checkout-page.js)
+- [server/functions/payfast-create-checkout.js](./server/functions/payfast-create-checkout.js)
+- [server/functions/payfast-itn.js](./server/functions/payfast-itn.js)
 
-  console.log('Supabase Instance: ', supabase)
-  // ...
-</script>
-```
+## Main pages
 
-### Deno
+### Student pages
 
-You can use supabase-js in the Deno runtime via [JSR](https://jsr.io/@supabase/supabase-js):
+- `index.html`
+- `signup.html`
+- `login.html`
+- `home.html`
+- `forms.html`
+- `cart.html`
+- `checkout.html`
+- `Dashboard.html`
+- `notifications.html`
+- `upload.html`
+- `profile.html`
+- `prospectus.html`
+- `personal-assistance.html`
+- `more-service/index.html`
+- `more-service/accommodation-assist.html`
+- `more-service/transport-assist.html`
+- `more-service/funding-assist.html`
 
-```js
-import { createClient } from 'jsr:@supabase/supabase-js@2'
-```
+### Assistant pages
 
-### Custom `fetch` implementation
+- `assistant/dashboard.html`
+- `assistant/applicant-view.html`
+- `assistant/documents-review.html`
 
-`supabase-js` uses the [`cross-fetch`](https://www.npmjs.com/package/cross-fetch) library to make HTTP requests, but an alternative `fetch` implementation can be provided as an option. This is most useful in environments where `cross-fetch` is not compatible, for instance Cloudflare Workers:
+### Master admin pages
 
-```js
-import { createClient } from '@supabase/supabase-js'
+- `master-admin/dashboard.html`
+- `master-admin/application-view.html`
+- `master-admin/bootstrap.html` (one-time live master admin setup)
 
-// Provide a custom `fetch` implementation as an option
-const supabase = createClient('https://xyzcompany.supabase.co', 'public-anon-key', {
-  global: {
-    fetch: (...args) => fetch(...args),
-  },
-})
-```
+## How to run locally
 
-## Support Policy
+### Static web app
 
-This section outlines the scope of support for various runtime environments in Supabase JavaScript client.
+1. Open the project folder.
+2. Start a local server if possible, or open `index.html`.
+3. Create a user account.
+4. Test the student flow:
+   - signup
+   - login
+   - forms
+   - cart
+   - checkout
+   - dashboard
 
-### Node.js
+### Optional Node / React workspace
 
-We only support Node.js versions that are in **Active LTS** or **Maintenance** status as defined by the [official Node.js release schedule](https://nodejs.org/en/about/previous-releases#release-schedule). This means we support versions that are currently receiving long-term support and critical bug fixes.
+This repo also contains:
 
-When a Node.js version reaches end-of-life and is no longer in Active LTS or Maintenance status, Supabase will drop it in a **minor release**, and **this won't be considered a breaking change**.
+- `kagie-api` for the Node backend
+- `kagie-mobile` for the mobile app
+- `kagie-web` for the React web app scaffold
 
-> ⚠️ **Node.js 18 Deprecation Notice**
->
-> Node.js 18 reached end-of-life on April 30, 2025. As announced in [our deprecation notice](https://github.com/orgs/supabase/discussions/37217), support for Node.js 18 was dropped in version `2.79.0`.
->
-> If you must use Node.js 18, please use version `2.78.0`, which is the last version that supported Node.js 18.
+Those are optional for the static manual deploy path.
 
-### Deno
+## Manual deploy
 
-We support Deno versions that are currently receiving active development and security updates. We follow the [official Deno release schedule](https://docs.deno.com/runtime/fundamentals/stability_and_releases/) and only support versions from the `stable` and `lts` release channels.
+For the safest static deploy, use the cleaned bundle in:
 
-When a Deno version reaches end-of-life and is no longer receiving security updates, Supabase will drop it in a **minor release**, and **this won't be considered a breaking change**.
+- [web-release](./web-release)
 
-### Browsers
+Upload the contents of `web-release` to your static host.
 
-All modern browsers are supported. We support browsers that provide native `fetch` API. For Realtime features, browsers must also support native `WebSocket` API.
+### Recommended static hosts
 
-### Bun
+- Vercel
+- Cloudflare Pages
+- GitHub Pages
 
-We support Bun runtime environments. Bun provides native fetch support and is compatible with Node.js APIs. Since Bun does not follow a structured release schedule like Node.js or Deno, we support current stable versions of Bun and may drop support for older versions in minor releases without considering it a breaking change.
+### Vercel deploy
 
-### React Native
+1. Open Vercel.
+2. Import the Kagie repository or upload the project.
+3. Use `npm run build` as the build command.
+4. Use `web-release` as the output directory.
+5. Add the required environment variables in Project Settings.
 
-We support React Native environments with fetch polyfills provided by the framework. Since React Native does not follow a structured release schedule, we support current stable versions and may drop support for older versions in minor releases without considering it a breaking change.
+Do not upload the whole workspace if you only want the static site online. Use `web-release`.
 
-### Cloudflare Workers
+### First live admin setup
 
-We support Cloudflare Workers runtime environments. Cloudflare Workers provides native fetch support. Since Cloudflare Workers does not follow a structured release schedule, we support current stable versions and may drop support for older versions in minor releases without considering it a breaking change.
+After deploying, open:
 
-### Important Notes
+- `your-domain/master-admin/bootstrap.html`
 
-- **Experimental features**: Features marked as experimental may be removed or changed without notice
+Use that page once to create the very first live `master_admin`. After that:
 
-## Known Build Warnings
+- log in normally at `login.html`
+- open `master-admin/dashboard.html`
+- create assistant accounts from the existing `Create Assistant Account` form
 
-### `UNUSED_EXTERNAL_IMPORT` in Vite / Rollup / Nuxt
+Important:
 
-When bundling your app, you may see warnings like:
+- the one-time live setup requires `SUPABASE_SERVICE_ROLE_KEY` on the serverless host
+- once a master admin already exists, the bootstrap page stops working and sends future admins through the protected dashboard flow
 
-```
-"PostgrestError" is imported from external module "@supabase/postgrest-js" but never used in "...supabase-js/dist/index.mjs".
-"FunctionRegion", "FunctionsError", "FunctionsFetchError", "FunctionsHttpError" and "FunctionsRelayError" are imported from external module "@supabase/functions-js" but never used in "...".
-```
+## Supabase
 
-**This is a false positive — your bundle is fine.** Here is why it happens:
+Kagie can run with local/browser-side draft handling, but public rollout is stronger when connected to Supabase.
 
-`@supabase/supabase-js` re-exports `PostgrestError`, `FunctionsError`, and related symbols so you can import them directly from `@supabase/supabase-js`. However, our build tool merges all imports from the same package into a single import statement in the built output:
+Supabase gives you:
 
-```js
-// dist/index.mjs (simplified)
-import { PostgrestClient, PostgrestError } from '@supabase/postgrest-js'
-//       ^ used internally    ^ re-exported for you
-```
+- real authentication
+- real storage
+- real application data
+- payment and document persistence
+- stronger admin workflows
 
-Your bundler checks which names from that import are used _in the code body_, and flags `PostgrestError` as unused because it only appears in an `export` statement — not called or assigned. The export itself is the usage, but downstream bundlers don't track this correctly. This is a known Rollup/Vite limitation with re-exported external imports.
+Important files:
 
-**Nothing is broken.** Tree-shaking and bundle size are unaffected.
+- [supabase/schema.sql](./supabase/schema.sql)
+- [supabase/update-pack-pricing.sql](./supabase/update-pack-pricing.sql)
+- [js/supabase-config.js](./js/supabase-config.js)
 
-To suppress the warning:
+## Notes before launch
 
-**Vite / Rollup (`vite.config.js` or `rollup.config.js`):**
-
-```js
-export default {
-  build: {
-    rollupOptions: {
-      onwarn(warning, warn) {
-        if (warning.code === 'UNUSED_EXTERNAL_IMPORT' && warning.exporter?.includes('@supabase/'))
-          return
-        warn(warning)
-      },
-    },
-  },
-}
-```
-
-**Nuxt (`nuxt.config.ts`):**
-
-```ts
-export default defineNuxtConfig({
-  vite: {
-    build: {
-      rollupOptions: {
-        onwarn(warning, warn) {
-          if (warning.code === 'UNUSED_EXTERNAL_IMPORT' && warning.exporter?.includes('@supabase/'))
-            return
-          warn(warning)
-        },
-      },
-    },
-  },
-})
-```
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guide](../../../CONTRIBUTING.md) for details on how to get started.
-
-For major changes or if you're unsure about something, please open an issue first to discuss your proposed changes.
-
-### Building
-
-```bash
-# From the monorepo root
-npx nx build supabase-js
-
-# Or with watch mode for development
-npx nx build supabase-js --watch
-```
-
-### Testing
-
-There's a complete guide on how to set up your environment for running locally the `supabase-js` integration tests. Please refer to [TESTING.md](./TESTING.md).
-
-## Badges
-
-[![Coverage Status](https://coveralls.io/repos/github/supabase/supabase-js/badge.svg?branch=master)](https://coveralls.io/github/supabase/supabase-js?branch=master)
+- public `demo` wording has been removed from the live-facing app pages
+- accommodation and transport now use real request flows and dashboard tracking
+- if you deploy manually, deploy from `web-release`
+- review your real Supabase keys, payment details, and admin access before public launch

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Live Master Admin Setup</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="../js/backend.js?v=20260405k"></script>
+  <script defer src="../js/supabase-config.js?v=20260405k"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f5f8fc;
+      --text:#10233d;
+      --muted:#66788f;
+      --red:#c24848;
+      --blue:#1f8aea;
+      --blue-2:#63b9ff;
+      --orange:#f39a38;
+      --gold:#f2cd67;
+      --glass:rgba(255,255,255,.84);
+      --line:rgba(16,35,61,.08);
+      --shadow:0 26px 60px rgba(16,35,61,.14);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:22px;
+      font-family:"Roboto",system-ui,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(860px 520px at 12% 0%, rgba(31,138,234,.15), transparent 60%),
+        radial-gradient(980px 560px at 88% 8%, rgba(194,72,72,.10), transparent 62%),
+        radial-gradient(920px 560px at 50% 100%, rgba(242,205,103,.09), transparent 58%),
+        var(--bg);
+    }
+    .card{
+      width:min(720px,100%);
+      background:var(--glass);
+      border:1px solid rgba(255,255,255,.72);
+      border-radius:34px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      overflow:hidden;
+    }
+    .hero{
+      padding:26px 26px 18px;
+      background:linear-gradient(135deg, #db0f16, var(--orange));
+      color:#fff;
+    }
+    .hero h1{margin:0;font:800 34px "Poppins",sans-serif;line-height:1.05}
+    .hero p{margin:10px 0 0;font-size:14px;line-height:1.7;color:rgba(255,255,255,.92)}
+    .content{padding:24px}
+    .notice{
+      margin:0 0 18px;
+      padding:14px 16px;
+      border-radius:20px;
+      background:rgba(31,138,234,.10);
+      border:1px solid rgba(31,138,234,.14);
+      font-size:13px;
+      line-height:1.6;
+      color:var(--muted);
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+    }
+    .field{display:grid;gap:7px}
+    .field.full{grid-column:1/-1}
+    .field label{font-size:12px;font-weight:800;color:var(--muted)}
+    .field input{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:#fff;
+      padding:15px 16px;
+      font:inherit;
+      outline:none;
+      box-shadow:0 10px 22px rgba(15,23,42,.05);
+    }
+    .field input:focus{
+      border-color:rgba(31,138,234,.55);
+      box-shadow:0 0 0 4px rgba(31,138,234,.10);
+    }
+    .actions{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:18px;
+    }
+    .btn,.link-btn{
+      height:48px;
+      padding:0 18px;
+      border:none;
+      border-radius:16px;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font:800 14px "Roboto",sans-serif;
+      transition:transform .18s ease;
+    }
+    .btn:hover,.link-btn:hover{transform:translateY(-2px)}
+    .btn{
+      background:linear-gradient(135deg,var(--blue),var(--blue-2));
+      color:#fff;
+    }
+    .link-btn{
+      background:#fff;
+      color:var(--text);
+      border:1px solid var(--line);
+    }
+    .msg{
+      min-height:22px;
+      margin-top:14px;
+      font-size:14px;
+      font-weight:700;
+    }
+    .msg.ok{color:#15803d}
+    .msg.err{color:#b91c1c}
+    .tips{
+      margin-top:18px;
+      padding-top:18px;
+      border-top:1px solid var(--line);
+      display:grid;
+      gap:10px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.6;
+    }
+    @media (max-width:720px){
+      body{padding:12px}
+      .hero h1{font-size:28px}
+      .grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <section class="hero">
+      <h1>Create the first live Kagie master admin.</h1>
+      <p>This page is only for the very first protected master admin account on the deployed site. After that, future staff accounts should be created from the normal master admin dashboard.</p>
+    </section>
+
+    <section class="content">
+      <p class="notice" id="setupNotice">
+        Use a real email and strong password. If a master admin already exists, this page will stop and send you to the normal login path instead.
+      </p>
+
+      <form id="bootstrapForm" class="grid" novalidate>
+        <div class="field full">
+          <label for="fullName">Full name</label>
+          <input id="fullName" type="text" placeholder="Kagie Master Admin" required />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="masteradmin@kagie.app" required />
+        </div>
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input id="phone" type="tel" placeholder="0712345678" />
+        </div>
+        <div class="field full">
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="At least 6 characters" required />
+        </div>
+        <div class="field full actions">
+          <button class="btn" id="submitBtn" type="submit">Create live master admin</button>
+          <a class="link-btn" href="../login.html">Back to login</a>
+        </div>
+      </form>
+
+      <div class="msg" id="message" aria-live="polite"></div>
+
+      <div class="tips">
+        <div>After this succeeds, Kagie will sign you in and open the live master admin dashboard.</div>
+        <div>From there you can create assistant accounts from the existing Create Assistant Account section.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const api = window.KagieAPI;
+      const form = document.getElementById("bootstrapForm");
+      const fullName = document.getElementById("fullName");
+      const email = document.getElementById("email");
+      const phone = document.getElementById("phone");
+      const password = document.getElementById("password");
+      const submitBtn = document.getElementById("submitBtn");
+      const message = document.getElementById("message");
+      const setupNotice = document.getElementById("setupNotice");
+
+      function normalizeRole(role) {
+        const value = String(role || "").trim().toLowerCase();
+        if (["master_admin", "master admin", "master-admin", "masteradmin", "super_admin", "super-admin", "super admin", "superadmin", "owner"].includes(value)) return "master_admin";
+        if (["assistant_admin", "assistant admin", "assistant-admin", "assistantadmin", "assistant", "admin", "staff", "administrator", "support", "support_staff", "support-staff", "support staff"].includes(value)) return "assistant_admin";
+        return value || "user";
+      }
+
+      function setMessage(text, type) {
+        message.textContent = text || "";
+        message.className = type ? `msg ${type}` : "msg";
+      }
+
+      function setLoading(isLoading) {
+        submitBtn.disabled = isLoading;
+        submitBtn.textContent = isLoading ? "Creating live admin..." : "Create live master admin";
+      }
+
+      async function renderSetupStatus() {
+        if (!api || typeof api.getLiveAdminSetupStatus !== "function") return;
+        try {
+          const status = await api.getLiveAdminSetupStatus();
+          if (!status?.secureAdminProvisioningReady) {
+            setupNotice.textContent = "Secure live admin creation is not fully ready on this site yet. Add SUPABASE_SERVICE_ROLE_KEY to the server environment to create confirmed master admin and assistant accounts without email-confirmation fallback.";
+          } else {
+            setupNotice.textContent = "Secure live admin creation is ready on this site. The first master admin and new assistant accounts can be provisioned directly through Kagie.";
+          }
+        } catch (_error) {
+          setupNotice.textContent = "Kagie could not verify the secure admin setup right now. If live admin creation fails, check the server environment variables first.";
+        }
+      }
+
+      function redirectByRole(user) {
+        if (normalizeRole(user?.role) === "master_admin") {
+          window.location.href = "dashboard.html";
+          return;
+        }
+        if (normalizeRole(user?.role) === "assistant_admin") {
+          window.location.href = "../assistant/dashboard.html";
+          return;
+        }
+        window.location.href = "../home.html";
+      }
+
+      async function boot() {
+        try {
+          await renderSetupStatus();
+          const restored = await api.restoreSession();
+          if (normalizeRole(restored?.role) === "master_admin") {
+            window.location.href = "dashboard.html";
+            return;
+          }
+          if (restored) {
+            if (api?.setLoginPersistence) api.setLoginPersistence(false);
+            if (api?.logoutReal) await api.logoutReal();
+            else await api.logout();
+          }
+        } catch (error) {
+          console.warn("Kagie bootstrap session check failed:", error);
+        }
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setMessage("");
+        setLoading(true);
+
+        try {
+          const user = await api.bootstrapMasterAdminAccount({
+            fullName: fullName.value.trim(),
+            email: email.value.trim(),
+            phone: phone.value.trim(),
+            password: password.value
+          });
+
+          setMessage("Live master admin created. Opening the dashboard...", "ok");
+          setTimeout(() => redirectByRole(user), 500);
+        } catch (error) {
+          const text = error?.message || "Could not create the live master admin account.";
+          setMessage(text, "err");
+          if (/already exists/i.test(text)) {
+            setTimeout(() => {
+              window.location.href = "../login.html";
+            }, 1200);
+          }
+          setLoading(false);
+        }
+      });
+
+      boot();
+    })();
+  </script>
+</body>
+</html>

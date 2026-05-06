@@ -4,84 +4,433 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Kagie | Profile</title>
-  <script src="js/backend.js"></script>
-  <script src="js/data.js"></script>
+  <meta name="theme-color" content="#cf111d" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Kagie" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/images/logos/app-icon.png" />
+  <script defer src="/js/pwa-init.js?v=20260409a"></script>
+  <script defer src="/js/install-app.js?v=20260409a"></script>
+  <script src="js/backend.js?v=20260408w"></script>
+  <script src="js/data.js?v=20260408w"></script>
   <script>
-    const currentUser=window.KagieAPI?.currentUser?.();
-    if(!currentUser||currentUser.role!=="user"){window.location.href="login.html";}
+    const normalizeRole = (role) => {
+      const value = String(role || "").trim().toLowerCase();
+      if (["user", "learner", "student", "authenticated"].includes(value)) return "user";
+      if (["assistant_admin", "assistant admin", "assistant-admin", "assistantadmin", "assistant", "admin", "staff"].includes(value)) return "assistant_admin";
+      if (["master_admin", "master admin", "master-admin", "masteradmin", "super_admin", "super-admin", "super admin"].includes(value)) return "master_admin";
+      return value || "user";
+    };
+    const currentUser = window.KagieAPI?.currentUser?.();
+    if (!currentUser || normalizeRole(currentUser.role) !== "user") { window.location.href = "login.html"; }
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/profile-dashboard.css?v=20260408w" />
   <style>
-    :root{--bg:#f4f7fb;--text:#0f172a;--muted:#64748b;--line:rgba(15,23,42,.08);--card:rgba(255,255,255,.84);--red:#c90000;--blue:#2fa4ff;--shadow:0 20px 44px rgba(15,23,42,.12);--soft:0 10px 22px rgba(15,23,42,.08)}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);background:radial-gradient(900px 520px at 15% 0%,rgba(47,164,255,.14),transparent 60%),radial-gradient(900px 560px at 85% 10%,rgba(201,0,0,.12),transparent 60%),var(--bg)}.shell{width:min(1120px,100%);margin:0 auto;display:grid;gap:16px}.top,.hero,.card{background:var(--card);border:1px solid rgba(255,255,255,.65);border-radius:26px;box-shadow:var(--shadow);backdrop-filter:blur(14px)}.top{padding:18px 20px;background:linear-gradient(135deg,var(--red),#a70000);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.top h1{margin:0;font:800 22px "Poppins",sans-serif}.top p{margin:5px 0 0;font-size:13px;opacity:.92}.actions{display:flex;gap:10px;flex-wrap:wrap}.btn,.mini{border:none;border-radius:14px;font:700 14px inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;transition:.18s ease}.btn{height:44px;padding:0 16px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.18);box-shadow:var(--soft)}.mini{height:40px;padding:0 14px;background:linear-gradient(135deg,var(--blue),#67caff);color:#fff}.btn:hover,.mini:hover{transform:translateY(-2px)}
-    .hero{padding:20px;background:linear-gradient(135deg,rgba(47,164,255,.96),rgba(201,0,0,.88));color:#fff}.hero-grid{display:grid;grid-template-columns:280px 1fr;gap:18px;align-items:center}.avatar-card{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);border-radius:24px;padding:18px;text-align:center;box-shadow:var(--soft)}.avatar{width:124px;height:124px;border-radius:50%;object-fit:cover;border:4px solid rgba(255,255,255,.92);background:#fff;box-shadow:0 14px 26px rgba(0,0,0,.18)}.hero h2{margin:0;font:800 30px "Poppins",sans-serif}.hero p{margin:8px 0 0;font-size:14px;line-height:1.6;color:rgba(255,255,255,.92)}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.meta span{padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);font-size:12px;font-weight:800}
-    .layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:16px}.card{padding:18px}.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}.head h3{margin:0;font:800 18px "Poppins",sans-serif}.head p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.55}.grid2,.stack,.list{display:grid;gap:10px}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.field,select{width:100%;border:1px solid var(--line);border-radius:16px;padding:14px;font:inherit;background:#fff;outline:none;box-shadow:0 8px 18px rgba(15,23,42,.04)}.item{background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.04)}.item strong{font-size:15px}.item p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.6}.empty{text-align:center;color:var(--muted);padding:18px 12px;font-size:13px;font-weight:600}.upload{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
-    @media (max-width:900px){.hero-grid,.layout{grid-template-columns:1fr}}@media (max-width:640px){body{padding:12px}.btn{width:100%}.actions{width:100%}.grid2{grid-template-columns:1fr}}
+    :root{
+      --kagie-bg:#f5f8fc;
+      --kagie-ink:#10233d;
+      --kagie-muted:#66788f;
+      --kagie-red:#c24848;
+      --kagie-red-hero:#db0f16;
+      --kagie-blue:#1f8aea;
+      --kagie-blue2:#63b9ff;
+      --kagie-gold:#f2cd67;
+      --kagie-orange:#f39a38;
+      --kagie-green:#1a6b4a;
+      --kagie-line:#d8e4f0;
+      --kagie-shadow:0 18px 34px rgba(16,35,61,.09);
+    }
+    body{
+      background:
+        radial-gradient(circle at top left, rgba(31,138,234,.14), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(219,15,22,.10), transparent 28%),
+        var(--kagie-bg) !important;
+      color:var(--kagie-ink);
+      padding-bottom:110px !important;
+    }
+    .top-strip,
+    .header-bar{
+      border-color:var(--kagie-line) !important;
+      box-shadow:var(--kagie-shadow) !important;
+    }
+    .top-strip{background:#ffffff !important;color:var(--kagie-muted) !important}
+    .header-bar{background:linear-gradient(135deg,var(--kagie-red-hero),var(--kagie-red)) !important}
+    .hero{
+      background:linear-gradient(135deg,var(--kagie-blue),var(--kagie-red-hero)) !important;
+      box-shadow:var(--kagie-shadow) !important;
+    }
+    .btn.blue,.mini.blue{background:linear-gradient(135deg,var(--kagie-blue),var(--kagie-blue2)) !important}
+    .mini.red{background:linear-gradient(135deg,var(--kagie-red-hero),var(--kagie-red)) !important}
+    .bottom-nav{
+      position:fixed;
+      left:50%;
+      bottom:14px;
+      transform:translateX(-50%);
+      width:min(430px, calc(100% - 24px));
+      background:rgba(255,255,255,.94);
+      border:1px solid var(--kagie-line);
+      border-radius:24px;
+      box-shadow:var(--kagie-shadow);
+      backdrop-filter:blur(20px);
+      -webkit-backdrop-filter:blur(20px);
+      display:flex;
+      justify-content:space-between;
+      gap:6px;
+      padding:8px;
+      z-index:50;
+    }
+    .bottom-nav-item{
+      flex:1;
+      min-height:52px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      border-radius:18px;
+      text-decoration:none;
+      color:var(--kagie-muted);
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      transition:all .18s ease;
+    }
+    .bottom-nav-item.active{
+      background:linear-gradient(135deg,var(--kagie-red-hero),var(--kagie-orange));
+      color:#fff;
+      box-shadow:0 10px 20px rgba(219,15,22,.18);
+    }
+    .bottom-nav-kicker{font-size:9px;opacity:.72;letter-spacing:.08em}
   </style>
 </head>
 <body>
-  <div class="shell">
-    <header class="top">
-      <div><h1>Profile</h1><p>Manage your personal details, profile image, and uploaded documents.</p></div>
-      <div class="actions"><a class="btn" href="home.html">Home</a><a class="btn" href="Dashboard.html">Dashboard</a></div>
-    </header>
+  <div class="top-strip">
+    <div id="timeNow">--:--</div>
+    <span>Profile and account center</span>
+  </div>
+
+  <header class="header-bar">
+    <div class="brand">
+      <div class="brand-badge">K</div>
+      <div>
+        <h1>KAGIE</h1>
+        <p>Profile Dashboard</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a class="btn" href="home.html">Home</a>
+      <a class="btn" href="home.html">Home Hub</a>
+      <a class="btn blue" href="upload.html">Upload docs</a>
+    </div>
+  </header>
+
+  <main class="content">
     <section class="hero">
-      <div class="hero-grid">
-        <div class="avatar-card">
-          <img class="avatar" id="avatar" alt="Profile photo" />
-          <div class="upload"><input id="avatarFile" type="file" accept="image/*" /><button class="mini" id="removePhotoBtn" type="button">Remove photo</button></div>
-        </div>
-        <div>
-          <h2 id="heroTitle">Your Kagie profile</h2>
-          <p id="heroText">We keep this profile in sync with your application forms so you only fill your details once.</p>
-          <div class="meta"><span id="docMeta">0 documents</span><span id="appMeta">0 applications</span></div>
+      <div>
+        <h2 class="welcome" id="heroTitle">Hello, Student</h2>
+        <p class="hero-sub" id="heroText">Keep your profile details clean so Kagie can reuse them across your forms, applications, and updates.</p>
+        <div class="meta">
+          <span id="docMeta">0 documents ready</span>
+          <span id="appMeta">0 applications linked</span>
         </div>
       </div>
+
+      <div class="hero-actions">
+        <a class="mini blue" href="forms.html">Continue forms</a>
+        <a class="mini red" href="personal-assistance.html">Open support</a>
+      </div>
     </section>
-    <section class="layout">
-      <section class="card">
-        <div class="head"><div><h3>Personal Details</h3><p>Update the core information Kagie uses across your account and forms.</p></div><button class="mini" id="saveBtn" type="button">Save profile</button></div>
-        <div class="grid2">
-          <input class="field" id="fullName" type="text" placeholder="Full name" />
-          <input class="field" id="email" type="email" placeholder="Email" />
-          <input class="field" id="phone" type="text" placeholder="Phone" />
-          <select class="field" id="province"></select>
-          <input class="field" id="idNumber" type="text" placeholder="ID number" />
-          <input class="field" id="dob" type="date" />
-          <select class="field" id="gender"></select>
-          <select class="field" id="homeLanguage"></select>
+
+    <section class="profile-layout">
+      <aside class="panel profile-panel">
+        <div class="panel-head">
+          <h3>Your Profile</h3>
+          <p>Keep the basics clean so Kagie can move faster with your account.</p>
         </div>
-        <div class="stack" style="margin-top:10px">
-          <input class="field" id="address" type="text" placeholder="Home address" />
-          <input class="field" id="schoolName" type="text" placeholder="School name" />
+        <div class="panel-body">
+          <div class="avatar-shell">
+            <div class="avatar-wrap">
+              <img id="avatar" class="avatar" alt="Profile photo" />
+              <div class="verified">OK</div>
+            </div>
+
+            <div class="profile-actions">
+              <label class="mini blue upload-btn" for="avatarFile">Upload picture</label>
+              <input id="avatarFile" class="upload-input" type="file" accept="image/*" />
+              <button class="mini gold" id="removePhotoBtn" type="button">Remove photo</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="profile-name" id="displayName">Student</div>
+            <div class="profile-email" id="displayEmail">No email added</div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-box">
+              <strong id="docCount">00</strong>
+              <span>Documents uploaded</span>
+            </div>
+            <div class="stat-box">
+              <strong id="appCount">00</strong>
+              <span>Applications saved</span>
+            </div>
+          </div>
         </div>
-      </section>
-      <div class="stack">
-        <section class="card">
-          <div class="head"><div><h3>Documents</h3><p>Your latest uploaded files and review statuses.</p></div><a class="mini" href="upload.html">Upload</a></div>
-          <div class="list" id="docs"></div>
-        </section>
-        <section class="card">
-          <div class="head"><div><h3>Quick Links</h3><p>Jump to the parts of Kagie you use most.</p></div></div>
-          <div class="stack">
-            <a class="mini" href="forms.html">Continue forms</a>
-            <a class="mini" href="notifications.html">Open notifications</a>
-            <a class="mini" href="personal-assistance.html">Chat with support</a>
-            <a class="mini" href="upload.html">Manage documents</a>
+      </aside>
+
+      <section class="content-stack">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="section-row">
+              <div>
+                <h3>Personal Details</h3>
+                <p>Update the core learner information Kagie uses in your forms and support lane.</p>
+              </div>
+              <button class="mini blue" id="saveBtn" type="button">Save profile</button>
+            </div>
+            <div class="status-note" id="profileMsg"></div>
+          </div>
+          <div class="panel-body">
+            <div class="grid-2">
+              <div class="field">
+                <label for="fullName">Full name</label>
+                <input id="fullName" type="text" placeholder="Full name" />
+              </div>
+              <div class="field">
+                <label for="email">Email</label>
+                <input id="email" type="email" placeholder="Email" />
+              </div>
+              <div class="field">
+                <label for="phone">Phone</label>
+                <input id="phone" type="text" placeholder="Phone" />
+              </div>
+              <div class="field">
+                <label for="province">Province</label>
+                <select id="province"></select>
+              </div>
+              <div class="field">
+                <label for="idNumber">ID number</label>
+                <input id="idNumber" type="text" placeholder="ID number" />
+              </div>
+              <div class="field">
+                <label for="dob">Date of birth</label>
+                <input id="dob" type="date" />
+              </div>
+              <div class="field">
+                <label for="gender">Gender</label>
+                <select id="gender"></select>
+              </div>
+              <div class="field">
+                <label for="homeLanguage">Home language</label>
+                <select id="homeLanguage"></select>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label for="address">Home address</label>
+                <input id="address" type="text" placeholder="Home address" />
+              </div>
+              <div class="field">
+                <label for="schoolName">School name</label>
+                <input id="schoolName" type="text" placeholder="School name" />
+              </div>
+            </div>
           </div>
         </section>
-      </div>
+
+        <section class="split-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>General Settings</h3>
+              <p>Shortcuts for your account settings and documents.</p>
+            </div>
+            <div class="panel-body nav-list">
+              <a href="changepassword.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-blue">PW</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Change password</div>
+                    <div class="nav-subtitle">Update and secure your login details.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="language.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-pink">LG</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Language</div>
+                    <div class="nav-subtitle">Choose the language that feels easiest for you.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="upload.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-green">DOC</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Upload documents</div>
+                    <div class="nav-subtitle">Add the files Kagie may still need later.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Documents</h3>
+              <p>Your latest uploaded files and their current review state.</p>
+            </div>
+            <div class="panel-body doc-list" id="docs"></div>
+          </section>
+        </section>
+
+        <section class="section-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Information</h3>
+              <p>Important app pages and your share shortcut.</p>
+            </div>
+            <div class="panel-body nav-list">
+              <a href="about.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-red">INFO</div>
+                  <div class="nav-text">
+                    <div class="nav-title">About app</div>
+                    <div class="nav-subtitle">Know more about the Kagie platform.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="terms.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-gold">T&amp;C</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Terms and conditions</div>
+                    <div class="nav-subtitle">Read the rules behind the app and service.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="privacy.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-peach">PRI</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Privacy policy</div>
+                    <div class="nav-subtitle">See how your account data is protected.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="#" class="nav-card" id="shareAppBtn">
+                <div class="nav-left">
+                  <div class="icon-box icon-sky">SHR</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Share this app</div>
+                    <div class="nav-subtitle">Send Kagie to a friend or another learner.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Quick Actions</h3>
+              <p>The pages learners usually need first.</p>
+            </div>
+            <div class="panel-body nav-list">
+              <a href="home.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-blue">APP</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Home</div>
+                    <div class="nav-subtitle">Return to your main Kagie app home.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="notifications.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-pink">NTF</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Notifications</div>
+                    <div class="nav-subtitle">Check payment, support, and account alerts.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="personal-assistance.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-green">SUP</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Support</div>
+                    <div class="nav-subtitle">Open the Kagie help lane when you need support.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+            </div>
+          </section>
+        </section>
+      </section>
     </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>&copy; <span id="yearNow">2026</span> Kagie. Student application platform.</div>
+      <nav class="footer-nav">
+        <a href="home.html">Home</a>
+        <a href="upload.html">Upload</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+      </nav>
+    </div>
+  </footer>
+
+  <div class="bottom-nav">
+    <a class="bottom-nav-item active" href="home.html">
+      <span class="bottom-nav-kicker">App</span>
+      <span>Home</span>
+    </a>
+    <a class="bottom-nav-item" href="career-guidance.html">
+      <span class="bottom-nav-kicker">Plan</span>
+      <span>Career</span>
+    </a>
+    <a class="bottom-nav-item" href="recommendation.html">
+      <span class="bottom-nav-kicker">Match</span>
+      <span>Courses</span>
+    </a>
+    <a class="bottom-nav-item" href="more-service/accommodation-assist.html">
+      <span class="bottom-nav-kicker">Stay</span>
+      <span>Housing</span>
+    </a>
+    <a class="bottom-nav-item" href="more-service/transport-assist.html">
+      <span class="bottom-nav-kicker">Move</span>
+      <span>Transport</span>
+    </a>
   </div>
-  <script>
-    (()=>{const api=window.KagieAPI,user=api.requireRole("user"),profile=api.getProfile(user.id)||{},$=id=>document.getElementById(id),docs=api.getDocumentsByUser(user.id)||[],apps=api.getApplicationsByUser(user.id)||[],langs=window.KagieData?.homeLanguages||[],genders=window.KagieData?.genders||[],provinces=window.KagieData?.provinces||[];const avatar=$("avatar"),DEFAULT_AVATAR="data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='#d50000'/><stop offset='100%' stop-color='#2f7cff'/></linearGradient></defs><circle cx='60' cy='60' r='60' fill='url(#g)'/><circle cx='60' cy='45' r='22' fill='white' fill-opacity='0.95'/><path d='M22 98c5-18 22-28 38-28s33 10 38 28' fill='white' fill-opacity='0.95'/></svg>`);function fillSelect(id,items,selected){$(id).innerHTML=`<option value="">Select</option>`+items.map(i=>`<option ${i===selected?"selected":""}>${i}</option>`).join("")}function readFile(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=e=>resolve(e.target.result||"");r.onerror=()=>reject(new Error("Could not read image."));r.readAsDataURL(file)})}
-      function renderDocs(){$("docs").innerHTML=docs.length?docs.slice(0,6).map(d=>`<div class="item"><strong>${d.name||"Document"}</strong><p>Category: ${d.category||"-"}<br>Status: ${d.status||"-"}</p></div>`).join(""):`<div class="empty">No documents uploaded yet.</div>`}
-      fillSelect("province",provinces,profile.province||"");fillSelect("gender",genders,profile.gender||"");fillSelect("homeLanguage",langs,profile.homeLanguage||"");$("fullName").value=profile.fullName||user.fullName||"";$("email").value=profile.email||user.email||"";$("phone").value=profile.phone||user.phone||"";$("idNumber").value=profile.idNumber||"";$("dob").value=profile.dob||"";$("address").value=profile.address||profile.homeAddress||"";$("schoolName").value=profile.schoolName||profile.schoolAttended||"";avatar.src=api.getSharedProfilePhoto()||DEFAULT_AVATAR;$("heroTitle").textContent=`Hello, ${user.fullName||"Student"}`;$("heroText").textContent="This profile feeds into your Kagie forms, notifications, and support experience.";$("docMeta").textContent=`${docs.length} document${docs.length===1?"":"s"}`;$("appMeta").textContent=`${apps.length} application${apps.length===1?"":"s"}`;renderDocs();
-      $("avatarFile").addEventListener("change",async()=>{const file=$("avatarFile").files[0];if(!file)return;try{const dataUrl=await readFile(file);api.saveProfile(user.id,{profileImage:dataUrl});avatar.src=dataUrl;localStorage.setItem("kagie_profile_photo",dataUrl);localStorage.setItem("kagieProfileImage",dataUrl);localStorage.setItem("kagie_profile_avatar_v1",dataUrl)}catch(error){alert(error.message||"Image upload failed.")}});
-      $("removePhotoBtn").addEventListener("click",()=>{api.saveProfile(user.id,{profileImage:""});avatar.src=DEFAULT_AVATAR;localStorage.removeItem("kagie_profile_photo");localStorage.removeItem("kagieProfileImage");localStorage.removeItem("kagie_profile_avatar_v1")});
-      $("saveBtn").addEventListener("click",()=>{try{api.saveProfile(user.id,{fullName:$("fullName").value.trim(),email:$("email").value.trim(),phone:$("phone").value.trim(),province:$("province").value,idNumber:$("idNumber").value.trim(),dob:$("dob").value,gender:$("gender").value,homeLanguage:$("homeLanguage").value,address:$("address").value.trim(),schoolName:$("schoolName").value.trim(),schoolAttended:$("schoolName").value.trim()});alert("Profile updated successfully.")}catch(error){alert(error.message||"Could not save profile.")}})})();
-  </script>
+
+  <script src="js/profile-page.js?v=20260408w"></script>
 </body>
 </html>

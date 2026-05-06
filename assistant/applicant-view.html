@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Assistant Applicant View</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="../js/backend.js?v=20260426d"></script>
+  <script defer src="../js/supabase-config.js?v=20260413b"></script>
+  <script defer src="../js/assistant-applicant-view-page.js?v=20260417a"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f5f8fc;--text:#10233d;--muted:#66788f;--red:#c24848;--red-strong:#db0f16;--blue:#1f8aea;--blue-2:#63b9ff;--orange:#f39a38;--yellow:#f2cd67;--green:#1a6b4a;
+      --glass:rgba(255,255,255,.9);--line:rgba(16,35,61,.08);--shadow:0 22px 48px rgba(16,35,61,.12);--soft:0 10px 22px rgba(16,35,61,.08)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);background:radial-gradient(1000px 520px at 12% 0%, rgba(31,138,234,.15), transparent 60%),radial-gradient(1000px 560px at 88% 8%, rgba(242,205,103,.16), transparent 60%),var(--bg)}
+    .shell{width:min(1320px,100%);margin:0 auto;display:grid;gap:16px}
+    .topbar,.hero,.card{background:var(--glass);border:1px solid rgba(255,255,255,.72);border-radius:28px;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+    .topbar{background:linear-gradient(135deg,var(--red-strong),var(--red));color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .topbar h1{margin:0;font:800 24px "Poppins",sans-serif}
+    .topbar p{margin:4px 0 0;font-size:13px;opacity:.92}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn,.mini{border:none;border-radius:16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-family:"Roboto",sans-serif;font-weight:800;transition:transform .18s ease}
+    .btn:hover,.mini:hover{transform:translateY(-2px)}
+    .btn{height:44px;padding:0 16px;background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.18)}
+    .mini{height:36px;padding:0 12px;font-size:13px}
+    .blue{background:linear-gradient(135deg,var(--blue),var(--blue-2));color:#fff}
+    .orange{background:linear-gradient(135deg,var(--orange),#f6b565);color:#fff}
+    .green{background:linear-gradient(135deg,var(--green),#2f8d66);color:#fff}
+    .yellow{background:linear-gradient(135deg,var(--yellow),#f7df94);color:var(--text)}
+    .red{background:linear-gradient(135deg,var(--red-strong),var(--red));color:#fff}
+    .hero{padding:22px;background:linear-gradient(135deg, rgba(219,15,22,.96), rgba(31,138,234,.88));color:#fff}
+    .hero-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+    .hero h2{margin:0;font:800 30px "Poppins",sans-serif;line-height:1.03}
+    .hero p{margin:10px 0 0;font-size:14px;line-height:1.7;color:rgba(255,255,255,.92)}
+    .chips{display:flex;gap:10px;flex-wrap:wrap}
+    .chip{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;font-size:11px;font-weight:900;border:1px solid transparent}
+    .c-blue{background:rgba(31,138,234,.12);color:var(--blue);border-color:rgba(31,138,234,.18)}
+    .c-yellow{background:rgba(242,205,103,.22);color:#8f6b00;border-color:rgba(242,205,103,.28)}
+    .c-red{background:rgba(219,15,22,.12);color:var(--red-strong);border-color:rgba(219,15,22,.16)}
+    .c-orange{background:rgba(243,154,56,.14);color:var(--orange);border-color:rgba(243,154,56,.18)}
+    .c-green{background:rgba(26,107,74,.12);color:var(--green);border-color:rgba(26,107,74,.18)}
+    .layout{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);gap:16px}
+    .stack,.list,.form{display:grid;gap:16px}
+    .card{padding:18px}
+    .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .head h3{margin:0;font:800 19px "Poppins",sans-serif}
+    .head p{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.6}
+    .details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .box,.item{background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:20px;padding:15px;box-shadow:var(--soft)}
+    .box .label{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:6px}
+    .box .value{font-size:14px;font-weight:800;line-height:1.55;word-break:break-word}
+    .item{display:grid;gap:12px}
+    .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .title{font-size:16px;font-weight:900}
+    .meta{font-size:13px;color:var(--muted);line-height:1.6}
+    .field{display:grid;gap:6px}
+    .field label{font-size:12px;font-weight:800;color:var(--muted)}
+    .field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:16px;background:#fff;padding:14px;font:inherit;outline:none;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+    .field textarea{min-height:110px;resize:vertical}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(31,138,234,.55);box-shadow:0 0 0 4px rgba(31,138,234,.10)}
+    .action-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .msg{min-height:20px;font-size:14px;font-weight:700}
+    .msg.ok{color:#15803d}.msg.err{color:#b91c1c}
+    .empty{text-align:center;padding:18px 12px;color:var(--muted);font-size:13px;font-weight:700}
+    @media (max-width:1120px){.layout{grid-template-columns:1fr}.details{grid-template-columns:1fr}}
+    @media (max-width:720px){body{padding:12px}}
+
+    /* Screenshot-matched admin detail skin. The existing IDs stay intact for live logic. */
+    :root{--bg:#F7F8FA;--text:#111419;--muted:#8C95A3;--red:#E63946;--red-strong:#C1121F;--blue:#1D6FD8;--blue-2:#1559B0;--orange:#F4A100;--yellow:#FFF4DC;--green:#2B9348;--glass:#fff;--line:#DDE1E8;--shadow:none;--soft:none}
+    body{padding:0;font-family:"DM Sans",system-ui,sans-serif;background:var(--bg);color:#2D3340}
+    .shell{width:100%;gap:0}
+    .topbar{position:sticky;top:0;z-index:10;min-height:56px;padding:0 24px;border-radius:0;background:#fff;color:var(--text);border:0;border-bottom:1px solid var(--line);box-shadow:none;backdrop-filter:none}
+    .topbar h1{font:700 15px "DM Sans",sans-serif;color:var(--text)}
+    .topbar p{display:none}
+    .actions{gap:10px}
+    .btn,.mini{height:34px;border-radius:8px;font:700 13px "DM Sans",sans-serif;box-shadow:none}
+    .btn{background:#fff;color:#5A6270;border:1px solid var(--line)}
+    #logoutBtn{background:var(--red);color:#fff;border-color:var(--red)}
+    .btn:hover,.mini:hover{transform:none}
+    .hero{margin:24px 24px 0;padding:20px;border-radius:12px;background:#fff;color:var(--text);border:1px solid var(--line);box-shadow:none;backdrop-filter:none}
+    .hero h2{font:800 20px "DM Sans",sans-serif;letter-spacing:-.2px}
+    .hero p{font-size:13px;color:#5A6270}
+    .chip{padding:3px 9px;font-size:11.5px;border-radius:20px}
+    .c-blue{background:#EBF2FC;color:#1D6FD8}.c-yellow{background:#FFF4DC;color:#8A5700}.c-red{background:#FDEAEA;color:#E63946}.c-orange{background:#FFF4DC;color:#8A5700}.c-green{background:#E8F5EC;color:#2B9348}
+    .layout{padding:20px 24px 40px;grid-template-columns:minmax(0,1fr) 360px;gap:20px}
+    .stack,.list,.form{gap:10px}
+    .card{padding:0;border-radius:12px;background:#fff;border:1px solid var(--line);box-shadow:none;backdrop-filter:none}
+    .head{padding:14px 18px;margin:0;border-bottom:1px solid #EFF1F4}
+    .head h3{font:700 14px "DM Sans",sans-serif;color:var(--text)}
+    .head p{margin-top:2px;font-size:12px;color:var(--muted)}
+    .details,.list,.form{padding:14px 18px}
+    .details{gap:10px}
+    .box,.item{border-color:#EFF1F4;border-radius:8px;background:#FAFAFA;box-shadow:none}
+    .box .label,.field label{font-size:12px;color:var(--muted)}
+    .box .value,.title{font-weight:700;color:var(--text)}
+    .meta{font-size:12px;color:#5A6270}
+    .field input,.field select,.field textarea{border-radius:8px;border-color:var(--line);box-shadow:none;background:#FAFAFA;padding:11px 12px}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue);box-shadow:none;background:#fff}
+    .mini{padding:0 12px}
+    .mini.blue{background:var(--blue);color:#fff}.mini.orange{background:#FFD965;color:#2D3340}.mini.green{background:var(--green);color:#fff}.mini.yellow{background:#FFF4DC;color:#8A5700;border:1px solid #F4A100}.mini.red{background:var(--red);color:#fff}
+    @media (max-width:900px){.layout{grid-template-columns:1fr;padding:16px}.hero{margin:16px}.topbar{padding:12px 16px;align-items:flex-start}.actions{width:100%}.btn{flex:1}.details{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <h1>Applicant Workspace</h1>
+        <p>Assistant-only view for document review, notes, status updates, learner support, and callback follow-up.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="dashboard.html">Back to dashboard</a>
+        <button class="btn" id="logoutBtn" type="button">Logout</button>
+      </div>
+    </header>
+
+    <section class="hero" id="hero"></section>
+
+    <section class="layout" id="layout" hidden>
+      <div class="stack">
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Applicant Details</h3>
+              <p>Learner, guardian, and school details saved in Kagie.</p>
+            </div>
+          </div>
+          <div class="details" id="details"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Follow-up Snapshot</h3>
+              <p>Shows what Kagie already has and what the assistant still needs to collect manually.</p>
+            </div>
+          </div>
+          <div class="details" id="progressDetails"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Payment Summary</h3>
+              <p>Use this when you need to continue manually from a phone or another device.</p>
+            </div>
+          </div>
+          <div class="details" id="payment"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Institutions and Choices</h3>
+              <p>Current institution list linked to the learner application.</p>
+            </div>
+          </div>
+          <div class="list" id="institutions"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Marks Snapshot</h3>
+              <p>The current school marks the learner captured in Kagie.</p>
+            </div>
+          </div>
+          <div class="list" id="marks"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Documents</h3>
+              <p>Approve, reject, or flag documents as missing while reviewing the learner pack.</p>
+            </div>
+          </div>
+          <div class="list" id="documents"></div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Assistant Controls</h3>
+              <p>Update statuses and keep a clean internal note history.</p>
+            </div>
+          </div>
+          <form class="form" id="controlForm">
+            <div class="field"><label for="statusSelect">Application status</label><select id="statusSelect"><option>Under Review</option><option>Missing Documents</option><option>Ready to Apply</option><option>Applied</option><option>Pending Feedback</option><option>Accepted</option><option>Rejected</option><option>Application being processed</option></select></div>
+            <div class="field"><label for="noteInput">Internal note</label><textarea id="noteInput" placeholder="Add an internal note for other Kagie staff."></textarea></div>
+            <div class="action-row">
+              <button class="mini green" type="submit">Save update</button>
+              <button class="mini orange" type="button" data-status="Under Review">Review</button>
+              <button class="mini yellow" type="button" data-status="Missing Documents">Missing docs</button>
+              <button class="mini blue" type="button" data-status="Ready to Apply">Ready</button>
+              <button class="mini green" type="button" data-status="Applied">Applied</button>
+            </div>
+            <div class="msg" id="controlMsg" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Institution Portal Access</h3>
+              <p>Save the portal link, application number, student number, username, and password or PIN the learner must use.</p>
+            </div>
+          </div>
+          <div class="list" id="portalAccessList"></div>
+          <form class="form" id="portalAccessForm">
+            <input id="portalAccessEntryId" type="hidden" />
+            <div class="field"><label for="portalInstitutionName">Institution</label><input id="portalInstitutionName" type="text" placeholder="Institution name" /></div>
+            <div class="field"><label for="portalLink">Portal link</label><input id="portalLink" type="url" placeholder="https://..." /></div>
+            <div class="field"><label for="portalApplicationNumber">Application number</label><input id="portalApplicationNumber" type="text" placeholder="Application reference" /></div>
+            <div class="field"><label for="portalStudentNumber">Student number</label><input id="portalStudentNumber" type="text" placeholder="Student number" /></div>
+            <div class="field"><label for="portalUsername">Username or email</label><input id="portalUsername" type="text" placeholder="Username used on the institution portal" /></div>
+            <div class="field"><label for="portalPassword">Password or PIN</label><input id="portalPassword" type="text" placeholder="Temporary password, PIN, or login code" /></div>
+            <div class="field"><label for="portalDeliveryNote">How the learner gets it</label><input id="portalDeliveryNote" type="text" placeholder="Sent by SMS, sent by email, created in portal, reset later" /></div>
+            <div class="field"><label for="portalAccessNote">Extra note</label><textarea id="portalAccessNote" placeholder="Anything the learner should know before logging in."></textarea></div>
+            <div class="action-row">
+              <button class="mini green" type="submit">Save access</button>
+              <button class="mini yellow" id="portalAccessResetBtn" type="button">New entry</button>
+            </div>
+            <div class="msg" id="portalAccessMsg" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Internal Notes</h3>
+              <p>Recent notes from assistants and admins.</p>
+            </div>
+          </div>
+          <div class="list" id="notes"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Support Thread</h3>
+              <p>Reply directly to the learner from inside Kagie.</p>
+            </div>
+          </div>
+          <div class="list" id="support"></div>
+          <form class="form" id="supportForm">
+            <div class="field"><label for="supportMessage">Reply to learner</label><textarea id="supportMessage" placeholder="Type your update or question."></textarea></div>
+            <div class="action-row">
+              <button class="mini blue" type="submit">Send reply</button>
+            </div>
+            <div class="msg" id="supportMsg" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div>
+              <h3>Callback Requests</h3>
+              <p>Follow up on learner callback requests linked to this applicant.</p>
+            </div>
+          </div>
+          <div class="list" id="callbacks"></div>
+        </section>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

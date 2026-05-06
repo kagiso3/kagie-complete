@@ -1,16 +1,677 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kagie | Redirecting</title>
-  <script src="../js/backend.js"></script>
-  <meta http-equiv="refresh" content="0; url=../recommendation.html" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kagie's Career Practice Hub</title>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="js/backend.js?v=20260427a"></script>
+<script defer src="js/supabase-config.js?v=20260413b"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --k-green:#1f8aea;
+  --k-green-light:#edf6ff;
+  --k-green-mid:#63b9ff;
+  --k-amber:#f2cd67;
+  --k-amber-light:#fff4d9;
+  --k-red:#c24848;
+  --k-red-light:#f8eaec;
+  --k-bg:#f5f8fc;
+  --k-surface:#ffffff;
+  --k-border:#d8e4f0;
+  --k-text:#10233d;
+  --k-muted:#66788f;
+  --k-admin:#1f8aea;
+  --k-admin-light:#f5f8fc;
+  --r:12px;
+  --font:'DM Sans',sans-serif;
+}
+body{font-family:var(--font);background:var(--k-bg);color:var(--k-text);min-height:100vh;font-size:15px;max-width:480px;margin:0 auto;padding-bottom:110px}
+
+/* HEADER */
+.hdr{background:var(--k-green);padding:0 16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.hdr-inner{display:flex;align-items:center;justify-content:space-between;height:56px}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-mark{width:32px;height:32px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-k{font-family:'DM Serif Display',serif;color:var(--k-green);font-size:18px;line-height:1}
+.logo-text{color:#fff;font-size:15px;font-weight:600;letter-spacing:-.2px}
+.logo-sub{color:rgba(255,255,255,.65);font-size:11px;font-weight:400;display:block;margin-top:-2px}
+.hdr-role{display:flex;align-items:center;gap:6px}
+.role-badge{background:rgba(255,255,255,.18);color:#fff;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.25)}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--k-amber);color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center}
+
+/* SUMMARY STRIP */
+.strip{background:var(--k-green-light);border-bottom:1px solid var(--k-border);padding:10px 16px}
+.strip-inner{display:flex;gap:16px}
+.stat{display:flex;flex-direction:column}
+.stat-n{font-size:18px;font-weight:600;color:var(--k-green);line-height:1.1}
+.stat-l{font-size:11px;color:var(--k-muted);margin-top:2px}
+.strip-div{width:1px;background:var(--k-border)}
+
+/* MAIN */
+.main{padding:20px 16px;display:flex;flex-direction:column;gap:20px}
+
+/* SECTION LABEL */
+.sec-label{font-size:11px;font-weight:600;letter-spacing:.6px;color:var(--k-muted);text-transform:uppercase;margin-bottom:10px}
+
+/* FILTER STEPPER */
+.filter-card{background:var(--k-surface);border:1px solid var(--k-border);border-radius:var(--r);overflow:hidden}
+.filter-steps{display:flex;border-bottom:1px solid var(--k-border)}
+.fstep{flex:1;padding:10px 6px;font-size:11px;font-weight:500;color:var(--k-muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.fstep.active{color:var(--k-green);border-bottom-color:var(--k-green);background:var(--k-green-light)}
+.filter-body{padding:14px}
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+select,input[type=text]{width:100%;padding:10px 12px;border:1px solid var(--k-border);border-radius:8px;font-family:var(--font);font-size:14px;color:var(--k-text);background:var(--k-bg);appearance:none;-webkit-appearance:none;outline:none;transition:border .15s}
+select:focus,input:focus{border-color:var(--k-green)}
+.filter-full{grid-column:1/-1}
+.btn-search{width:100%;margin-top:10px;padding:12px;background:var(--k-green);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;letter-spacing:.2px;transition:background .15s}
+.btn-search:hover{background:var(--k-green-mid)}
+.btn-search:active{transform:scale(.99)}
+
+/* RESULTS */
+.results-list{display:flex;flex-direction:column;gap:8px}
+.paper-row{background:var(--k-surface);border:1px solid var(--k-border);border-radius:var(--r);padding:14px;cursor:pointer;transition:border-color .15s,box-shadow .15s;display:flex;align-items:center;gap:12px}
+.paper-row:hover{border-color:var(--k-green);box-shadow:0 2px 8px rgba(26,107,74,.08)}
+.paper-row.selected{border-color:var(--k-green);background:var(--k-green-light)}
+.paper-icon{width:38px;height:38px;border-radius:8px;background:var(--k-green-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.paper-icon svg{width:18px;height:18px;fill:var(--k-green)}
+.paper-meta{flex:1;min-width:0}
+.paper-title{font-size:13px;font-weight:600;color:var(--k-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.paper-sub{font-size:11px;color:var(--k-muted);margin-top:2px}
+.paper-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px}
+.badge-done{background:var(--k-green-light);color:var(--k-green)}
+.badge-weak{background:var(--k-red-light);color:var(--k-red)}
+.badge-new{background:var(--k-amber-light);color:#a06010}
+.paper-score{text-align:right;flex-shrink:0}
+.score-n{font-size:16px;font-weight:700;color:var(--k-green)}
+.score-l{font-size:10px;color:var(--k-muted)}
+
+/* WORKSPACE */
+.workspace{background:var(--k-surface);border:1.5px solid var(--k-green);border-radius:var(--r);overflow:hidden}
+.ws-head{background:var(--k-green);padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.ws-title{color:#fff;font-size:14px;font-weight:600}
+.ws-sub{color:rgba(255,255,255,.7);font-size:11px;margin-top:2px}
+.ws-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px}
+.ws-btn{display:flex;align-items:center;gap:8px;padding:11px 12px;border-radius:8px;border:1px solid var(--k-border);background:var(--k-bg);cursor:pointer;font-family:var(--font);font-size:13px;font-weight:500;color:var(--k-text);transition:all .15s}
+.ws-btn:hover{border-color:var(--k-green);background:var(--k-green-light)}
+.ws-btn svg{width:16px;height:16px;flex-shrink:0;fill:var(--k-green)}
+.ws-btn.primary{background:var(--k-green);color:#fff;border-color:var(--k-green)}
+.ws-btn.primary svg{fill:#fff}
+.ws-btn.primary:hover{background:var(--k-green-mid)}
+.ws-divider{height:1px;background:var(--k-border);margin:0 16px}
+
+/* PROGRESS TRACKER */
+.progress-section{padding:14px 16px}
+.prog-label{font-size:12px;font-weight:600;color:var(--k-text);margin-bottom:10px}
+.q-grid{display:flex;flex-wrap:wrap;gap:6px}
+.q-dot{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid var(--k-border);background:var(--k-bg);color:var(--k-muted)}
+.q-dot.win{background:var(--k-green-light);color:var(--k-green);border-color:#b8ddc9}
+.q-dot.weak{background:var(--k-red-light);color:var(--k-red);border-color:#f0c0bb}
+.q-dot.skip{background:var(--k-amber-light);color:#a06010;border-color:#f0d090}
+
+/* SCORE + NOTES */
+.score-notes{padding:0 16px 14px;display:flex;flex-direction:column;gap:10px}
+.score-row{display:flex;align-items:center;gap:8px}
+.score-row label{font-size:12px;font-weight:600;white-space:nowrap;color:var(--k-text)}
+.score-row input{width:70px;padding:8px 10px;text-align:center}
+.score-row span{font-size:12px;color:var(--k-muted)}
+textarea{width:100%;padding:10px 12px;border:1px solid var(--k-border);border-radius:8px;font-family:var(--font);font-size:13px;color:var(--k-text);resize:none;background:var(--k-bg);outline:none;min-height:70px;transition:border .15s}
+textarea:focus{border-color:var(--k-green)}
+.save-btn{width:100%;padding:12px;background:var(--k-green);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s}
+.save-btn:hover{background:var(--k-green-mid)}
+.save-btn svg{width:16px;height:16px;fill:#fff}
+
+/* HISTORY */
+.history-list{display:flex;flex-direction:column;gap:8px}
+.hist-row{background:var(--k-surface);border:1px solid var(--k-border);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;gap:12px}
+.hist-bar-wrap{flex:1;min-width:0}
+.hist-title{font-size:13px;font-weight:500;color:var(--k-text)}
+.hist-date{font-size:11px;color:var(--k-muted);margin-top:1px}
+.hist-bar-bg{height:4px;background:var(--k-border);border-radius:2px;margin-top:7px;overflow:hidden}
+.hist-bar-fill{height:100%;border-radius:2px;background:var(--k-green);transition:width .4s}
+.hist-pct{font-size:15px;font-weight:700;color:var(--k-green);flex-shrink:0}
+
+/* WORKSPACE TABS */
+.ws-tabs{display:flex;border-top:1px solid var(--k-border)}
+.ws-tab{flex:1;padding:10px 6px;font-size:11px;font-weight:600;color:var(--k-muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;letter-spacing:.2px;text-transform:uppercase}
+.ws-tab.active{color:var(--k-green);border-bottom-color:var(--k-green)}
+
+/* FOOTER NAV */
+.bottom-nav{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(430px,calc(100% - 24px));background:rgba(255,255,255,.94);border:1px solid var(--k-border);border-radius:24px;box-shadow:0 18px 34px rgba(16,35,61,.09);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;justify-content:space-between;gap:6px;padding:8px;z-index:120}
+.bottom-nav-item{flex:1;min-width:0;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:18px;text-decoration:none;color:var(--k-muted);font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;transition:all .18s;background:none;border:none;font-family:var(--font)}
+.bottom-nav-item:hover{transform:translateY(-2px);background:rgba(16,35,61,.04);color:var(--k-text)}
+.bottom-nav-item.active{background:linear-gradient(135deg,#db0f16,#f39a38);color:#fff;box-shadow:0 10px 20px rgba(219,15,22,.18)}
+.bottom-nav-kicker{font-size:9px;opacity:.72;letter-spacing:.08em}
+.bottom-nav-item.active .bottom-nav-kicker{opacity:.84}
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+</style>
 </head>
 <body>
-  <p>Redirecting to career recommendations...</p>
-  <script>
-    window.location.replace("../recommendation.html" + window.location.search + window.location.hash);
-  </script>
+
+<div class="hdr">
+  <div class="hdr-inner">
+    <div class="logo">
+      <div class="logo-mark"><span class="logo-k">K</span></div>
+      <div>
+        <span class="logo-text">Kagie</span>
+        <span class="logo-sub">Career Practice Hub</span>
+      </div>
+    </div>
+    <div class="hdr-role">
+      <span class="role-badge">Learner</span>
+      <div class="avatar">TM</div>
+    </div>
+  </div>
+</div>
+
+<div class="strip">
+  <div class="strip-inner">
+    <div class="stat"><span class="stat-n">14</span><span class="stat-l">Papers done</span></div>
+    <div class="strip-div"></div>
+    <div class="stat"><span class="stat-n" style="color:var(--k-amber)">6</span><span class="stat-l">Weak topics</span></div>
+    <div class="strip-div"></div>
+    <div class="stat"><span class="stat-n">68%</span><span class="stat-l">Avg score</span></div>
+    <div class="strip-div"></div>
+    <div class="stat"><span class="stat-n" style="color:var(--k-green)">3</span><span class="stat-l">Streak days</span></div>
+  </div>
+</div>
+
+<div class="main">
+
+  <div>
+    <div class="sec-label">Find a paper</div>
+    <div class="filter-card">
+      <div class="filter-steps">
+        <div class="fstep active" onclick="setStep(0,this)">Grade</div>
+        <div class="fstep" onclick="setStep(1,this)">Year</div>
+        <div class="fstep" onclick="setStep(2,this)">Province</div>
+        <div class="fstep" onclick="setStep(3,this)">Subject</div>
+      </div>
+      <div class="filter-body">
+        <div class="filter-grid">
+          <select id="gradeSelect" aria-label="Grade"></select>
+          <select id="yearSelect" aria-label="Year"></select>
+          <select id="provinceSelect" aria-label="Province"></select>
+          <select id="subjectSelect" aria-label="Subject"></select>
+          <select class="filter-full" id="paperSelect" aria-label="Paper type"></select>
+        </div>
+        <button class="btn-search" onclick="showResults()">Show matching papers</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="results-section" style="display:none">
+    <div class="sec-label">Matching papers</div>
+    <div class="results-list" id="resultsList"></div>
+  </div>
+
+  <div id="workspace" style="display:none">
+    <div class="sec-label">Practice workspace</div>
+    <div class="workspace">
+      <div class="ws-head">
+        <div>
+          <div class="ws-title" id="workspaceTitle">Economics P1 - Nov 2024</div>
+          <div class="ws-sub" id="workspaceSub">Gauteng - Grade 12 - 150 marks</div>
+        </div>
+      </div>
+
+      <div class="ws-tabs">
+        <div class="ws-tab active" onclick="wsTab(0,this)">Paper</div>
+        <div class="ws-tab" onclick="wsTab(1,this)">Progress</div>
+        <div class="ws-tab" onclick="wsTab(2,this)">Score</div>
+      </div>
+
+      <div id="ws-tab-0">
+        <div class="ws-actions">
+          <button class="ws-btn primary" id="careerPaperOpenBtn" type="button">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+            View PDF
+          </button>
+          <button class="ws-btn" id="careerMemoOpenBtn" type="button">
+            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            Open Memo
+          </button>
+          <button class="ws-btn" id="careerGuideOpenBtn" type="button">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 15H11v-6h2v6zm0-8H11V7h2v2z"/></svg>
+            Study Guide
+          </button>
+          <button class="ws-btn" id="careerTopicsBtn" type="button">
+            <svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h10"/></svg>
+            Topics
+          </button>
+        </div>
+      </div>
+
+      <div id="ws-tab-1" style="display:none">
+        <div class="progress-section">
+          <div class="prog-label">Question tracker - tap to mark</div>
+          <div class="q-grid" id="q-grid"></div>
+          <div style="display:flex;gap:14px;margin-top:12px;font-size:11px;color:var(--k-muted)">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--k-green-light);border:1px solid #b8ddc9;display:inline-block"></span>Got it</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--k-red-light);border:1px solid #f0c0bb;display:inline-block"></span>Weak</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--k-amber-light);border:1px solid #f0d090;display:inline-block"></span>Skipped</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="ws-tab-2" style="display:none">
+        <div class="score-notes">
+          <div class="score-row">
+            <label>My score</label>
+            <input type="text" value="108" style="width:70px;text-align:center">
+            <span>/ 150</span>
+            <span style="margin-left:auto;font-size:14px;font-weight:700;color:var(--k-green)">72%</span>
+          </div>
+          <textarea placeholder="Add notes - e.g. tricky macroeconomics section, redo Q4b...">Struggled with monetary policy questions. Redo section B Q3 and Q4.</textarea>
+          <button class="save-btn">
+            <svg viewBox="0 0 24 24"><path d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4zm-5 16a3 3 0 110-6 3 3 0 010 6zm3-10H5V5h10v4z"/></svg>
+            Save progress
+          </button>
+        </div>
+      </div>
+
+      <div class="ws-divider"></div>
+      <div style="padding:10px 16px;display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--k-muted)">Last saved:</span>
+        <span style="font-size:11px;font-weight:500;color:var(--k-text)">Today, 10:32 AM</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="history-section" style="display:none">
+    <div class="sec-label">Practice history</div>
+    <div class="history-list">
+      <div class="hist-row">
+        <div class="hist-bar-wrap">
+          <div class="hist-title">Economics P2 - Nov 2024</div>
+          <div class="hist-date">Mon 7 Apr - 85 / 100 marks</div>
+          <div class="hist-bar-bg"><div class="hist-bar-fill" style="width:85%"></div></div>
+        </div>
+        <div class="hist-pct">85%</div>
+      </div>
+      <div class="hist-row">
+        <div class="hist-bar-wrap">
+          <div class="hist-title">Economics P1 - Nov 2024</div>
+          <div class="hist-date">Sat 5 Apr - 108 / 150 marks</div>
+          <div class="hist-bar-bg"><div class="hist-bar-fill" style="width:72%"></div></div>
+        </div>
+        <div class="hist-pct">72%</div>
+      </div>
+      <div class="hist-row">
+        <div class="hist-bar-wrap">
+          <div class="hist-title">Business Studies P1 - Nov 2023</div>
+          <div class="hist-date">Wed 2 Apr - 118 / 150 marks</div>
+          <div class="hist-bar-bg"><div class="hist-bar-fill" style="width:79%;background:var(--k-amber)"></div></div>
+        </div>
+        <div class="hist-pct" style="color:var(--k-amber)">79%</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:24px"></div>
+</div>
+
+<div class="bottom-nav">
+  <a class="bottom-nav-item" href="/home.html">
+    <span class="bottom-nav-kicker">App</span>
+    <span>Home</span>
+  </a>
+  <a class="bottom-nav-item active" href="/career-guidance.html">
+    <span class="bottom-nav-kicker">Plan</span>
+    <span>Career</span>
+  </a>
+  <a class="bottom-nav-item" href="/recommendation.html">
+    <span class="bottom-nav-kicker">Match</span>
+    <span>Courses</span>
+  </a>
+  <a class="bottom-nav-item" href="/more-service/accommodation-assist.html">
+    <span class="bottom-nav-kicker">Stay</span>
+    <span>Housing</span>
+  </a>
+  <a class="bottom-nav-item" href="/more-service/transport-assist.html">
+    <span class="bottom-nav-kicker">Move</span>
+    <span>Transport</span>
+  </a>
+</div>
+
+<script>
+const GRADE_OPTIONS = ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"];
+const YEAR_OPTIONS = Array.from({ length: 17 }, (_, index) => String(2026 - index));
+const PROVINCE_OPTIONS = [
+  "National",
+  "Eastern Cape",
+  "Free State",
+  "Gauteng",
+  "KwaZulu-Natal",
+  "Limpopo",
+  "Mpumalanga",
+  "North West",
+  "Northern Cape",
+  "Western Cape"
+];
+const PAPER_OPTIONS = [
+  "Paper 1 - November Final",
+  "Paper 2 - November Final",
+  "Paper 3 - November Final",
+  "Paper 1 - June Exam",
+  "Paper 2 - June Exam",
+  "Paper 3 - June Exam",
+  "Paper 1 - September Trial",
+  "Paper 2 - September Trial",
+  "Paper 3 - September Trial",
+  "Paper 1 - March Control",
+  "Paper 2 - March Control",
+  "Paper 3 - March Control",
+  "Paper 1 Memo",
+  "Paper 2 Memo",
+  "Paper 3 Memo",
+  "Practical / PAT / Oral"
+];
+const OFFICIAL_LANGUAGE_FAMILIES = [
+  "Afrikaans",
+  "English",
+  "isiNdebele",
+  "isiXhosa",
+  "isiZulu",
+  "Sepedi",
+  "Sesotho",
+  "Setswana",
+  "Siswati",
+  "Tshivenda",
+  "Xitsonga"
+];
+const ADDITIONAL_LANGUAGE_FAMILIES = [
+  "Arabic",
+  "French",
+  "German",
+  "Gujarati",
+  "Hebrew",
+  "Hindi",
+  "Italian",
+  "Latin",
+  "Portuguese",
+  "Spanish",
+  "Tamil",
+  "Telugu",
+  "Urdu"
+];
+const CORE_DBE_SUBJECTS = [
+  "Accounting",
+  "Agricultural Management Practices",
+  "Agricultural Sciences",
+  "Agricultural Technology",
+  "Arts and Culture",
+  "Business Studies",
+  "Civil Technology",
+  "Civil Technology (Construction)",
+  "Civil Technology (Woodworking)",
+  "Coding and Robotics",
+  "Computer Applications Technology",
+  "Consumer Studies",
+  "Creative Arts",
+  "Dance Studies",
+  "Design",
+  "Dramatic Arts",
+  "Economic and Management Sciences",
+  "Economics",
+  "Electrical Technology",
+  "Electrical Technology (Digital Systems)",
+  "Electrical Technology (Electronics)",
+  "Electrical Technology (Power Systems)",
+  "Engineering Graphics and Design",
+  "Geography",
+  "History",
+  "Hospitality Studies",
+  "Information Technology",
+  "Life Orientation",
+  "Life Sciences",
+  "Marine Sciences",
+  "Mathematical Literacy",
+  "Mathematics",
+  "Mechanical Technology",
+  "Mechanical Technology (Automotive)",
+  "Mechanical Technology (Fitting and Machining)",
+  "Mechanical Technology (Welding and Metalwork)",
+  "Music",
+  "Natural Sciences",
+  "Physical Sciences",
+  "Religion Studies",
+  "Robotics and Coding",
+  "Social Sciences",
+  "Technical Mathematics",
+  "Technical Sciences",
+  "Technology",
+  "Tourism",
+  "Visual Arts"
+];
+const LANGUAGE_SUBJECTS = [
+  ...OFFICIAL_LANGUAGE_FAMILIES.flatMap((name) => ([
+    `${name} Home Language`,
+    `${name} First Additional Language`,
+    `${name} Second Additional Language`
+  ])),
+  "South African Sign Language Home Language",
+  ...ADDITIONAL_LANGUAGE_FAMILIES.map((name) => `${name} Second Additional Language`)
+];
+const DBE_SUBJECTS = Array.from(new Set([...CORE_DBE_SUBJECTS, ...LANGUAGE_SUBJECTS]))
+  .sort((a, b) => a.localeCompare(b));
+
+const gradeSelect = document.getElementById("gradeSelect");
+const yearSelect = document.getElementById("yearSelect");
+const provinceSelect = document.getElementById("provinceSelect");
+const subjectSelect = document.getElementById("subjectSelect");
+const paperSelect = document.getElementById("paperSelect");
+const resultsSection = document.getElementById("results-section");
+const resultsList = document.getElementById("resultsList");
+const workspace = document.getElementById("workspace");
+const workspaceTitle = document.getElementById("workspaceTitle");
+const workspaceSub = document.getElementById("workspaceSub");
+
+let qStates = {};
+let currentResults = [];
+let selectedPaperData = null;
+
+function populateSelect(select, options, selectedValue) {
+  select.innerHTML = options.map((option) => `<option value="${option}">${option}</option>`).join("");
+  if (selectedValue && options.includes(selectedValue)) select.value = selectedValue;
+}
+
+function setStep(i, el) {
+  document.querySelectorAll(".fstep").forEach((step) => step.classList.remove("active"));
+  el.classList.add("active");
+  const selectMap = [gradeSelect, yearSelect, provinceSelect, subjectSelect];
+  if (selectMap[i]) selectMap[i].focus();
+}
+
+function getProvinceCode(name) {
+  const map = {
+    National: "NAT",
+    "Eastern Cape": "EC",
+    "Free State": "FS",
+    Gauteng: "GP",
+    "KwaZulu-Natal": "KZN",
+    Limpopo: "LP",
+    Mpumalanga: "MP",
+    "North West": "NW",
+    "Northern Cape": "NC",
+    "Western Cape": "WC"
+  };
+  return map[name] || "DBE";
+}
+
+function getBaseMarks(grade, subject, paperLabel) {
+  const gradeNumber = Number(String(grade).replace(/\D/g, ""));
+  const isLanguage = /language/i.test(subject);
+  const isJuniorPhase = gradeNumber <= 9;
+  const isPaperTwo = /paper 2/i.test(paperLabel);
+  const isPaperThree = /paper 3/i.test(paperLabel);
+  const isPractical = /practical|pat|oral/i.test(paperLabel);
+  if (isJuniorPhase) return 100;
+  if (isPractical) return isLanguage ? 50 : 100;
+  if (isLanguage && !isPaperTwo) return 80;
+  if (isPaperThree) return 100;
+  if (isPaperTwo) return 100;
+  return 150;
+}
+
+function getAlternatePaper(paperLabel) {
+  if (/paper 1/i.test(paperLabel)) return paperLabel.replace(/Paper 1/i, "Paper 2");
+  if (/paper 2/i.test(paperLabel)) return paperLabel.replace(/Paper 2/i, "Paper 1");
+  if (/paper 3/i.test(paperLabel)) return paperLabel.replace(/Paper 3/i, "Paper 2");
+  return "Paper 1 - November Final";
+}
+
+function createPaperResult(year, subject, grade, province, paperLabel, variantIndex) {
+  const marks = getBaseMarks(grade, subject, paperLabel);
+  const attempted = variantIndex !== 1;
+  const score = attempted ? Math.max(58, 76 - (variantIndex * 7)) : null;
+  return {
+    title: `${subject} ${paperLabel} (${getProvinceCode(province)})`,
+    sub: `${grade} - ${province} - ${marks} marks`,
+    badges: attempted
+      ? [
+          { label: "Attempted", className: "badge-done" },
+          { label: variantIndex === 0 ? "Focus paper" : "Revision set", className: variantIndex === 0 ? "badge-new" : "badge-weak" }
+        ]
+      : [{ label: year === "2026" ? "Fresh upload" : "Available", className: "badge-new" }],
+    score,
+    year,
+    subject,
+    grade,
+    province,
+    paperLabel,
+    marks
+  };
+}
+
+function buildResults() {
+  const year = yearSelect.value;
+  const subject = subjectSelect.value;
+  const grade = gradeSelect.value;
+  const province = provinceSelect.value;
+  const selectedPaper = paperSelect.value;
+  const previousYear = String(Math.max(2010, Number(year) - 1));
+  const nextYear = String(Math.min(2026, Number(year) + 1));
+  const items = [
+    createPaperResult(year, subject, grade, province, selectedPaper, 0),
+    createPaperResult(previousYear, subject, grade, province, selectedPaper, 1),
+    createPaperResult(nextYear, subject, grade, province, getAlternatePaper(selectedPaper), 2)
+  ];
+  const deduped = [];
+  const seen = new Set();
+  items.forEach((item) => {
+    const key = `${item.year}|${item.subject}|${item.paperLabel}|${item.province}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      deduped.push(item);
+    }
+  });
+  currentResults = deduped;
+}
+
+function renderResults() {
+  resultsList.innerHTML = currentResults.map((item, index) => `
+    <div class="paper-row ${index === 0 ? "selected" : ""}" onclick="selectPaperByIndex(${index})">
+      <div class="paper-icon">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg>
+      </div>
+      <div class="paper-meta">
+        <div class="paper-title">${item.title.replace(`${item.subject} `, `${item.subject} - `)}</div>
+        <div class="paper-sub">${item.sub}</div>
+        <div class="paper-badges">
+          ${item.badges.map((badge) => `<span class="badge ${badge.className}">${badge.label}</span>`).join("")}
+        </div>
+      </div>
+      <div class="paper-score">
+        <div class="score-n" style="${item.score === null ? "color:var(--k-muted)" : ""}">${item.score === null ? "-" : `${item.score}%`}</div>
+        <div class="score-l">${item.score === null ? "ready" : "score"}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function updateWorkspace(paper) {
+  selectedPaperData = paper;
+  workspaceTitle.textContent = `${paper.subject} - ${paper.paperLabel} - ${paper.year}`;
+  workspaceSub.textContent = `${paper.province} - ${paper.grade} - ${paper.marks} marks`;
+}
+
+function showResults() {
+  buildResults();
+  renderResults();
+  resultsSection.style.display = "block";
+  resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (currentResults.length) selectPaperByIndex(0);
+}
+
+function selectPaperByIndex(index) {
+  const paper = currentResults[index];
+  if (!paper) return;
+  document.querySelectorAll(".paper-row").forEach((row, rowIndex) => {
+    row.classList.toggle("selected", rowIndex === index);
+  });
+  updateWorkspace(paper);
+  workspace.style.display = "block";
+  workspace.scrollIntoView({ behavior: "smooth", block: "start" });
+  buildQGrid();
+}
+
+function wsTab(i, el) {
+  document.querySelectorAll(".ws-tab").forEach((tab) => tab.classList.remove("active"));
+  el.classList.add("active");
+  ["ws-tab-0", "ws-tab-1", "ws-tab-2"].forEach((id, index) => {
+    document.getElementById(id).style.display = index === i ? "" : "none";
+  });
+}
+
+function buildQGrid() {
+  const grid = document.getElementById("q-grid");
+  grid.innerHTML = "";
+  const total = 18;
+  const preset = { 1: "win", 2: "win", 3: "weak", 4: "skip", 5: "win", 6: "weak", 7: "win", 8: "weak" };
+  for (let question = 1; question <= total; question += 1) {
+    qStates[question] = preset[question] || "none";
+    const dot = document.createElement("div");
+    dot.className = "q-dot";
+    dot.textContent = question;
+    dot.dataset.q = question;
+    setQDot(dot, qStates[question]);
+    dot.onclick = function () {
+      const cycle = ["none", "win", "weak", "skip"];
+      const currentIndex = cycle.indexOf(qStates[question]);
+      qStates[question] = cycle[(currentIndex + 1) % cycle.length];
+      setQDot(dot, qStates[question]);
+    };
+    grid.appendChild(dot);
+  }
+}
+
+function setQDot(dot, state) {
+  dot.className = "q-dot";
+  if (state === "win") dot.classList.add("win");
+  else if (state === "weak") dot.classList.add("weak");
+  else if (state === "skip") dot.classList.add("skip");
+}
+
+function toggleHistory() {
+  const history = document.getElementById("history-section");
+  const isVisible = history.style.display === "block";
+  history.style.display = isVisible ? "none" : "block";
+  if (!isVisible) history.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+populateSelect(gradeSelect, GRADE_OPTIONS, "Grade 12");
+populateSelect(yearSelect, YEAR_OPTIONS, "2026");
+populateSelect(provinceSelect, PROVINCE_OPTIONS, "National");
+populateSelect(subjectSelect, DBE_SUBJECTS, "Economics");
+populateSelect(paperSelect, PAPER_OPTIONS, "Paper 1 - November Final");
+showResults();
+</script>
+<script defer src="js/career-hub-live-page.js?v=20260427a"></script>
 </body>
 </html>

@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: kagie-api
+    env: node
+    rootDir: kagie-api
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /v1/health
+    envVars:
+      - key: WEB_APP_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true

@@ -4,46 +4,165 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Kagie | Prospectus</title>
-  <script src="js/backend.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/sa-catalog.js"></script>
-  <script>
-    const currentUser=window.KagieAPI?.currentUser?.();
-    if(!currentUser||currentUser.role!=="user"){window.location.href="login.html";}
-  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="js/backend.js?v=20260405k"></script>
+  <script defer src="js/data.js?v=20260405k"></script>
+  <script defer src="js/sa-catalog.js?v=20260407a"></script>
+  <script defer src="js/prospectus-page.js?v=20260405k"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    :root{--bg:#f4f7fb;--text:#0f172a;--muted:#64748b;--line:rgba(15,23,42,.08);--card:rgba(255,255,255,.84);--red:#c90000;--blue:#2fa4ff;--yellow:#f5c84c;--shadow:0 20px 44px rgba(15,23,42,.12);--soft:0 10px 22px rgba(15,23,42,.08)}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);background:radial-gradient(900px 520px at 15% 0%,rgba(47,164,255,.14),transparent 60%),radial-gradient(900px 560px at 85% 10%,rgba(245,200,76,.16),transparent 60%),var(--bg)}.shell{width:min(1040px,100%);margin:0 auto;display:grid;gap:16px}.top,.hero,.card{background:var(--card);border:1px solid rgba(255,255,255,.65);border-radius:26px;box-shadow:var(--shadow);backdrop-filter:blur(14px)}.top{padding:18px 20px;background:linear-gradient(135deg,var(--blue),#146fc4);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.top h1{margin:0;font:800 22px "Poppins",sans-serif}.top p{margin:5px 0 0;font-size:13px;opacity:.92}.actions{display:flex;gap:10px;flex-wrap:wrap}.btn,.mini,.filter{border:none;border-radius:14px;font:700 14px inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;transition:.18s ease}.btn{height:44px;padding:0 16px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.18);box-shadow:var(--soft)}.mini{height:36px;padding:0 12px;background:linear-gradient(135deg,var(--blue),#67caff);color:#fff}.filter{padding:10px 14px;background:#fff;border:1px solid var(--line);color:var(--text)}.filter.active{background:rgba(47,164,255,.1);color:var(--blue);border-color:rgba(47,164,255,.2)}.btn:hover,.mini:hover,.filter:hover{transform:translateY(-2px)}
-    .hero{padding:20px;background:linear-gradient(135deg,rgba(47,164,255,.96),rgba(245,200,76,.92));color:#fff}.hero h2{margin:0;font:800 30px "Poppins",sans-serif}.hero p{margin:8px 0 0;font-size:14px;line-height:1.6;color:rgba(255,255,255,.95)}.hero .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.hero .row span{padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);font-size:12px;font-weight:800}
-    .card{padding:18px}.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}.head h3{margin:0;font:800 18px "Poppins",sans-serif}.head p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.55}.filters,.list{display:flex;gap:10px;flex-wrap:wrap}.filters{margin-bottom:14px}.search{width:100%;border:1px solid var(--line);border-radius:16px;padding:14px;font:inherit;background:#fff;outline:none;box-shadow:0 8px 18px rgba(15,23,42,.04);margin-bottom:14px}.list{display:grid}.item{display:grid;grid-template-columns:84px 1fr auto;gap:14px;align-items:center;background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.04)}.logo{width:84px;height:84px;border-radius:20px;background:linear-gradient(135deg,#fff,#eef6ff);border:1px solid rgba(47,164,255,.12);display:grid;place-items:center;overflow:hidden;font:800 18px "Poppins",sans-serif;color:var(--blue)}.logo img{width:100%;height:100%;object-fit:contain;padding:10px}.item strong{font-size:16px}.item p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.6}.item-actions{display:grid;gap:8px}.badge{display:inline-flex;padding:8px 12px;border-radius:999px;font-size:11px;font-weight:900;background:rgba(245,200,76,.18);color:#8c6b00;border:1px solid rgba(245,200,76,.25)}.empty{text-align:center;color:var(--muted);padding:18px 12px;font-size:13px;font-weight:600}
-    @media (max-width:760px){body{padding:12px}.item{grid-template-columns:1fr}.btn{width:100%}}
+    :root{--bg:#f4f7fb;--text:#0f172a;--muted:#64748b;--line:rgba(15,23,42,.08);--card:rgba(255,255,255,.84);--red:#c90000;--blue:#2fa4ff;--yellow:#f5c84c;--green:#13a35d;--shadow:0 20px 44px rgba(15,23,42,.12);--soft:0 10px 22px rgba(15,23,42,.08)}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);background:radial-gradient(900px 520px at 15% 0%,rgba(47,164,255,.14),transparent 60%),radial-gradient(900px 560px at 85% 10%,rgba(245,200,76,.16),transparent 60%),var(--bg)}
+    .shell{width:min(1040px,100%);margin:0 auto;display:grid;gap:16px}
+    .top,.hero,.card{background:var(--card);border:1px solid rgba(255,255,255,.65);border-radius:26px;box-shadow:var(--shadow);backdrop-filter:blur(14px)}
+    .top{padding:18px 20px;background:linear-gradient(135deg,var(--blue),#146fc4);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .top h1{margin:0;font:800 22px "Poppins",sans-serif}
+    .top p{margin:5px 0 0;font-size:13px;opacity:.92}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn,.mini,.filter{border:none;border-radius:14px;font:700 14px inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;transition:.18s ease}
+    .btn{height:44px;padding:0 16px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.18);box-shadow:var(--soft)}
+    .mini{height:36px;padding:0 12px;background:linear-gradient(135deg,var(--blue),#67caff);color:#fff}
+    .mini.green{background:linear-gradient(135deg,var(--green),#44d684)}
+    .mini.yellow{background:linear-gradient(135deg,var(--yellow),#efd977);color:#6b5000}
+    .mini.red{background:linear-gradient(135deg,var(--red),#ff6b6b)}
+    .filter{padding:10px 14px;background:#fff;border:1px solid var(--line);color:var(--text)}
+    .filter.active{background:rgba(47,164,255,.1);color:var(--blue);border-color:rgba(47,164,255,.2)}
+    .btn:hover,.mini:hover,.filter:hover{transform:translateY(-2px)}
+    .hero{padding:20px;background:linear-gradient(135deg,rgba(47,164,255,.96),rgba(245,200,76,.92));color:#fff}
+    .hero h2{margin:0;font:800 30px "Poppins",sans-serif}
+    .hero p{margin:8px 0 0;font-size:14px;line-height:1.6;color:rgba(255,255,255,.95)}
+    .hero .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .hero .row span{padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);font-size:12px;font-weight:800}
+    .card{padding:18px}
+    .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .head h3{margin:0;font:800 18px "Poppins",sans-serif}
+    .head p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.55}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+    .search,.field,.textarea,.select{width:100%;border:1px solid var(--line);border-radius:16px;padding:14px;font:inherit;background:#fff;outline:none;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+    .textarea{min-height:110px;resize:vertical}
+    .stack,.list,.doc-list,.upload-grid{display:grid;gap:12px}
+    .upload-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .item{display:grid;gap:14px;background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+    .item.active{border-color:rgba(47,164,255,.28);box-shadow:0 16px 28px rgba(47,164,255,.12);background:linear-gradient(135deg,rgba(47,164,255,.08),rgba(255,255,255,.96))}
+    .item-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .item strong{font-size:16px}
+    .item p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.6}
+    .badge{display:inline-flex;padding:8px 12px;border-radius:999px;font-size:11px;font-weight:900;background:rgba(245,200,76,.18);color:#8c6b00;border:1px solid rgba(245,200,76,.25)}
+    .doc-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--line);border-radius:16px;background:rgba(47,164,255,.05)}
+    .doc-row strong{display:block;margin-bottom:4px}
+    .doc-row p{margin:0;color:var(--muted);font-size:12px;line-height:1.55}
+    .doc-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .muted{color:var(--muted);font-size:13px}
+    .upload-note{font-size:12px;color:var(--muted);line-height:1.55;margin-top:8px}
+    .action-row{display:flex;gap:10px;flex-wrap:wrap}
+    .msg{margin-top:12px;font-size:13px;font-weight:700}
+    .msg.error{color:#b91c1c}
+    .msg.success{color:#15803d}
+    .empty{text-align:center;color:var(--muted);padding:18px 12px;font-size:13px;font-weight:600}
+    @media (max-width:760px){
+      body{padding:12px}
+      .upload-grid{grid-template-columns:1fr}
+      .btn{width:100%}
+      .action-row .mini{width:100%}
+    }
+    :root{--bg:#f5f8fc;--text:#10233d;--muted:#66788f;--line:#d8e4f0;--card:rgba(255,255,255,.92);--red:#c24848;--red-hero:#db0f16;--blue:#1f8aea;--blue2:#63b9ff;--yellow:#f2cd67;--green:#1a6b4a;--orange:#f39a38;--shadow:0 18px 34px rgba(16,35,61,.09);--soft:0 10px 22px rgba(16,35,61,.08)}
+    body{padding-bottom:110px;background:radial-gradient(circle at top left,rgba(31,138,234,.14),transparent 28%),radial-gradient(circle at bottom right,rgba(219,15,22,.1),transparent 28%),var(--bg)}
+    .top{background:linear-gradient(135deg,var(--red-hero),var(--red));border:1px solid var(--line);box-shadow:var(--shadow)}
+    .hero{background:linear-gradient(135deg,var(--blue),var(--red-hero))}
+    .mini{background:linear-gradient(135deg,var(--blue),var(--blue2))}
+    .mini.green{background:linear-gradient(135deg,var(--green),#3aa477)}
+    .mini.yellow{background:linear-gradient(135deg,var(--yellow),#f7dfa0);color:#7a5b00}
+    .mini.red{background:linear-gradient(135deg,var(--red-hero),var(--red))}
+    .filter.active{background:rgba(31,138,234,.1);color:var(--blue);border-color:rgba(31,138,234,.2)}
+    .bottom-nav{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(430px,calc(100% - 24px));background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;justify-content:space-between;gap:6px;padding:8px;z-index:50}
+    .bottom-nav-item{flex:1;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:18px;text-decoration:none;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+    .bottom-nav-item.active{background:linear-gradient(135deg,var(--red-hero),var(--orange));color:#fff;box-shadow:0 10px 20px rgba(219,15,22,.18)}
+    .bottom-nav-kicker{font-size:9px;opacity:.72;letter-spacing:.08em}
   </style>
 </head>
 <body>
   <div class="shell">
     <header class="top">
-      <div><h1>Prospectus Guides</h1><p>Browse Kagie's institution guides and download a quick prospectus summary for planning.</p></div>
-      <div class="actions"><a class="btn" href="home.html">Home</a><a class="btn" href="Dashboard.html">Dashboard</a></div>
+      <div>
+        <h1>Prospectus Library</h1>
+        <p id="topText">Browse institution guides, application fee notes, and Kagie-ready prospectus PDFs.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="home.html" id="homeBtn">Home</a>
+        <a class="btn" href="home.html" id="dashboardBtn">Home</a>
+      </div>
     </header>
+
     <section class="hero">
-      <h2>Explore tertiary options</h2>
-      <p>Search universities, universities of technology, and TVET colleges, then download a Kagie-ready guide with faculties, courses, and deadlines.</p>
-      <div class="row"><span id="countMeta">0 guides</span><span>South African focus</span></div>
+      <h2 id="heroTitle">Explore tertiary options</h2>
+      <p id="heroText">Search institutions, compare deadlines, check each institution's own application fee, and open the latest prospectus PDFs shared inside Kagie.</p>
+      <div class="row">
+        <span id="countMeta">0 prospectus files</span>
+        <span id="roleMeta">Student library</span>
+      </div>
     </section>
+
+    <section class="card" id="uploadCard" hidden>
+      <div class="head">
+        <div>
+          <h3>Upload Prospectus PDF</h3>
+          <p>Master Admin and Assistant Admin can keep the shared Kagie library fresh by adding the latest institution prospectus files.</p>
+        </div>
+      </div>
+      <form id="uploadForm" class="stack">
+        <div class="upload-grid">
+          <div>
+            <label class="muted" for="uploadInstitution">Institution</label>
+            <select class="select" id="uploadInstitution" required></select>
+          </div>
+          <div>
+            <label class="muted" for="uploadTitle">Title</label>
+            <input class="field" id="uploadTitle" type="text" placeholder="2026 Main Prospectus" required />
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="muted" for="uploadDescription">Description</label>
+            <textarea class="textarea" id="uploadDescription" placeholder="Optional note for learners, for example campus focus, admissions note, or updated closing details."></textarea>
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="muted" for="uploadFile">Prospectus PDF</label>
+            <input class="field" id="uploadFile" type="file" accept="application/pdf,.pdf" required />
+            <div class="upload-note">Use PDF format so learners can open the same file from the Kagie prospectus library.</div>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="mini green" type="submit">Upload PDF</button>
+          <button class="mini yellow" id="uploadResetBtn" type="button">Clear form</button>
+        </div>
+      </form>
+      <div class="msg" id="uploadMsg" aria-live="polite"></div>
+    </section>
+
     <section class="card">
-      <div class="head"><div><h3>Institution Library</h3><p>Filter by institution type or search by name and province.</p></div></div>
+      <div class="head">
+        <div>
+          <h3>Institution Library</h3>
+          <p>Filter by institution type or search by name and province. Kagie still keeps the quick guide download even when a PDF prospectus has not been uploaded yet.</p>
+        </div>
+      </div>
       <input class="search" id="search" type="text" placeholder="Search institution or province..." />
-      <div class="filters"><button class="filter active" data-type="all">All</button><button class="filter" data-type="University">University</button><button class="filter" data-type="University of Technology">University of Technology</button><button class="filter" data-type="TVET">TVET</button></div>
+      <div class="filters">
+        <button class="filter active" data-type="all" type="button">All</button>
+        <button class="filter" data-type="University" type="button">University</button>
+        <button class="filter" data-type="University of Technology" type="button">University of Technology</button>
+        <button class="filter" data-type="TVET" type="button">TVET</button>
+      </div>
       <div class="list" id="list"></div>
     </section>
   </div>
-  <script>
-    (()=>{const items=window.KagieData?.institutions||[],$=id=>document.getElementById(id),filters=[...document.querySelectorAll("[data-type]")];let active="all";const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));const guide=i=>`Kagie Prospectus Guide\n\nInstitution: ${i.name}\nType: ${i.type}\nProvince: ${i.province}\nApplication Deadline: ${i.applicationDeadline||"Check institution website"}\n\nFaculties and Courses:\n${i.faculties.map(f=>`- ${f.name}: ${f.courses.join(", ")}`).join("\n")}\n\nPrepared by Kagie to help you shortlist institutions and course options for your application workflow.`;function downloadGuide(id){const item=items.find(i=>i.id===id);if(!item)return;const blob=new Blob([guide(item)],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`${item.shortName||item.name}-kagie-guide.txt`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}window.downloadGuide=downloadGuide;
-      function render(){const q=$("search").value.trim().toLowerCase();const visible=items.filter(i=>(active==="all"||i.type===active)&&(`${i.name} ${i.province} ${i.type}`.toLowerCase().includes(q)));$("countMeta").textContent=`${visible.length} guide${visible.length===1?"":"s"}`;$("list").innerHTML=visible.length?visible.map(i=>`<div class="item"><div class="logo">${i.logo?`<img src="${esc(i.logo)}" alt="${esc(i.shortName||i.name)} logo" />`:esc(i.shortName||i.name.split(" ").map(p=>p[0]).slice(0,3).join(""))}</div><div><span class="badge">${esc(i.type)}</span><div style="margin-top:8px"><strong>${esc(i.name)}</strong><p>Province: ${esc(i.province)}<br>Deadline: ${esc(i.applicationDeadline||"Check institution directly")}<br>Faculties: ${esc(i.faculties.length)}</p></div></div><div class="item-actions"><button class="mini" type="button" onclick="downloadGuide('${esc(i.id)}')">Download guide</button></div></div>`).join(""):`<div class="empty">No prospectus guides match this filter.</div>`}
-      filters.forEach(btn=>btn.addEventListener("click",()=>{filters.forEach(b=>b.classList.remove("active"));btn.classList.add("active");active=btn.dataset.type;render()}));$("search").addEventListener("input",render);render()})();
-  </script>
+  <div class="bottom-nav">
+    <a class="bottom-nav-item active" href="home.html"><span class="bottom-nav-kicker">App</span><span>Home</span></a>
+    <a class="bottom-nav-item" href="career-guidance.html"><span class="bottom-nav-kicker">Plan</span><span>Career</span></a>
+    <a class="bottom-nav-item" href="recommendation.html"><span class="bottom-nav-kicker">Match</span><span>Courses</span></a>
+    <a class="bottom-nav-item" href="more-service/accommodation-assist.html"><span class="bottom-nav-kicker">Stay</span><span>Housing</span></a>
+    <a class="bottom-nav-item" href="more-service/transport-assist.html"><span class="bottom-nav-kicker">Move</span><span>Transport</span></a>
+  </div>
 </body>
 </html>

@@ -3,14 +3,286 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kagie | Redirecting</title>
-  <script src="js/backend.js"></script>
-  <meta http-equiv="refresh" content="0; url=forms.html" />
+  <title>Kagie | Institutions</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="./js/backend.js?v=20260427a"></script>
+  <script defer src="./js/supabase-config.js?v=20260413b"></script>
+  <script defer src="./js/institutions-page.js?v=20260427a"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/admin-dashboard-modern.css?v=20260426c" />
+  <style>
+    .institutions-grid .queue-header,
+    .institutions-grid .queue-row {
+      grid-template-columns: minmax(240px, 1.15fr) minmax(130px, .7fr) minmax(120px, .7fr) minmax(110px, .72fr) minmax(130px, .78fr) minmax(110px, .7fr) minmax(180px, .85fr);
+    }
+    .institution-meta {
+      display: grid;
+      gap: 3px;
+    }
+    .institution-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .switch-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(13, 194, 129, 0.12);
+      color: #0d9d6c;
+    }
+    .switch-chip.off {
+      background: rgba(214, 31, 61, 0.1);
+      color: #d61f3d;
+    }
+    .field-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-top: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+    .field-help {
+      margin-top: 6px;
+      color: var(--gray-500);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    @media (max-width: 1100px) {
+      .institutions-grid {
+        overflow-x: auto;
+      }
+      .institutions-grid .queue-header,
+      .institutions-grid .queue-row {
+        min-width: 1160px;
+      }
+    }
+  </style>
 </head>
-<body>
-  <p>Redirecting to application forms...</p>
-  <script>
-    window.location.replace("forms.html" + window.location.search + window.location.hash);
-  </script>
+<body class="admin-dashboard-body role-master">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" id="institutionsSidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark">K</div>
+        <div class="brand-copy">
+          <span class="brand-name">Kagie</span>
+          <span class="role-badge master">Master Admin</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Applications</div>
+        <a class="sidebar-link" href="./master-admin/dashboard.html"><span>Overview</span></a>
+        <a class="sidebar-link" href="./admin/users/"><span>All Users</span></a>
+        <a class="sidebar-link" href="./master-admin/dashboard.html#masterAssistantCard"><span>Assistants</span></a>
+        <a class="sidebar-link" href="./master-admin/dashboard.html#masterQueueCard"><span>Applications queue</span></a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Management</div>
+        <a class="sidebar-link active" href="./institutions.html"><span>Institutions</span></a>
+        <a class="sidebar-link" href="./question-papers.html"><span>Question Papers</span></a>
+        <a class="sidebar-link" href="./forms.html"><span>Courses</span></a>
+        <a class="sidebar-link" href="./documents.html"><span>Documents</span></a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">System</div>
+        <a class="sidebar-link" href="./admin/users/"><span>Users &amp; Roles</span></a>
+        <a class="sidebar-link" href="./changepassword.html"><span>Settings</span></a>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar-circle role-avatar" id="institutionsSidebarAvatar">MA</div>
+          <div>
+            <div class="sidebar-user-name" id="institutionsSidebarName">Master Admin</div>
+            <div class="sidebar-user-role">Platform Owner</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="dashboard-overlay" id="institutionsOverlay"></div>
+
+    <div class="dashboard-main">
+      <header class="dashboard-topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-toggle" id="institutionsMenuToggle" type="button" aria-label="Open menu">Menu</button>
+          <div class="topbar-mobile-brand">
+            <div class="brand-mark">K</div>
+            <div class="brand-copy">
+              <span class="brand-name">Kagie</span>
+              <span class="role-badge master">Master Admin</span>
+            </div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <a class="topbar-button" href="./master-admin/dashboard.html">Dashboard</a>
+          <button class="topbar-button primary" id="institutionsCreateBtn" type="button">Add institution</button>
+          <div class="topbar-user">
+            <div class="avatar-circle role-avatar" id="institutionsTopAvatar">MA</div>
+            <div class="topbar-user-copy">
+              <div class="topbar-user-name" id="institutionsTopName">Master Admin</div>
+              <div class="topbar-user-role">Platform Owner</div>
+            </div>
+          </div>
+          <button class="topbar-button danger" id="institutionsSignOut" type="button">Sign out</button>
+        </div>
+      </header>
+
+      <main class="dashboard-content">
+        <section class="greeting-row">
+          <div class="greeting-copy">
+            <h1>Institutions</h1>
+            <p>Control exactly which universities, TVET colleges, colleges, and private institutions appear to learners during applications.</p>
+          </div>
+          <button class="date-filter" id="institutionsRefreshBtn" type="button">Refresh catalog</button>
+        </section>
+
+        <section class="stats-grid">
+          <article class="stat-card">
+            <div class="stat-icon blue">I</div>
+            <div><div class="stat-label">Visible institutions</div><div class="stat-value" id="institutionsTotalStat">0</div><div class="stat-note">Open to the app</div></div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon green">O</div>
+            <div><div class="stat-label">Open</div><div class="stat-value" id="institutionsOpenStat">0</div><div class="stat-note">Can be selected now</div></div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon amber">C</div>
+            <div><div class="stat-label">Closing soon</div><div class="stat-value" id="institutionsClosingStat">0</div><div class="stat-note">Warning badge shown</div></div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon red">D</div>
+            <div><div class="stat-label">Disabled</div><div class="stat-value" id="institutionsDisabledStat">0</div><div class="stat-note">Hidden from learners</div></div>
+          </article>
+        </section>
+
+        <section class="card queue-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Institution control console</h2>
+              <p class="card-subtitle">Search and filter by name, province, type, or lifecycle status while keeping the current Kagie application flow intact.</p>
+            </div>
+            <div class="table-tools">
+              <label class="search-box" for="institutionsSearch">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input id="institutionsSearch" type="search" placeholder="Search institutions..." />
+              </label>
+              <select class="field-select" id="institutionsTypeFilter" aria-label="Filter by institution type">
+                <option value="">All types</option>
+              </select>
+              <select class="field-select" id="institutionsProvinceFilter" aria-label="Filter by province">
+                <option value="">All provinces</option>
+              </select>
+              <select class="field-select" id="institutionsStatusFilter" aria-label="Filter by status">
+                <option value="">All statuses</option>
+                <option value="open">Open</option>
+                <option value="closing_soon">Closing Soon</option>
+                <option value="closed">Closed</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="queue-grid institutions-grid">
+            <div class="queue-header">
+              <span>Institution</span>
+              <span>Type</span>
+              <span>Province</span>
+              <span>Status</span>
+              <span>Visibility</span>
+              <span>Closing date</span>
+              <span>Action</span>
+            </div>
+            <div id="institutionsRows"></div>
+          </div>
+          <div class="queue-footer">
+            <div class="queue-meta" id="institutionsMeta">Loading institutions...</div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="institutionModal" aria-hidden="true">
+    <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="institutionModalTitle">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="institutionModalTitle">Add institution</h3>
+          <p class="modal-subtitle" id="institutionModalSub">Control what learners can see during institution selection without changing the Kagie learner form layout.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-institution>Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <label>
+            <span class="field-label">Institution name</span>
+            <input class="field-input" id="institutionFormName" type="text" placeholder="University of Pretoria" />
+          </label>
+          <label>
+            <span class="field-label">Short name</span>
+            <input class="field-input" id="institutionFormShortName" type="text" placeholder="UP" />
+          </label>
+          <label>
+            <span class="field-label">Type</span>
+            <select class="field-select" id="institutionFormType">
+              <option value="University">University</option>
+              <option value="TVET">TVET</option>
+              <option value="College">College</option>
+              <option value="Private Institution">Private Institution</option>
+            </select>
+          </label>
+          <label>
+            <span class="field-label">Province</span>
+            <select class="field-select" id="institutionFormProvince"></select>
+          </label>
+          <label>
+            <span class="field-label">Website</span>
+            <input class="field-input" id="institutionFormWebsite" type="url" placeholder="https://www.example.ac.za" />
+          </label>
+          <label>
+            <span class="field-label">Lifecycle status</span>
+            <select class="field-select" id="institutionFormStatus">
+              <option value="open">Open</option>
+              <option value="closing_soon">Closing Soon</option>
+              <option value="closed">Closed</option>
+            </select>
+          </label>
+          <label>
+            <span class="field-label">Opening date</span>
+            <input class="field-input" id="institutionFormOpeningDate" type="date" />
+          </label>
+          <label>
+            <span class="field-label">Closing date</span>
+            <input class="field-input" id="institutionFormClosingDate" type="date" />
+          </label>
+          <label style="grid-column:1 / -1">
+            <span class="field-label">Notes</span>
+            <textarea class="field-input" id="institutionFormNotes" rows="4" placeholder="Application notes, support rules, or visibility reminders"></textarea>
+          </label>
+          <label class="field-checkbox" style="grid-column:1 / -1">
+            <input id="institutionFormVisible" type="checkbox" checked />
+            <span>Visible to learners inside the Kagie application flow</span>
+          </label>
+          <p class="field-help" style="grid-column:1 / -1">Disabled institutions stay hidden from learners. Closed institutions can remain visible if you still want learners to see the badge, but they will not be shown if you turn visibility off.</p>
+        </div>
+        <p class="status-message info" id="institutionFormMessage">Changes here update the institution choices learners see when they select universities, TVET colleges, colleges, or private institutions.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="topbar-button" type="button" data-close-institution>Cancel</button>
+        <button class="topbar-button primary" type="button" id="institutionSaveBtn">Save institution</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

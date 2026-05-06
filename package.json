@@ -1,9 +1,30 @@
 {
-  "name": "kagie-complete",
+  "name": "kagie-platform",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "packages/*",
+    "kagie-api",
+    "kagie-web"
+  ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
-    "build": "node -e \"console.log('Kagie static Vercel build complete')\"",
-    "vercel-build": "node -e \"console.log('Kagie static Vercel build complete')\""
+    "build": "node ./scripts/build-web-release.cjs",
+    "build:release": "node ./scripts/build-web-release.cjs",
+    "build:shared": "npm --workspace @kagie/shared run build",
+    "dev:api": "npm --workspace kagie-api run dev",
+    "build:api": "npm --workspace kagie-api run build",
+    "start:api": "npm --workspace kagie-api run start",
+    "dev:web": "npm --workspace kagie-web run dev",
+    "build:web": "npm --workspace kagie-web run build",
+    "vercel-build": "node ./scripts/build-web-release.cjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.56.1"
+  },
+  "devDependencies": {
+    "xlsx": "^0.18.5"
   }
 }

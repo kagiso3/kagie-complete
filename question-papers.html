@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kagie | Question Papers</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="./js/backend.js?v=20260427a"></script>
+  <script defer src="./js/supabase-config.js?v=20260413b"></script>
+  <script defer src="./js/question-papers-page.js?v=20260427a"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/admin-dashboard-modern.css?v=20260426c" />
+  <style>
+    .paper-admin-grid .queue-header,
+    .paper-admin-grid .queue-row {
+      grid-template-columns: minmax(96px, .65fr) minmax(170px, 1fr) minmax(220px, 1.1fr) 82px 100px 116px 120px 88px 190px;
+    }
+    .paper-admin-meta {
+      display: grid;
+      gap: 2px;
+    }
+    .paper-admin-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .paper-admin-actions .table-action.danger {
+      color: #d61f3d;
+      border-color: rgba(214, 31, 61, 0.2);
+      background: rgba(254, 242, 242, 0.95);
+    }
+    .file-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(16, 35, 61, 0.04);
+      color: var(--gray-700);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .field-help {
+      margin-top: 6px;
+      color: var(--gray-500);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    @media (max-width: 1100px) {
+      .paper-admin-grid {
+        overflow-x: auto;
+      }
+      .paper-admin-grid .queue-header,
+      .paper-admin-grid .queue-row {
+        min-width: 1320px;
+      }
+    }
+  </style>
+</head>
+<body class="admin-dashboard-body role-master">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" id="questionPapersSidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark">K</div>
+        <div class="brand-copy">
+          <span class="brand-name">Kagie</span>
+          <span class="role-badge master">Master Admin</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Applications</div>
+        <a class="sidebar-link" href="./master-admin/dashboard.html"><span>Overview</span></a>
+        <a class="sidebar-link" href="./admin/users/"><span>All Users</span></a>
+        <a class="sidebar-link" href="./master-admin/dashboard.html#masterAssistantCard"><span>Assistants</span></a>
+        <a class="sidebar-link" href="./master-admin/dashboard.html#masterQueueCard"><span>Applications queue</span></a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Management</div>
+        <a class="sidebar-link" href="./institutions.html"><span>Institutions</span></a>
+        <a class="sidebar-link active" href="./question-papers.html"><span>Question Papers</span></a>
+        <a class="sidebar-link" href="./forms.html"><span>Courses</span></a>
+        <a class="sidebar-link" href="./documents.html"><span>Documents</span></a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">System</div>
+        <a class="sidebar-link" href="./admin/users/"><span>Users &amp; Roles</span></a>
+        <a class="sidebar-link" href="./changepassword.html"><span>Settings</span></a>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar-circle role-avatar" id="questionPapersSidebarAvatar">MA</div>
+          <div>
+            <div class="sidebar-user-name" id="questionPapersSidebarName">Master Admin</div>
+            <div class="sidebar-user-role">Platform Owner</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="dashboard-overlay" id="questionPapersOverlay"></div>
+
+    <div class="dashboard-main">
+      <header class="dashboard-topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-toggle" id="questionPapersMenuToggle" type="button" aria-label="Open menu">Menu</button>
+          <div class="topbar-mobile-brand">
+            <div class="brand-mark">K</div>
+            <div class="brand-copy">
+              <span class="brand-name">Kagie</span>
+              <span class="role-badge master">Master Admin</span>
+            </div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <a class="topbar-button" href="./master-admin/dashboard.html">Dashboard</a>
+          <button class="topbar-button primary" id="questionPapersCreateBtn" type="button">Upload paper</button>
+          <div class="topbar-user">
+            <div class="avatar-circle role-avatar" id="questionPapersTopAvatar">MA</div>
+            <div class="topbar-user-copy">
+              <div class="topbar-user-name" id="questionPapersTopName">Master Admin</div>
+              <div class="topbar-user-role">Platform Owner</div>
+            </div>
+          </div>
+          <button class="topbar-button danger" id="questionPapersSignOut" type="button">Sign out</button>
+        </div>
+      </header>
+
+      <main class="dashboard-content">
+        <section class="greeting-row">
+          <div class="greeting-copy">
+            <h1>Question Papers</h1>
+            <p>Upload, publish, disable, and manage Grade 8 to Grade 12 DBE paper resources for the Kagie Career Hub.</p>
+          </div>
+          <button class="date-filter" id="questionPapersRefreshBtn" type="button">Refresh library</button>
+        </section>
+
+        <section class="stats-grid">
+          <article class="stat-card">
+            <div class="stat-icon blue">Q</div>
+            <div><div class="stat-label">Total records</div><div class="stat-value" id="questionPaperTotalStat">0</div><div class="stat-note">All uploaded files</div></div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon green">P</div>
+            <div><div class="stat-label">Published</div><div class="stat-value" id="questionPaperPublishedStat">0</div><div class="stat-note">Visible to learners</div></div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon amber">D</div>
+            <div><div class="stat-label">Draft</div><div class="stat-value" id="questionPaperDraftStat">0</div><div class="stat-note">Still hidden</div></div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon red">X</div>
+            <div><div class="stat-label">Disabled</div><div class="stat-value" id="questionPaperDisabledStat">0</div><div class="stat-note">Unavailable to learners</div></div>
+          </article>
+        </section>
+
+        <section class="card queue-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Paper library</h2>
+              <p class="card-subtitle">Search by grade, subject, title, year, term, province, paper type, or status.</p>
+            </div>
+            <div class="table-tools">
+              <label class="search-box" for="questionPaperSearch">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input id="questionPaperSearch" type="search" placeholder="Search papers..." />
+              </label>
+              <select class="field-select" id="questionPaperGradeFilter" aria-label="Filter by grade"><option value="">All grades</option></select>
+              <select class="field-select" id="questionPaperSubjectFilter" aria-label="Filter by subject"><option value="">All subjects</option></select>
+              <select class="field-select" id="questionPaperYearFilter" aria-label="Filter by year"><option value="">All years</option></select>
+              <select class="field-select" id="questionPaperTermFilter" aria-label="Filter by term"><option value="">All terms</option></select>
+              <select class="field-select" id="questionPaperStatusFilter" aria-label="Filter by status">
+                <option value="">All statuses</option>
+                <option value="Published">Published</option>
+                <option value="Draft">Draft</option>
+                <option value="Disabled">Disabled</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="queue-grid paper-admin-grid">
+            <div class="queue-header">
+              <span>Grade</span>
+              <span>Subject</span>
+              <span>Paper title</span>
+              <span>Year</span>
+              <span>Term</span>
+              <span>Province</span>
+              <span>Type</span>
+              <span>Status</span>
+              <span>Action</span>
+            </div>
+            <div id="questionPaperRows"></div>
+          </div>
+          <div class="queue-footer">
+            <div class="queue-meta" id="questionPaperMeta">Loading question papers...</div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="questionPaperModal" aria-hidden="true">
+    <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="questionPaperModalTitle">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="questionPaperModalTitle">Upload question paper</h3>
+          <p class="modal-subtitle" id="questionPaperModalSub">Save a learner-facing paper, memo, or study guide without changing the Kagie dashboard layout.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-question-paper>Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <label>
+            <span class="field-label">Grade</span>
+            <select class="field-select" id="questionPaperFormGrade"></select>
+          </label>
+          <label>
+            <span class="field-label">Subject</span>
+            <select class="field-select" id="questionPaperFormSubject"></select>
+          </label>
+          <label>
+            <span class="field-label">Paper title</span>
+            <input class="field-input" id="questionPaperFormTitle" type="text" placeholder="Economics Paper 1" />
+          </label>
+          <label>
+            <span class="field-label">Year</span>
+            <select class="field-select" id="questionPaperFormYear"></select>
+          </label>
+          <label>
+            <span class="field-label">Term</span>
+            <select class="field-select" id="questionPaperFormTerm">
+              <option value="March">March</option>
+              <option value="June">June</option>
+              <option value="September">September</option>
+              <option value="November">November</option>
+            </select>
+          </label>
+          <label>
+            <span class="field-label">Province</span>
+            <select class="field-select" id="questionPaperFormProvince"></select>
+          </label>
+          <label>
+            <span class="field-label">Paper type</span>
+            <select class="field-select" id="questionPaperFormType">
+              <option value="Question Paper">Question Paper</option>
+              <option value="Memo">Memo</option>
+              <option value="Study Guide">Study Guide</option>
+            </select>
+          </label>
+          <label>
+            <span class="field-label">Status</span>
+            <select class="field-select" id="questionPaperFormStatus">
+              <option value="Draft">Draft</option>
+              <option value="Published">Published</option>
+              <option value="Disabled">Disabled</option>
+            </select>
+          </label>
+          <label style="grid-column:1 / -1">
+            <span class="field-label">PDF file</span>
+            <input class="field-input" id="questionPaperFormFile" type="file" accept="application/pdf,.pdf" />
+            <p class="field-help">Upload a PDF. Existing files stay linked when you edit metadata without replacing the file.</p>
+            <div class="file-chip" id="questionPaperExistingFile" hidden>No PDF linked yet.</div>
+          </label>
+        </div>
+        <p class="status-message info" id="questionPaperFormMessage">Question papers marked Published will appear inside the learner Career Hub. Draft and Disabled records stay hidden.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="topbar-button" type="button" data-close-question-paper>Cancel</button>
+        <button class="topbar-button primary" type="button" id="questionPaperSaveBtn">Save paper</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

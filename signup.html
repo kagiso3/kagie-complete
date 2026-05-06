@@ -22,6 +22,7 @@
 
     *{box-sizing:border-box}
     html,body{height:100%}
+
     body{
       margin:0;
       font-family:"Poppins",sans-serif;
@@ -32,7 +33,7 @@
       align-items:center;
       justify-content:center;
       padding:24px;
-      overflow:hidden;
+      overflow:auto;
     }
 
     .auth-card{
@@ -44,13 +45,6 @@
       box-shadow:var(--shadow);
       backdrop-filter:blur(10px);
       border:1px solid rgba(255,255,255,.65);
-      transform:translateY(24px) scale(.98);
-      opacity:0;
-      animation:cardIn .8s cubic-bezier(.2,.9,.2,1) forwards;
-    }
-
-    @keyframes cardIn{
-      to{opacity:1;transform:translateY(0) scale(1)}
     }
 
     h1{
@@ -61,9 +55,6 @@
       font-weight:900;
       color:var(--text);
       letter-spacing:-.03em;
-      opacity:0;
-      transform:translateY(10px);
-      animation:fadeUp .6s .15s ease forwards;
     }
 
     .top-text{
@@ -71,9 +62,6 @@
       margin:14px 0 28px;
       color:var(--muted);
       font-size:16px;
-      opacity:0;
-      transform:translateY(10px);
-      animation:fadeUp .6s .25s ease forwards;
     }
 
     .top-text a{
@@ -85,15 +73,7 @@
     .field{
       margin-bottom:22px;
       position:relative;
-      opacity:0;
-      transform:translateY(12px);
-      animation:fadeUp .55s ease forwards;
     }
-    .field:nth-of-type(1){animation-delay:.3s}
-    .field:nth-of-type(2){animation-delay:.38s}
-    .field:nth-of-type(3){animation-delay:.46s}
-    .field:nth-of-type(4){animation-delay:.54s}
-    .field:nth-of-type(5){animation-delay:.62s}
 
     .input{
       width:100%;
@@ -106,6 +86,7 @@
       font-weight:700;
       outline:none;
       transition:.25s ease;
+      font-family:inherit;
     }
 
     .input::placeholder{
@@ -148,6 +129,7 @@
       cursor:pointer;
       font-weight:700;
       color:#6b7280;
+      font-family:inherit;
     }
 
     .btn{
@@ -164,9 +146,7 @@
       box-shadow:var(--button-shadow);
       margin-top:8px;
       transition:.25s ease;
-      opacity:0;
-      transform:translateY(12px);
-      animation:fadeUp .6s .72s ease forwards;
+      font-family:inherit;
     }
 
     .btn:hover{transform:translateY(-2px)}
@@ -179,12 +159,9 @@
       font-weight:600;
       margin-top:14px;
     }
+
     .message.error{color:#b00020}
     .message.success{color:#0f8a43}
-
-    @keyframes fadeUp{
-      to{opacity:1;transform:translateY(0)}
-    }
 
     @media (max-width:700px){
       .auth-card{padding:32px 20px 26px}
@@ -215,11 +192,11 @@
 
       <div class="field">
         <span class="field-label">Date of Birth</span>
-        <input class="input" id="dob" type="date" required>
+        <input class="input" id="dob" type="text" inputmode="none" autocomplete="bday" placeholder="Day / Month / Year" data-dob-wheel data-min-age="13" required readonly>
       </div>
 
       <div class="field">
-        <input class="input" id="schoolAttended" type="text" placeholder="School Attended" required>
+        <input class="input" id="schoolAttended" type="text" placeholder="High School" required>
       </div>
 
       <button class="btn" id="signupBtn" type="submit">SIGN UP</button>
@@ -227,75 +204,133 @@
     </form>
   </main>
 
- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/backend.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/backend.js?v=20260426a"></script>
+<script src="js/supabase-config.js?v=20260405k"></script>
+<script src="js/dob-wheel-picker.js?v=20260426a"></script>
+  <script>
+    const form = document.getElementById("signupForm");
+    const password = document.getElementById("password");
+    const togglePassword = document.getElementById("togglePassword");
+    const signupBtn = document.getElementById("signupBtn");
+    const message = document.getElementById("message");
 
-<script>
-  const form = document.getElementById("signupForm");
-  const password = document.getElementById("password");
-  const togglePassword = document.getElementById("togglePassword");
-  const signupBtn = document.getElementById("signupBtn");
-  const message = document.getElementById("message");
+    function ensureApiReady() {
+      if (window.KagieAPI) return window.KagieAPI;
+      setMessage("Kagie is still loading on this page. Refresh once and try again.", "error");
+      return null;
+    }
 
-  // 🔥 CONNECT SUPABASE
-  KagieAPI.configureSupabase({
-    enabled: true,
-    url: "https://ztfcxnowjtvonltevrqe.supabase.co",
-    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0ZmN4bm93anR2b25sdGV2cnFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTU1NDIsImV4cCI6MjA4ODkzMTU0Mn0.gNQNE1OpKr9Nkph6bd4JGZ_Yt3A9w1MtpZoGDYqnQxw"
-  });
+    function formatSignupMessage(raw, fallback = "Signup failed.") {
+      const text = String(raw || "").trim();
+      if (!text) return fallback;
+      if (/email.*confirm|email_not_confirmed/i.test(text)) {
+        return "Check your email and confirm your Kagie account before first login.";
+      }
+      return text;
+    }
 
-  togglePassword.addEventListener("click", () => {
-    const nextType = password.type === "password" ? "text" : "password";
-    password.type = nextType;
-    togglePassword.textContent = nextType === "password" ? "Show" : "Hide";
-  });
+    togglePassword.addEventListener("click", () => {
+      const nextType = password.type === "password" ? "text" : "password";
+      password.type = nextType;
+      togglePassword.textContent = nextType === "password" ? "Show" : "Hide";
+    });
 
-  function setMessage(text, type = "") {
-    message.textContent = text;
-    message.className = `message ${type}`.trim();
-  }
+    function setMessage(text, type = "") {
+      message.textContent = text;
+      message.className = type ? `message ${type}` : "message";
+    }
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    setMessage("");
+    function normalizeDobInput(raw) {
+      const dobField = document.getElementById("dob");
+      const pickerValue = dobField?.dataset?.isoValue || "";
+      const value = String(pickerValue || raw || "").trim();
+      if (!value) return "";
 
-    signupBtn.disabled = true;
-    signupBtn.textContent = "Creating...";
-
-    try {
-      const fullName = document.getElementById("fullName").value.trim();
-      const email = document.getElementById("email").value.trim().toLowerCase();
-      const dob = document.getElementById("dob").value;
-      const schoolAttended = document.getElementById("schoolAttended").value.trim();
-
-      if (!fullName || !email || !password.value) {
-        throw new Error("Please fill all required fields");
+      const picker = window.KagieDobWheel;
+      if (picker?.validateValue) {
+        const checked = picker.validateValue(value, { minAge: 13 });
+        if (!checked.ok) throw new Error(checked.message);
+        return checked.iso;
       }
 
-      // ✅ CORRECT FUNCTION
-      const user = await KagieAPI.registerUser({
-        fullName,
-        email,
-        password: password.value,
-        dob,
-        schoolName: schoolAttended
-      });
+      let year = "";
+      let month = "";
+      let day = "";
+      let match = value.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
 
-      console.log("Signup success:", user);
+      if (match) {
+        year = match[1];
+        month = match[2];
+        day = match[3];
+      } else {
+        match = value.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+        if (match) {
+          day = match[1];
+          month = match[2];
+          year = match[3];
+        } else if (/^\d{8}$/.test(value)) {
+          day = value.slice(0, 2);
+          month = value.slice(2, 4);
+          year = value.slice(4);
+        } else {
+          throw new Error("Use date of birth like DD/MM/YYYY or YYYY-MM-DD.");
+        }
+      }
 
-      setMessage("Account created successfully 🎉 Redirecting...", "success");
-
-      setTimeout(() => {
-        window.location.href = "login.html";
-      }, 1200);
-
-    } catch (err) {
-      console.error("Signup error:", err);
-      setMessage(err.message || "Signup failed", "error");
-      signupBtn.disabled = false;
-      signupBtn.textContent = "SIGN UP";
+      const iso = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const parsed = new Date(`${iso}T00:00:00`);
+      if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== iso) {
+        throw new Error("Enter a valid date of birth.");
+      }
+      const today = new Date();
+      const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      if (iso > todayKey) throw new Error("Date of birth cannot be in the future.");
+      const minAgeDate = new Date(today.getFullYear() - 13, today.getMonth(), today.getDate());
+      const minAgeKey = `${minAgeDate.getFullYear()}-${String(minAgeDate.getMonth() + 1).padStart(2, "0")}-${String(minAgeDate.getDate()).padStart(2, "0")}`;
+      if (iso > minAgeKey) throw new Error("Learner must be at least 13 years old.");
+      return iso;
     }
-  });
-</script>
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setMessage("");
+      const api = ensureApiReady();
+      if (!api) return;
+
+      signupBtn.disabled = true;
+      signupBtn.textContent = "Creating...";
+
+      try {
+        const fullName = document.getElementById("fullName").value.trim();
+        const email = document.getElementById("email").value.trim().toLowerCase();
+        const dob = normalizeDobInput(document.getElementById("dob").value);
+        const schoolAttended = document.getElementById("schoolAttended").value.trim();
+
+        if (!fullName || !email || !password.value) {
+          throw new Error("Please fill all required fields");
+        }
+
+        await api.registerUser({
+          fullName,
+          email,
+          password: password.value,
+          dob,
+          schoolName: schoolAttended
+        });
+
+        setMessage("Account created successfully. Redirecting...", "success");
+
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 1000);
+      } catch (err) {
+        console.error("Signup error:", err);
+        setMessage(formatSignupMessage(err.message, "Signup failed."), "error");
+        signupBtn.disabled = false;
+        signupBtn.textContent = "SIGN UP";
+      }
+    });
+  </script>
 </body>
 </html>

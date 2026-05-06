@@ -1,9 +1,86 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "node -e \"console.log('Skipping dependency install for Kagie static deploy')\"",
-  "buildCommand": "node -e \"console.log('Kagie static deploy')\"",
-  "outputDirectory": ".",
+  "installCommand": "node -e \"console.log('Skipping dependency install for Kagie static Vercel build')\"",
+  "buildCommand": "node ./scripts/build-web-release.cjs",
+  "outputDirectory": "web-release",
   "cleanUrls": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/v1/admin/users",
+      "destination": "/api/admin/users"
+    },
+    {
+      "source": "/v1/admin/assistants",
+      "destination": "/api/admin/assistants"
+    },
+    {
+      "source": "/v1/admin/config/status",
+      "destination": "/api/admin/config/status"
+    },
+    {
+      "source": "/v1/admin/marketing/broadcast",
+      "destination": "/api/admin/marketing/broadcast"
+    },
+    {
+      "source": "/v1/auth/admin/master-admin/bootstrap",
+      "destination": "/api/auth/admin/master-admin/bootstrap"
+    },
+    {
+      "source": "/v1/payments/yoco/checkout",
+      "destination": "/api/payments/yoco/checkout"
+    },
+    {
+      "source": "/v1/payments/yoco/webhook",
+      "destination": "/api/payments/yoco/webhook"
+    },
+    {
+      "source": "/v1/payments/payfast/checkout",
+      "destination": "/api/payments/payfast/checkout"
+    },
+    {
+      "source": "/v1/payments/payfast/itn",
+      "destination": "/api/payments/payfast/itn"
+    },
+    {
+      "source": "/admin/users",
+      "destination": "/admin/users/index.html"
+    }
+  ],
   "redirects": [
     {
       "source": "/notification",
