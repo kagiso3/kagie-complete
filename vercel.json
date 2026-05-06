@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "node -e \"console.log('Skipping dependency install for Kagie static deploy')\"",
+  "buildCommand": "node -e \"console.log('Kagie static deploy')\"",
+  "outputDirectory": ".",
+  "cleanUrls": false,
+  "redirects": [
+    {
+      "source": "/notification",
+      "destination": "/notifications.html",
+      "permanent": true
+    },
+    {
+      "source": "/documents",
+      "destination": "/documents.html",
+      "permanent": true
+    },
+    {
+      "source": "/forms",
+      "destination": "/forms.html",
+      "permanent": true
+    }
+  ]
+}

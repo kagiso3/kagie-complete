@@ -1,17 +1,9 @@
 {
-  "name": "@kagie/shared",
+  "name": "kagie-complete",
   "version": "0.1.0",
   "private": true,
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "prepare": "npm run build"
-  },
-  "devDependencies": {
-    "typescript": "^5.9.2"
+    "build": "node -e \"console.log('Kagie static Vercel build complete')\"",
+    "vercel-build": "node -e \"console.log('Kagie static Vercel build complete')\""
   }
 }
