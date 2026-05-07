@@ -61,6 +61,10 @@
       "destination": "/api/auth/admin/master-admin/bootstrap"
     },
     {
+      "source": "/v1/auth/role",
+      "destination": "/api/auth/role"
+    },
+    {
       "source": "/v1/payments/yoco/checkout",
       "destination": "/api/payments/yoco/checkout"
     },

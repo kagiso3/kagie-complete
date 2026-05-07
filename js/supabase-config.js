@@ -181,6 +181,7 @@
       adminConfigStatusEndpoint: buildAppEndpoint(merged, "/v1/admin/config/status"),
       adminCreateAssistantEndpoint: buildAppEndpoint(merged, "/v1/admin/assistants"),
       adminBootstrapMasterEndpoint: buildAppEndpoint(merged, "/v1/auth/admin/master-admin/bootstrap"),
+      authRoleEndpoint: buildAppEndpoint(merged, "/v1/auth/role"),
       adminMarketingBroadcastEndpoint: buildAppEndpoint(merged, "/v1/admin/marketing/broadcast")
     });
 

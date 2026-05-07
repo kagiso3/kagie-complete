@@ -204,6 +204,7 @@
         adminConfigStatusEndpoint: '',
         adminCreateAssistantEndpoint: '',
         adminBootstrapMasterEndpoint: '',
+        authRoleEndpoint: '',
         adminMarketingBroadcastEndpoint: ''
       }
     };
@@ -7759,11 +7760,50 @@
     };
   }
 
-  async function materializeSupabaseUser(authUser, fallbackUserArg) {
+  async function getLiveAuthRoleSnapshot(authUser, sessionArg) {
+    const settings = getSettings();
+    const endpoint = String(settings?.supabase?.authRoleEndpoint || '').trim();
+    if (!endpoint || !authUser?.id) return null;
+    const cachedSession = read(KEYS.supabaseSessionCache, null);
+    const accessToken = String(sessionArg?.access_token || cachedSession?.access_token || '').trim();
+    if (!accessToken) return null;
+
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      const message = payload?.message || payload?.error || 'Could not verify the Kagie account role.';
+      if (response.status === 401 || response.status === 403) throw new Error(message);
+      console.warn('Live auth role lookup skipped:', message);
+      return null;
+    }
+    return payload?.data || payload || null;
+  }
+
+  async function materializeSupabaseUser(authUser, fallbackUserArg, sessionArg) {
     if (!authUser?.id) return null;
 
     const fallbackUser = fallbackUserArg || {};
-    const remoteProfile = await getRemoteProfileSnapshot(authUser.id).catch(() => null);
+    const liveRoleSnapshot = await getLiveAuthRoleSnapshot(authUser, sessionArg).catch((error) => {
+      const message = String(error?.message || '');
+      if (/inactive|disabled|permission|missing|token|session/i.test(message)) throw error;
+      console.warn('Live auth role lookup skipped:', error);
+      return null;
+    });
+    const remoteProfileSnapshot = liveRoleSnapshot?.profile || await getRemoteProfileSnapshot(authUser.id).catch(() => null);
+    const remoteProfile = liveRoleSnapshot ? {
+      ...(remoteProfileSnapshot || {}),
+      id: liveRoleSnapshot.supabaseUserId || liveRoleSnapshot.id || authUser.id,
+      email: liveRoleSnapshot.email || remoteProfileSnapshot?.email || authUser.email || '',
+      full_name: liveRoleSnapshot.fullName || remoteProfileSnapshot?.full_name || authUser?.user_metadata?.full_name || '',
+      phone: liveRoleSnapshot.phone || remoteProfileSnapshot?.phone || authUser?.user_metadata?.phone || '',
+      role: normalizeKagieRole(liveRoleSnapshot.role, remoteProfileSnapshot?.role || ROLES.USER)
+    } : remoteProfileSnapshot;
     const existing =
       getUserBySupabaseId(authUser.id) ||
       getUserByEmail(remoteProfile?.email || authUser?.email || fallbackUser.email || '') ||
@@ -7923,12 +7963,12 @@
           errorMessage: error?.message || ''
         });
         if (!error && data?.user) {
-          found = await materializeSupabaseUser(data.user, {
-            password: String(password),
-            email: normalized
-          });
-          write(KEYS.supabaseSessionCache, data?.session || null);
-        }
+        found = await materializeSupabaseUser(data.user, {
+          password: String(password),
+          email: normalized
+        }, data?.session || null);
+        write(KEYS.supabaseSessionCache, data?.session || null);
+      }
       } catch (error) {
         signInError = error;
         logAuthDebug('password sign-in exception', {
@@ -8129,7 +8169,7 @@
     write(KEYS.supabaseSessionCache, data?.session || null);
     const localUser = await materializeSupabaseUser(data?.user || data?.session?.user, {
       phone: normalizedPhone
-    });
+    }, data?.session || null);
     if (!localUser) throw new Error('Could not complete phone sign-in.');
     setCurrentUser(localUser, { persist });
     return sanitizeUser(localUser);
@@ -8238,7 +8278,7 @@
     }
 
     const sameRemoteUser = active && String(active.supabaseUserId || '').trim() === String(supaUser.id).trim();
-    const local = await materializeSupabaseUser(supaUser, sameRemoteUser ? active : null);
+    const local = await materializeSupabaseUser(supaUser, sameRemoteUser ? active : null, session);
     setCurrentUser(local);
     return sanitizeUser(local);
   }
