@@ -5689,6 +5689,7 @@
   }
 
   async function getLiveAdminSetupStatus() {
+    await awaitRuntimeSupabaseConfig();
     const settings = getSettings();
     const endpoint = String(settings?.supabase?.adminConfigStatusEndpoint || '').trim();
 
@@ -10890,6 +10891,7 @@
   }
 
   async function bootstrapMasterAdminAccount(data) {
+    await awaitRuntimeSupabaseConfig();
     const fullName = String(data?.fullName || '').trim();
     const email = normalizeEmail(data?.email);
     const password = String(data?.password || '');
