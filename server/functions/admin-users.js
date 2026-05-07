@@ -523,20 +523,57 @@ function buildAdminContext(data, actor, actorProfile) {
   };
 }
 
+function userLookupMatches(row, lookup) {
+  const value = String(lookup || "").trim().toLowerCase();
+  if (!value || !row) return false;
+  return [
+    row.id,
+    row.profileId,
+    row.supabaseUserId,
+    row.email,
+    row.latestApplicationId,
+    row.applicationId
+  ].some((item) => String(item || "").trim().toLowerCase() === value);
+}
+
+function resolveDirectoryUserId(context, lookup) {
+  const value = String(lookup || "").trim();
+  if (!value) return "";
+  const normalized = value.toLowerCase();
+  const directRow = context.rows.find((item) => userLookupMatches(item, normalized));
+  if (directRow?.id) return String(directRow.id).trim();
+
+  const application = safeArray(context.data.applications).find((app) => {
+    const appId = String(app?.id || "").trim().toLowerCase();
+    const appUserId = rowUserId(app).toLowerCase();
+    return appId === normalized || appUserId === normalized;
+  });
+  if (application) {
+    const appUserId = rowUserId(application);
+    const appRow = context.rows.find((item) => userLookupMatches(item, appUserId));
+    return String(appRow?.id || appUserId || "").trim();
+  }
+
+  return value;
+}
+
 function canViewUser(context, userId) {
-  if (context.masterActor) return true;
-  return context.assistantLearnerIds?.has(String(userId || "").trim());
+  const resolvedUserId = resolveDirectoryUserId(context, userId);
+  if (context.masterActor) return Boolean(resolvedUserId);
+  return context.assistantLearnerIds?.has(String(resolvedUserId || "").trim());
 }
 
 function buildUserDetail(context, userId) {
-  const row = context.rows.find((item) => String(item.id) === String(userId));
+  const resolvedUserId = resolveDirectoryUserId(context, userId);
+  const row = context.rows.find((item) => String(item.id) === String(resolvedUserId) || userLookupMatches(item, userId));
   if (!row) return null;
+  const targetUserId = String(row.id || resolvedUserId || userId || "").trim();
 
   const applications = safeArray(context.data.applications)
-    .filter((app) => rowUserId(app) === String(userId))
+    .filter((app) => rowUserId(app) === targetUserId || String(app?.id || "").trim() === String(userId || "").trim())
     .sort(byNewest);
   const applicationIds = new Set(applications.map((app) => String(app?.id || "")).filter(Boolean));
-  const matchesUser = (item) => rowUserId(item) === String(userId);
+  const matchesUser = (item) => rowUserId(item) === targetUserId;
   const matchesApplication = (item) => applicationIds.has(rowApplicationId(item));
   const documents = safeArray(context.data.documents).filter((doc) => matchesUser(doc) || matchesApplication(doc));
   const payments = safeArray(context.data.payments).filter((payment) => matchesUser(payment) || matchesApplication(payment));
@@ -548,13 +585,13 @@ function buildUserDetail(context, userId) {
   const supportThreads = safeArray(context.data.supportThreads).filter((item) => matchesUser(item));
   const accommodationRequests = safeArray(context.data.accommodationRequests).filter((item) => matchesUser(item) || matchesApplication(item));
   const transportRequests = safeArray(context.data.transportRequests).filter((item) => matchesUser(item) || matchesApplication(item));
-  const carts = safeArray(context.data.carts).filter((item) => rowUserId(item) === String(userId));
+  const carts = safeArray(context.data.carts).filter((item) => rowUserId(item) === targetUserId);
   const cartIds = new Set(carts.map((item) => String(item?.id || "")).filter(Boolean));
   const cartItems = safeArray(context.data.cartItems).filter((item) => cartIds.has(String(item?.cart_id || "")));
-  const userProfile = context.maps.userProfileMap.get(String(userId)) || {};
-  const guardian = context.maps.guardianMap.get(String(userId)) || {};
-  const school = context.maps.schoolMap.get(String(userId)) || {};
-  const profile = context.maps.profileMap.get(String(userId)) || {};
+  const userProfile = context.maps.userProfileMap.get(targetUserId) || {};
+  const guardian = context.maps.guardianMap.get(targetUserId) || {};
+  const school = context.maps.schoolMap.get(targetUserId) || {};
+  const profile = context.maps.profileMap.get(targetUserId) || {};
   const completion = buildProfileCompletion(profile, userProfile, guardian, school, applications[0] || null, institutions, marks, documents);
 
   const timeline = [

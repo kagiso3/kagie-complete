@@ -155,6 +155,19 @@
     return state.users.find((user) => userMatches(user, ref)) || null;
   }
 
+  function findUserForApplicationView(app) {
+    if (!app) return null;
+    const direct = findUserByRef(app?.userId || app?.profileUserId || app?.raw?.userId);
+    if (direct) return direct;
+    const appId = String(app?.id || app?.raw?.id || "").trim().toLowerCase();
+    const email = String(app?.email || app?.raw?.forms?.learner?.email || "").trim().toLowerCase();
+    return state.users.find((user) => {
+      if (appId && String(firstFilled(user?.latestApplicationId, user?.applicationId, user?.latest_application_id)).trim().toLowerCase() === appId) return true;
+      if (email && String(user?.email || "").trim().toLowerCase() === email) return true;
+      return false;
+    }) || null;
+  }
+
   function findAssistantByRef(ref) {
     return state.assistants.find((assistant) => userMatches(assistant, ref)) || null;
   }
@@ -214,7 +227,7 @@
   function buildApplicationView(app) {
     const learnerForm = app?.forms?.learner || {};
     const schoolForm = app?.forms?.school || {};
-    const profile = findUserByRef(app?.userId) || {};
+    const profile = findUserByRef(app?.userId) || state.users.find((user) => String(user?.latestApplicationId || "").trim() === String(app?.id || "").trim()) || {};
     const category = normalizeCategory(app?.status);
     const institutionNames = [...new Set(
       extractInstitutionNames(app)
@@ -245,7 +258,8 @@
     return {
       raw: app,
       id: app?.id,
-      userId: firstFilled(app?.userId, profile?.id),
+      userId: firstFilled(profile?.supabaseUserId, profile?.id, app?.userId),
+      profileUserId: firstFilled(profile?.supabaseUserId, profile?.id, app?.userId),
       name: displayName,
       surname,
       email,
@@ -582,7 +596,8 @@
   }
 
   function selectedDetailKeyFromView(app) {
-    return firstFilled(app?.profileUserId, app?.userId, app?.raw?.userId);
+    const user = findUserForApplicationView(app);
+    return firstFilled(user?.supabaseUserId, user?.id, app?.profileUserId, app?.userId, app?.raw?.userId, app?.raw?.id, app?.email);
   }
 
   function getCachedDetailForView(app) {
@@ -623,6 +638,7 @@
     }
 
     const personal = detail?.personalInformation || {};
+    const contact = detail?.contactDetails || {};
     const guardian = detail?.guardianInfo || {};
     const school = detail?.schoolInfo || {};
     const liveInstitutions = asArray(detail?.selectedInstitutions);
@@ -674,12 +690,12 @@
       ${detailStatusMarkup}
 
       <div class="detail-list">
-        <div class="detail-item"><span class="detail-label">Surname</span><span class="detail-value">${esc(app.surname || "Not provided")}</span></div>
+        <div class="detail-item"><span class="detail-label">Surname</span><span class="detail-value">${esc(firstFilled(personal?.surname, detail?.surname, app.surname, "Not provided"))}</span></div>
         <div class="detail-item"><span class="detail-label">Date of birth</span><span class="detail-value">${esc(firstFilled(personal?.dateOfBirth, app.dob, "Not provided"))}</span></div>
         <div class="detail-item"><span class="detail-label">ID Number</span><span class="detail-value">${esc(firstFilled(personal?.idNumber, app.idNumber, "Not provided"))}</span></div>
         <div class="detail-item"><span class="detail-label">School</span><span class="detail-value">${esc(firstFilled(school?.school_name, school?.name, app.schoolName, "Not provided"))}</span></div>
         <div class="detail-item"><span class="detail-label">Grade / completion year</span><span class="detail-value">${esc(firstFilled(school?.completion_year, app.grade, "Not provided"))}</span></div>
-        <div class="detail-item"><span class="detail-label">Province</span><span class="detail-value">${esc(firstFilled(personal?.province, app.province, "Not provided"))}</span></div>
+        <div class="detail-item"><span class="detail-label">Province</span><span class="detail-value">${esc(firstFilled(personal?.province, contact?.province, app.province, "Not provided"))}</span></div>
         <div class="detail-item"><span class="detail-label">Application status</span><span class="detail-value">${esc(app.status || "Pending")}</span></div>
         <div class="detail-item"><span class="detail-label">Submitted / created</span><span class="detail-value">${esc(formatDate(app.createdAt))}</span></div>
         <div class="detail-item"><span class="detail-label">Profile completion</span><span class="detail-value">${esc(completionLabel)}</span></div>
