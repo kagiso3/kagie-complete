@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Kagie | Live Master Admin Setup</title>
-  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script defer src="../js/backend.js?v=20260405k"></script>
-  <script defer src="../js/supabase-config.js?v=20260405k"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/backend.js?v=20260507b"></script>
+  <script src="../js/supabase-config.js?v=20260507b"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -190,7 +190,6 @@
 
   <script>
     (() => {
-      const api = window.KagieAPI;
       const form = document.getElementById("bootstrapForm");
       const fullName = document.getElementById("fullName");
       const email = document.getElementById("email");
@@ -217,7 +216,17 @@
         submitBtn.textContent = isLoading ? "Creating live admin..." : "Create live master admin";
       }
 
+      function getApi() {
+        const api = window.KagieAPI;
+        if (!api) {
+          setMessage("Kagie is still loading. Refresh this page once, then try again.", "err");
+          return null;
+        }
+        return api;
+      }
+
       async function renderSetupStatus() {
+        const api = getApi();
         if (!api || typeof api.getLiveAdminSetupStatus !== "function") return;
         try {
           const status = await api.getLiveAdminSetupStatus();
@@ -244,6 +253,8 @@
       }
 
       async function boot() {
+        const api = getApi();
+        if (!api) return;
         try {
           await renderSetupStatus();
           const restored = await api.restoreSession();
@@ -267,6 +278,11 @@
         setLoading(true);
 
         try {
+          const api = getApi();
+          if (!api) {
+            setLoading(false);
+            return;
+          }
           const user = await api.bootstrapMasterAdminAccount({
             fullName: fullName.value.trim(),
             email: email.value.trim(),
