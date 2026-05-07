@@ -1,3 +1,5 @@
+const { normalizeSupabaseUrl } = require("./_supabase-url");
+
 function json(statusCode, payload, origin = "*") {
   return {
     statusCode,
@@ -977,7 +979,7 @@ exports.handler = async (event) => {
   const token = getBearerToken(event.headers || {});
   if (!token) return json(401, { message: "Missing Supabase access token." }, origin);
 
-  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim();
+  const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, process.env.SUPABASE_ANON_KEY);
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   const anonKey = String(process.env.SUPABASE_ANON_KEY || "").trim();
   if (!supabaseUrl || (!serviceRoleKey && !anonKey)) {

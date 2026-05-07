@@ -43,6 +43,37 @@
     return raw.replace(/\/rest\/v1$/i, "").replace(/\/auth\/v1$/i, "");
   }
 
+  function decodeJwtRef(token) {
+    const parts = trim(token).split(".");
+    if (parts.length < 2 || typeof atob !== "function") return "";
+
+    try {
+      let payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      while (payload.length % 4) payload += "=";
+      return trim(JSON.parse(atob(payload))?.ref);
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function normalizeSupabaseProjectUrl(url, anonKey) {
+    const keyRef = decodeJwtRef(anonKey);
+    const raw = normalizeSupabaseUrl(url);
+    if (!raw) return keyRef ? `https://${keyRef}.supabase.co` : "";
+
+    try {
+      const parsed = new URL(raw);
+      const host = parsed.hostname.toLowerCase();
+      const hostRef = host.endsWith(".supabase.co") ? host.split(".")[0] : "";
+      if (keyRef && hostRef && hostRef !== keyRef) {
+        return `https://${keyRef}.supabase.co`;
+      }
+      return parsed.origin;
+    } catch (_error) {
+      return keyRef ? `https://${keyRef}.supabase.co` : raw;
+    }
+  }
+
   function toBoolean(value, fallback) {
     if (typeof value === "boolean") return value;
     const normalized = trim(value).toLowerCase();
@@ -143,7 +174,7 @@
 
     window.KagieAPI.configureSupabase({
       enabled: Boolean(merged.supabase?.enabled !== false && trim(merged.supabase?.url) && trim(merged.supabase?.anonKey)),
-      url: normalizeSupabaseUrl(merged.supabase?.url),
+      url: normalizeSupabaseProjectUrl(merged.supabase?.url, merged.supabase?.anonKey),
       anonKey: trim(merged.supabase?.anonKey),
       adminUsersEndpoint: buildAppEndpoint(merged, "/v1/admin/users"),
       adminAssistantsEndpoint: buildAppEndpoint(merged, "/v1/admin/assistants"),

@@ -1,3 +1,5 @@
+const { normalizeSupabaseUrl } = require("./_supabase-url");
+
 function json(statusCode, payload, origin = "*") {
   return {
     statusCode,
@@ -242,7 +244,7 @@ exports.handler = async (event) => {
     return json(405, { message: "Method not allowed." }, origin);
   }
 
-  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim();
+  const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, process.env.SUPABASE_ANON_KEY);
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   if (!supabaseUrl || !serviceRoleKey) {
     return json(500, { message: "Live admin setup is not complete on this site yet. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to the server environment, then redeploy." }, origin);

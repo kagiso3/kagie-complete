@@ -17,6 +17,37 @@ function normalizeSupabaseUrl(value) {
   return raw.replace(/\/rest\/v1$/i, "").replace(/\/auth\/v1$/i, "");
 }
 
+function decodeJwtRef(token) {
+  const parts = trim(token).split(".");
+  if (parts.length < 2) return "";
+
+  try {
+    let payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (payload.length % 4) payload += "=";
+    return trim(JSON.parse(Buffer.from(payload, "base64").toString("utf8"))?.ref);
+  } catch (_error) {
+    return "";
+  }
+}
+
+function normalizeSupabaseProjectUrl(value, anonKey) {
+  const keyRef = decodeJwtRef(anonKey);
+  const raw = normalizeSupabaseUrl(value);
+  if (!raw) return keyRef ? `https://${keyRef}.supabase.co` : "";
+
+  try {
+    const parsed = new URL(raw);
+    const host = parsed.hostname.toLowerCase();
+    const hostRef = host.endsWith(".supabase.co") ? host.split(".")[0] : "";
+    if (keyRef && hostRef && hostRef !== keyRef) {
+      return `https://${keyRef}.supabase.co`;
+    }
+    return parsed.origin;
+  } catch (_error) {
+    return keyRef ? `https://${keyRef}.supabase.co` : raw;
+  }
+}
+
 module.exports = async function runtimeConfig(req, res) {
   if (req.method === "OPTIONS") {
     res.statusCode = 200;
@@ -34,8 +65,8 @@ module.exports = async function runtimeConfig(req, res) {
     return;
   }
 
-  const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL);
   const supabaseAnonKey = trim(process.env.SUPABASE_ANON_KEY);
+  const supabaseUrl = normalizeSupabaseProjectUrl(process.env.SUPABASE_URL, supabaseAnonKey);
 
   const payload = {
     data: {
