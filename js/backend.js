@@ -7443,6 +7443,46 @@
     return /supabase admin configuration is missing|live admin setup is not complete/i.test(String(messageArg || ''));
   }
 
+  function isInvalidSupabaseCredentialsMessage(messageArg) {
+    return /invalid login credentials|invalid_credentials/i.test(String(messageArg || ''));
+  }
+
+  function isSupabaseAuthNetworkMessage(messageArg) {
+    return /failed to fetch|networkerror|network request failed|load failed|timeout|dns|could not reach/i.test(String(messageArg || ''));
+  }
+
+  function isSupabaseAuthKeyMessage(messageArg) {
+    return /invalid api key|jwt|anon key|api key/i.test(String(messageArg || ''));
+  }
+
+  function describeLiveLocalAccountBlock(localUserArg) {
+    const role = normalizeKagieRole(localUserArg?.role, ROLES.USER);
+    if (role === ROLES.MASTER) {
+      return 'This master admin account exists only in this browser from the old Kagie MVP storage. Open master-admin/bootstrap.html to create or repair the live Supabase master admin, then sign in again.';
+    }
+    if (role === ROLES.ASSISTANT) {
+      return 'This assistant account exists only in this browser from the old Kagie MVP storage. Ask the live master admin to create the assistant account in the dashboard, then sign in again.';
+    }
+    return 'This account exists only on this device from the old Kagie MVP storage. Create the live Supabase account on signup.html, then sign in again.';
+  }
+
+  function shouldLogAuthDebug() {
+    try {
+      return localStorage.getItem('kagie_auth_debug') === '1';
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function logAuthDebug(label, details) {
+    if (!shouldLogAuthDebug()) return;
+    try {
+      console.info(`Kagie auth debug: ${label}`, details || {});
+    } catch (_error) {
+      // Debug logging must never block auth.
+    }
+  }
+
   function getUserBySupabaseId(supabaseUserId) {
     return getUsers().find((u) => String(u.supabaseUserId || '') === String(supabaseUserId || '')) || null;
   }
@@ -7819,11 +7859,12 @@
     const persist = typeof options?.persist === 'boolean' ? options.persist : shouldRememberLogin();
     setLoginPersistence(persist);
     const normalized = normalizeEmail(email);
-    const tryingLiveMasterSeed = !isLocalEnvironment()
+    const liveMode = !isLocalEnvironment();
+    const tryingLiveMasterSeed = liveMode
       && normalized === normalizeEmail(CURRENT_MASTER_SEED.email)
       && String(password) === String(CURRENT_MASTER_SEED.password);
     if (
-      isLocalEnvironment() &&
+      !liveMode &&
       normalized === normalizeEmail(CURRENT_MASTER_SEED.email) &&
       String(password) === String(CURRENT_MASTER_SEED.password)
     ) {
@@ -7838,7 +7879,7 @@
     ) || null;
 
     if (
-      isLocalEnvironment() &&
+      !liveMode &&
       localMatch &&
       (localMatch.role === ROLES.ASSISTANT || localMatch.role === ROLES.MASTER)
     ) {
@@ -7851,31 +7892,60 @@
     let bootstrapAttempt = { attempted: false };
     let signInError = null;
 
-    if (!isLocalEnvironment()) {
+    if (liveMode) {
       bootstrapAttempt = await tryBootstrapCurrentMasterOnLive(normalized, password);
     }
 
     if (isSupabaseEnabled()) {
-      const client = initSupabaseClient();
-      const { data, error } = await client.auth.signInWithPassword({ email: normalized, password: String(password) });
-      signInError = error || null;
-      if (!error && data?.user) {
-        found = await materializeSupabaseUser(data.user, {
-          password: String(password),
-          email: normalized
+      try {
+        const client = initSupabaseClient();
+        const { data, error } = await client.auth.signInWithPassword({ email: normalized, password: String(password) });
+        signInError = error || null;
+        logAuthDebug('password sign-in result', {
+          userExists: Boolean(data?.user),
+          sessionExists: Boolean(data?.session),
+          errorMessage: error?.message || ''
         });
-        write(KEYS.supabaseSessionCache, data?.session || null);
+        if (!error && data?.user) {
+          found = await materializeSupabaseUser(data.user, {
+            password: String(password),
+            email: normalized
+          });
+          write(KEYS.supabaseSessionCache, data?.session || null);
+        }
+      } catch (error) {
+        signInError = error;
+        logAuthDebug('password sign-in exception', {
+          errorMessage: error?.message || String(error || '')
+        });
       }
+    } else {
+      logAuthDebug('supabase not enabled for login', {
+        liveMode,
+        hasLocalMatch: Boolean(localMatch)
+      });
     }
 
-    if (!found) {
+    if (!found && !liveMode) {
       found = localMatch;
     }
 
     if (!found) {
       const signInMessage = String(signInError?.message || '').trim();
+      if (liveMode && localMatch) {
+        throw new Error(describeLiveLocalAccountBlock(localMatch));
+      }
+      if (liveMode && !isSupabaseEnabled()) {
+        throw new Error('Supabase authentication is not configured on this Vercel deployment. Check SUPABASE_URL and SUPABASE_ANON_KEY in Vercel, then redeploy.');
+      }
       if (isMissingSupabaseAdminConfigMessage(signInMessage)) {
         throw new Error('This live site still needs final admin setup. Add SUPABASE_SERVICE_ROLE_KEY to the server environment, then try again.');
+      }
+      if (isSupabaseAuthNetworkMessage(signInMessage)) {
+        throw new Error('Kagie could not reach Supabase Auth from this site. Use the Vercel app URL for testing and check the custom domain/DNS plus SUPABASE_URL.');
+      }
+      if (isSupabaseAuthKeyMessage(signInMessage)) {
+        throw new Error('Supabase rejected this site configuration. Check that Vercel uses the anon key from the same Supabase project as SUPABASE_URL, then redeploy.');
       }
       if (/email.*confirm|email_not_confirmed/i.test(signInMessage)) {
         throw new Error('Check your email and confirm your Kagie account before logging in.');
@@ -7893,6 +7963,9 @@
             : bootstrapAttempt?.message ||
           'Live master admin could not sign in. Open master-admin/bootstrap.html once, or add the Supabase admin environment variables on the server first.'
         );
+      }
+      if (signInMessage && !isInvalidSupabaseCredentialsMessage(signInMessage)) {
+        throw new Error(signInMessage);
       }
       throw new Error('Invalid email or password.');
     }

@@ -529,8 +529,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/backend.js?v=20260507d"></script>
-<script src="js/supabase-config.js?v=20260507d"></script>
+<script src="js/backend.js?v=20260507e"></script>
+<script src="js/supabase-config.js?v=20260507e"></script>
   <script>
     const form = document.getElementById("loginForm");
     const emailInput = document.getElementById("email");
@@ -552,6 +552,21 @@
       if (!text) return fallback;
       if (/supabase admin configuration is missing/i.test(text)) {
         return "Kagie live admin setup is still being completed on this site. Try again after the latest deploy finishes.";
+      }
+      if (/old Kagie MVP storage|only in this browser|only on this device/i.test(text)) {
+        return text;
+      }
+      if (/supabase authentication is not configured/i.test(text)) {
+        return "Kagie live login is missing Supabase configuration on Vercel. Check the Production environment variables, then redeploy.";
+      }
+      if (/could not reach Supabase Auth|failed to fetch|network/i.test(text)) {
+        return "Kagie cannot reach Supabase Auth from this domain. Use the Vercel URL for now and check the custom domain/DNS.";
+      }
+      if (/rejected this site configuration|invalid api key|anon key|jwt/i.test(text)) {
+        return "Supabase rejected this site configuration. Make sure SUPABASE_URL and SUPABASE_ANON_KEY belong to the same Supabase project.";
+      }
+      if (/email.*confirm|email_not_confirmed/i.test(text)) {
+        return "Check your email and confirm your Kagie account before logging in.";
       }
       if (/invalid login credentials/i.test(text)) {
         return "Invalid email or password.";
