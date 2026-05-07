@@ -11,6 +11,12 @@ function toBoolean(value, fallback = false) {
   return fallback;
 }
 
+function normalizeSupabaseUrl(value) {
+  const raw = trim(value).replace(/\/+$/, "");
+  if (!raw) return "";
+  return raw.replace(/\/rest\/v1$/i, "").replace(/\/auth\/v1$/i, "");
+}
+
 module.exports = async function runtimeConfig(req, res) {
   if (req.method === "OPTIONS") {
     res.statusCode = 200;
@@ -27,6 +33,9 @@ module.exports = async function runtimeConfig(req, res) {
     res.end(JSON.stringify({ message: "Method not allowed." }));
     return;
   }
+
+  const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL);
+  const supabaseAnonKey = trim(process.env.SUPABASE_ANON_KEY);
 
   const payload = {
     data: {
@@ -49,9 +58,9 @@ module.exports = async function runtimeConfig(req, res) {
         payfastProviderLabel: trim(process.env.KAGIE_PAYFAST_PROVIDER_LABEL) || "PayFast secure checkout"
       },
       supabase: {
-        enabled: Boolean(trim(process.env.SUPABASE_URL) && trim(process.env.SUPABASE_ANON_KEY)),
-        url: trim(process.env.SUPABASE_URL),
-        anonKey: trim(process.env.SUPABASE_ANON_KEY)
+        enabled: Boolean(supabaseUrl && supabaseAnonKey),
+        url: supabaseUrl,
+        anonKey: supabaseAnonKey
       }
     }
   };

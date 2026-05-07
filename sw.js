@@ -1,4 +1,4 @@
-const KAGIE_CACHE = "kagie-shell-v20260505a";
+const KAGIE_CACHE = "kagie-shell-v20260507a";
 const SHELL_ASSETS = [
   "/",
   "/index.html",

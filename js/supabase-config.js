@@ -37,6 +37,12 @@
     return trim(url).replace(/\/+$/, "");
   }
 
+  function normalizeSupabaseUrl(url) {
+    const raw = normalizeBaseUrl(url);
+    if (!raw) return "";
+    return raw.replace(/\/rest\/v1$/i, "").replace(/\/auth\/v1$/i, "");
+  }
+
   function toBoolean(value, fallback) {
     if (typeof value === "boolean") return value;
     const normalized = trim(value).toLowerCase();
@@ -137,7 +143,7 @@
 
     window.KagieAPI.configureSupabase({
       enabled: Boolean(merged.supabase?.enabled !== false && trim(merged.supabase?.url) && trim(merged.supabase?.anonKey)),
-      url: trim(merged.supabase?.url),
+      url: normalizeSupabaseUrl(merged.supabase?.url),
       anonKey: trim(merged.supabase?.anonKey),
       adminUsersEndpoint: buildAppEndpoint(merged, "/v1/admin/users"),
       adminAssistantsEndpoint: buildAppEndpoint(merged, "/v1/admin/assistants"),
