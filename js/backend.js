@@ -7180,6 +7180,19 @@
     source: 'local'
   };
 
+  function getMasterSeedIdentity(emailArg) {
+    const normalizedEmail = normalizeEmail(emailArg);
+    if (isMasterSeedMigrationEmail(normalizedEmail)) {
+      return {
+        ...CURRENT_MASTER_SEED,
+        email: normalizedEmail
+      };
+    }
+    return {
+      ...CURRENT_MASTER_SEED
+    };
+  }
+
   function getSeedAdminDefaults() {
     return [
       {
@@ -7334,23 +7347,26 @@
     const normalizedEmail = normalizeEmail(emailArg);
     const password = String(passwordArg || '');
     if (isLocalEnvironment()) return { attempted: false };
-    if (normalizedEmail !== normalizeEmail(CURRENT_MASTER_SEED.email)) return { attempted: false };
+    const isCurrentMasterEmail = normalizedEmail === normalizeEmail(CURRENT_MASTER_SEED.email);
+    const isMigrationMasterEmail = isMasterSeedMigrationEmail(normalizedEmail);
+    if (!isCurrentMasterEmail && !isMigrationMasterEmail) return { attempted: false };
     if (password !== String(CURRENT_MASTER_SEED.password)) return { attempted: false };
+    const masterSeed = getMasterSeedIdentity(normalizedEmail);
 
     const tryClientFallback = async (reasonArg) => {
       try {
         const signup = await signUpPrivilegedUserViaSupabase({
-          fullName: CURRENT_MASTER_SEED.fullName,
-          email: CURRENT_MASTER_SEED.email,
-          password: CURRENT_MASTER_SEED.password,
-          phone: CURRENT_MASTER_SEED.phone || '',
+          fullName: masterSeed.fullName,
+          email: masterSeed.email,
+          password: masterSeed.password,
+          phone: masterSeed.phone || '',
           role: ROLES.MASTER
         });
         if (signup?.pendingEmailConfirmation) {
           return {
             attempted: true,
             clientFallback: true,
-            message: `Master admin account created. Confirm the email sent to ${CURRENT_MASTER_SEED.email} before first login.`
+            message: `Master admin account created. Confirm the email sent to ${masterSeed.email} before first login.`
           };
         }
         return {
@@ -7377,10 +7393,10 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: CURRENT_MASTER_SEED.fullName,
-          email: CURRENT_MASTER_SEED.email,
-          password: CURRENT_MASTER_SEED.password,
-          phone: CURRENT_MASTER_SEED.phone || ''
+          fullName: masterSeed.fullName,
+          email: masterSeed.email,
+          password: masterSeed.password,
+          phone: masterSeed.phone || ''
         })
       });
       const rawBody = await response.text().catch(() => '');
