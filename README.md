@@ -144,23 +144,13 @@ This repo also contains:
 - `kagie-mobile` for the mobile app
 - `kagie-web` for the React web app scaffold
 
-Those are optional for the static manual deploy path.
+Those are optional for the current Vercel static web deploy path.
 
-## Manual deploy
+## Vercel deploy
 
-For the safest static deploy, use the cleaned bundle in:
+Kagie is configured for Vercel. The root `vercel.json` builds the static release into:
 
 - [web-release](./web-release)
-
-Upload the contents of `web-release` to your static host.
-
-### Recommended static hosts
-
-- Vercel
-- Cloudflare Pages
-- GitHub Pages
-
-### Vercel deploy
 
 1. Open Vercel.
 2. Import the Kagie repository or upload the project.
@@ -168,7 +158,7 @@ Upload the contents of `web-release` to your static host.
 4. Use `web-release` as the output directory.
 5. Add the required environment variables in Project Settings.
 
-Do not upload the whole workspace if you only want the static site online. Use `web-release`.
+Vercel Functions are exposed from the `/api` folder, and `vercel.json` rewrites the public `/v1/...` API routes to those functions. Do not configure this project as a different static host unless you also replace the Vercel API routing.
 
 ### First live admin setup
 
@@ -209,5 +199,5 @@ Important files:
 
 - public `demo` wording has been removed from the live-facing app pages
 - accommodation and transport now use real request flows and dashboard tracking
-- if you deploy manually, deploy from `web-release`
+- deploy through Vercel using the root `vercel.json` configuration
 - review your real Supabase keys, payment details, and admin access before public launch

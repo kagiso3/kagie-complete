@@ -5,6 +5,7 @@ import type {
   ApplicationPack,
   ApplicationRecord,
   CallbackRequestRecord,
+  DocumentRecord,
   InstitutionChoice,
   NotificationRecord,
   PaymentRecord,
@@ -15,6 +16,7 @@ import type {
 import {
   APPLICATION_STATUSES,
   CALLBACK_STATUSES,
+  DOCUMENT_STATUSES,
   PAYMENT_STATUSES,
   ROLES,
   SOUTH_AFRICAN_PROVINCES
@@ -130,6 +132,18 @@ type RemoteApplication = {
   payment_note?: string | null;
   payment_amount?: number | string | null;
   submitted_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type RemoteDocument = {
+  id: string;
+  user_id: string;
+  application_id?: string | null;
+  document_type: string;
+  file_name: string;
+  file_url: string;
+  status: DocumentRecord["status"];
   created_at: string;
   updated_at: string;
 };
@@ -591,6 +605,22 @@ function cleanText(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
+function safePathPart(value: string) {
+  return value
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120) || "document";
+}
+
+function ensureAllowedDocumentMime(mimeType: string) {
+  const normalized = (mimeType.toLowerCase().split(";")[0] || "").trim();
+  if (!["application/pdf", "image/jpeg", "image/png"].includes(normalized)) {
+    throw createError("Upload a PDF, JPG, or PNG document.", 400);
+  }
+  return normalized;
+}
+
 function normalizeProvince(value: unknown): ApplicationFormsSnapshot["learner"]["province"] {
   const text = cleanText(value);
   return (SOUTH_AFRICAN_PROVINCES as readonly string[]).includes(text)
@@ -655,6 +685,20 @@ function mapNotification(row: RemoteNotification): NotificationRecord {
     message: row.message,
     type: type === "success" || type === "warn" || type === "error" ? type : "info",
     read: Boolean(row.is_read),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function mapDocument(row: RemoteDocument): DocumentRecord {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    applicationId: row.application_id || null,
+    type: row.document_type,
+    fileName: row.file_name,
+    fileUrl: row.file_url,
+    status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -1610,6 +1654,77 @@ export async function submitCheckout(userId: string, applicationId: string, payl
       updatedAt: paymentInsert.data.updated_at
     } as PaymentRecord
   };
+}
+
+export async function listDocuments(userId: string) {
+  const client = getClient();
+  const result = await client
+    .from("documents")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (result.error) {
+    throw createError(result.error.message || "Could not load uploaded documents.", 500);
+  }
+
+  return ((result.data as RemoteDocument[] | null) || []).map(mapDocument);
+}
+
+export async function uploadDocument(userId: string, applicationId: string, payload: {
+  fileName: string;
+  documentType: string;
+  mimeType: string;
+  buffer: Buffer;
+}) {
+  const application = await getOwnedApplicationRow(userId, applicationId);
+  if (!payload.buffer.length) {
+    throw createError("Select a document before uploading.", 400);
+  }
+  if (payload.buffer.length > 20 * 1024 * 1024) {
+    throw createError("Keep each upload below 20 MB so it stays fast on mobile data.", 400);
+  }
+
+  const mimeType = ensureAllowedDocumentMime(payload.mimeType);
+  const originalName = payload.fileName.trim() || "document";
+  const extension = originalName.includes(".")
+    ? originalName.split(".").pop()
+    : mimeType === "application/pdf" ? "pdf" : mimeType === "image/png" ? "png" : "jpg";
+  const fileBase = safePathPart(originalName.replace(/\.[^.]+$/, ""));
+  const objectPath = `${safePathPart(userId)}/${safePathPart(application.id)}/${Date.now()}-${fileBase}.${safePathPart(extension || "bin")}`;
+  const client = getClient();
+
+  const upload = await client.storage
+    .from("kagie-documents")
+    .upload(objectPath, payload.buffer, {
+      cacheControl: "3600",
+      contentType: mimeType,
+      upsert: false
+    });
+
+  if (upload.error) {
+    throw createError(upload.error.message || "Could not upload document to Kagie storage.", 500);
+  }
+
+  const insert = await client
+    .from("documents")
+    .insert({
+      user_id: userId,
+      application_id: application.id,
+      document_type: payload.documentType || "general",
+      file_name: originalName,
+      file_url: objectPath,
+      status: DOCUMENT_STATUSES.PENDING_REVIEW
+    })
+    .select("*")
+    .single();
+
+  if (insert.error || !insert.data) {
+    throw createError(insert.error?.message || "Could not save document record.", 500);
+  }
+
+  await pushNotification(userId, "Document uploaded", `${originalName} was uploaded and sent to Kagie for review.`, "success");
+  return mapDocument(insert.data as RemoteDocument);
 }
 
 export async function getDashboardSummary(userId: string) {

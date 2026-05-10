@@ -78,6 +78,10 @@
     let dashboardStartScrollLeft = 0;
     let dashboardDragMoved = false;
     let applyNavigationLocked = false;
+    const bootScreen = window.KagieUX?.showBootScreen?.({
+      title: "Kagie",
+      message: "Loading your dashboard..."
+    }) || null;
 
     const DEFAULT_AVATAR =
       "data:image/svg+xml;utf8," +
@@ -340,6 +344,7 @@
         setQuickStrip(summary);
       } catch (error) {
         console.warn("Could not load the richer home summary:", error);
+        setQuickStrip({});
         hideInsightCards();
       }
     }
@@ -439,9 +444,29 @@
     loadSharedProfilePhoto();
     applyExperienceMode(experiencePrefs);
     hideInsightCards();
+    if (homeQuickStrip && window.KagieUX?.skeletonQuickLinks) {
+      homeQuickStrip.innerHTML = window.KagieUX.skeletonQuickLinks(4);
+    }
+    if (window.KagieUX) {
+      const insightSkeleton = `
+        <div class="kagie-skeleton-stack">
+          <div class="kagie-skeleton kagie-skeleton-line sm w-36"></div>
+          <div class="kagie-skeleton kagie-skeleton-line w-80"></div>
+          <div class="kagie-skeleton kagie-skeleton-line sm w-96"></div>
+          <div class="kagie-skeleton kagie-skeleton-line sm w-72"></div>
+        </div>
+      `;
+      [homeJourney, homeFocus, homeServiceHub].forEach((node) => {
+        if (!node) return;
+        node.innerHTML = insightSkeleton;
+        node.classList.remove("is-hidden");
+      });
+      syncInsightStackVisibility();
+    }
     const displayName = String(storedName || "User").trim().split(/\s+/)[0] || "User";
     animateGreeting(`Hello ${displayName}`);
     await hydrateHomeControlCenter();
+    bootScreen?.hide?.();
 
     document.querySelectorAll(".tile, .dash-pill, .menu-btn").forEach((el) => {
       el.addEventListener("pointerdown", () => el.classList.add("is-pressed"));
@@ -458,10 +483,16 @@
 
     async function performLogout() {
       shutMenu();
-      if (logoutBtn) {
-        logoutBtn.disabled = true;
-        logoutBtn.style.opacity = "0.7";
-      }
+      const startBusy = (button) => {
+        if (!button) return;
+        if (window.KagieUX?.setButtonLoading) window.KagieUX.setButtonLoading(button, true, { busyText: "Signing out..." });
+        else {
+          button.disabled = true;
+          button.style.opacity = "0.7";
+        }
+      };
+      startBusy(logoutBtn);
+      startBusy(headerLogoutBtn);
       try {
         if (api?.setLoginPersistence) api.setLoginPersistence(false);
         if (api?.logoutReal) await api.logoutReal();
@@ -568,6 +599,7 @@
   const start = () => {
     main().catch((error) => {
       console.error(error);
+      window.KagieUX?.showBootScreen && document.getElementById("kagie-dashboard-boot")?.classList.add("is-hidden");
       const api = window.KagieAPI;
       const active = api?.currentUser?.();
       if (!active) {

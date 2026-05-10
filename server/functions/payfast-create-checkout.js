@@ -1,5 +1,4 @@
 const crypto = require("crypto");
-const { normalizeSupabaseUrl } = require("./_supabase-url");
 
 const PAYMENT_NOTE_PREFIX = "__KAGIE_PAYMENT_META__";
 
@@ -200,6 +199,59 @@ function buildInstitutionRows(applicationId, institutions) {
   }));
 }
 
+function normalizeInstitutionNameKey(value) {
+  return trim(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function isInstitutionClosed(row) {
+  const manualStatus = trim(row?.manual_status).toLowerCase();
+  const closingDate = trim(row?.closing_date);
+  if (row?.is_active === false) return true;
+  if (manualStatus === "closed") return true;
+  if (closingDate && /^\d{4}-\d{2}-\d{2}$/.test(closingDate)) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (closingDate < today) return true;
+  }
+  return false;
+}
+
+async function assertInstitutionsOpen(supabaseUrl, serviceRoleKey, institutions) {
+  const requested = (Array.isArray(institutions) ? institutions : [])
+    .map((item) => ({
+      name: trim(item?.institutionName || item?.name),
+      year: trim(item?.year)
+    }))
+    .filter((item) => item.name);
+  if (!requested.length) return;
+
+  let rows = [];
+  try {
+    rows = await supabaseFetch(
+      supabaseUrl,
+      "/rest/v1/institutions?select=name,year,is_active,manual_status,closing_date&limit=1000",
+      { method: "GET", headers: adminHeaders(serviceRoleKey) }
+    );
+  } catch (error) {
+    const message = String(error?.message || "").toLowerCase();
+    if (message.includes("institutions") || message.includes("does not exist") || message.includes("could not find")) return;
+    throw error;
+  }
+
+  const catalog = new Map();
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const key = `${normalizeInstitutionNameKey(row?.name)}|${trim(row?.year)}`;
+    const fallbackKey = `${normalizeInstitutionNameKey(row?.name)}|`;
+    catalog.set(key, row);
+    if (!catalog.has(fallbackKey)) catalog.set(fallbackKey, row);
+  });
+
+  const closed = requested.find((item) => {
+    const match = catalog.get(`${normalizeInstitutionNameKey(item.name)}|${item.year}`) || catalog.get(`${normalizeInstitutionNameKey(item.name)}|`);
+    return match && isInstitutionClosed(match);
+  });
+  if (closed) throw new Error("Applications for this institution are currently closed.");
+}
+
 async function getOrCreateCart(supabaseUrl, serviceRoleKey, userId) {
   const existing = await supabaseFetch(
     supabaseUrl,
@@ -273,6 +325,8 @@ async function findApplicationPackId(supabaseUrl, serviceRoleKey, packItem) {
 }
 
 async function saveApplicationInstitutions(supabaseUrl, serviceRoleKey, applicationId, institutions) {
+  await assertInstitutionsOpen(supabaseUrl, serviceRoleKey, institutions);
+
   await supabaseFetch(
     supabaseUrl,
     `/rest/v1/application_institutions?application_id=eq.${encodeFilter(applicationId)}`,
@@ -442,7 +496,7 @@ exports.handler = async (event) => {
     return json(405, { message: "Method not allowed." }, origin);
   }
 
-  const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, process.env.SUPABASE_ANON_KEY);
+  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   const merchantId = trim(process.env.PAYFAST_MERCHANT_ID);
   const merchantKey = trim(process.env.PAYFAST_MERCHANT_KEY);

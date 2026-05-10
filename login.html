@@ -540,6 +540,7 @@
     const togglePassword = document.getElementById("togglePassword");
     const rememberSession = document.getElementById("rememberSession");
     const switchAccount = new URLSearchParams(window.location.search).get("switch") === "1";
+    let loginInFlight = false;
 
     function ensureApiReady() {
       if (window.KagieAPI) return window.KagieAPI;
@@ -580,8 +581,13 @@
     }
 
     function setLoading(isLoading) {
-      loginBtn.disabled = isLoading;
-      loginBtn.textContent = isLoading ? "Logging in..." : "log in";
+      const ux = window.KagieUX;
+      if (ux?.setButtonLoading) {
+        ux.setButtonLoading(loginBtn, isLoading, { busyText: "Logging in..." });
+      } else {
+        loginBtn.disabled = isLoading;
+        loginBtn.textContent = isLoading ? "Logging in..." : "log in";
+      }
     }
 
     function normalizeRole(role) {
@@ -644,6 +650,7 @@
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (loginInFlight) return;
       setMessage("");
       const api = ensureApiReady();
       if (!api) return;
@@ -656,16 +663,24 @@
         return;
       }
 
+      loginInFlight = true;
       setLoading(true);
 
+      let slowTimer = 0;
       try {
+        slowTimer = window.setTimeout(() => {
+          setMessage("Still signing you in, please wait...", "success");
+        }, 3200);
         const user = await api.login(userEmail, userPassword, { persist: rememberSession.checked });
         setMessage("Login successful. Redirecting...", "success");
         setTimeout(() => redirectByRole(user), 500);
       } catch (err) {
         console.error(err);
         setMessage(formatAuthMessage(err.message, "Login failed."), "error");
+        loginInFlight = false;
         setLoading(false);
+      } finally {
+        if (slowTimer) window.clearTimeout(slowTimer);
       }
     });
   </script>

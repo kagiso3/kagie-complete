@@ -1,5 +1,4 @@
 const crypto = require("crypto");
-const { normalizeSupabaseUrl } = require("./_supabase-url");
 
 const PAYMENT_NOTE_PREFIX = "__KAGIE_PAYMENT_META__";
 const WEBHOOK_THRESHOLD_SECONDS = 180;
@@ -353,7 +352,7 @@ exports.handler = async (event) => {
     return json(405, { message: "Method not allowed." }, origin);
   }
 
-  const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, process.env.SUPABASE_ANON_KEY);
+  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   const merchantId = trim(process.env.PAYFAST_MERCHANT_ID);
   const merchantKey = trim(process.env.PAYFAST_MERCHANT_KEY);

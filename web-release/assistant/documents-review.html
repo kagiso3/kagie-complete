@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Documents Review</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="../js/backend.js?v=20260507g"></script>
+  <script defer src="../js/supabase-config.js?v=20260507g"></script>
+  <script defer src="../js/assistant-documents-review-page.js?v=20260507g"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f5f8fc;--text:#10233d;--muted:#66788f;--red:#c24848;--red-strong:#db0f16;--blue:#1f8aea;--blue-2:#63b9ff;--yellow:#f2cd67;--green:#1a6b4a;
+      --glass:rgba(255,255,255,.9);--line:rgba(16,35,61,.08);--shadow:0 22px 48px rgba(16,35,61,.12);--soft:0 10px 22px rgba(16,35,61,.08)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);background:radial-gradient(1000px 520px at 12% 0%, rgba(31,138,234,.15), transparent 60%),radial-gradient(1000px 560px at 88% 8%, rgba(242,205,103,.16), transparent 60%),var(--bg)}
+    .shell{width:min(1180px,100%);margin:0 auto;display:grid;gap:16px}
+    .topbar,.hero,.card{background:var(--glass);border:1px solid rgba(255,255,255,.72);border-radius:28px;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+    .topbar{background:linear-gradient(135deg,var(--red-strong),var(--red));color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .topbar h1{margin:0;font:800 24px "Poppins",sans-serif}
+    .topbar p{margin:4px 0 0;font-size:13px;opacity:.92}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn,.mini{border:none;border-radius:16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-family:"Roboto",sans-serif;font-weight:800;transition:transform .18s ease}
+    .btn:hover,.mini:hover{transform:translateY(-2px)}
+    .btn{height:44px;padding:0 16px;background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.18)}
+    .mini{height:36px;padding:0 12px;font-size:13px}
+    .blue{background:linear-gradient(135deg,var(--blue),var(--blue-2));color:#fff}
+    .yellow{background:linear-gradient(135deg,var(--yellow),#f7df94);color:var(--text)}
+    .green{background:linear-gradient(135deg,var(--green),#2f8d66);color:#fff}
+    .red{background:linear-gradient(135deg,var(--red-strong),var(--red));color:#fff}
+    .hero{padding:22px;background:linear-gradient(135deg, rgba(219,15,22,.96), rgba(31,138,234,.88));color:#fff}
+    .hero h2{margin:0;font:800 30px "Poppins",sans-serif}
+    .hero p{margin:10px 0 0;font-size:14px;line-height:1.7;color:rgba(255,255,255,.92)}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    .filter-btn{border:none;border-radius:999px;padding:10px 14px;font:800 13px "Roboto",sans-serif;cursor:pointer;background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.18)}
+    .filter-btn.active{background:#fff;color:var(--text)}
+    .card{padding:18px}
+    .list{display:grid;gap:14px}
+    .item{background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:20px;padding:15px;box-shadow:var(--soft);display:grid;gap:12px}
+    .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .title{font-size:16px;font-weight:900}
+    .meta{font-size:13px;color:var(--muted);line-height:1.6}
+    .chip{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;font-size:11px;font-weight:900;border:1px solid transparent}
+    .c-blue{background:rgba(31,138,234,.12);color:var(--blue);border-color:rgba(31,138,234,.18)}
+    .c-yellow{background:rgba(242,205,103,.22);color:#8f6b00;border-color:rgba(242,205,103,.28)}
+    .c-red{background:rgba(219,15,22,.12);color:var(--red-strong);border-color:rgba(219,15,22,.16)}
+    .c-green{background:rgba(26,107,74,.12);color:var(--green);border-color:rgba(26,107,74,.18)}
+    .action-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .empty{text-align:center;padding:18px 12px;color:var(--muted);font-size:13px;font-weight:700}
+    @media (max-width:720px){body{padding:12px}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <h1>Documents Review</h1>
+        <p>Focused queue of uploaded learner documents from applications assigned to you.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="dashboard.html">Back to dashboard</a>
+        <button class="btn" id="logoutBtn" type="button">Logout</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h2>Review learner files without leaving your assignment queue.</h2>
+      <p>Approve, reject, or return documents to pending review, then jump into the full applicant workspace when more context is needed.</p>
+      <div class="filters">
+        <button class="filter-btn active" data-filter="all" type="button">All</button>
+        <button class="filter-btn" data-filter="Pending Review" type="button">Pending review</button>
+        <button class="filter-btn" data-filter="Approved" type="button">Approved</button>
+        <button class="filter-btn" data-filter="Rejected" type="button">Rejected</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="list" id="documents"></div>
+    </section>
+  </div>
+</body>
+</html>

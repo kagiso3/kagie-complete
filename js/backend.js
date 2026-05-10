@@ -10,6 +10,8 @@
     applicationPacksCatalog: 'kagie_application_packs_catalog',
     promoCampaigns: 'kagie_promo_campaigns_catalog',
     marketingCampaigns: 'kagie_marketing_campaigns_catalog',
+    adminContent: 'kagie_admin_content_catalog',
+    announcements: 'kagie_announcements_catalog',
     institutions: 'kagie_institutions',
     accommodationListingsCatalog: 'kagie_accommodation_listings_catalog',
     favorites: 'kagie_favorites',
@@ -52,7 +54,10 @@
       PENDING: 'Payment Pending',
       PENDING_VERIFICATION: 'Pending Verification',
       VERIFIED: 'Verified',
-      REJECTED: 'Rejected'
+      REJECTED: 'Rejected',
+      FAILED: 'Failed',
+      CANCELLED: 'Cancelled',
+      REFUNDED: 'Refunded'
     },
     doc: {
       PENDING: 'Pending Review',
@@ -186,10 +191,10 @@
         accountType: 'Business Account',
         branchCode: '',
         referencePrefix: 'KAG',
-        verificationMessage: 'Payments are verified manually after checkout.',
+        verificationMessage: 'Payments are confirmed automatically by Yoco after checkout.',
         yocoEnabled: true,
         yocoCheckoutEndpoint: '',
-        yocoPaymentLink: 'https://pay.yoco.com/kagie-app',
+        yocoPaymentLink: '',
         yocoProviderLabel: 'Yoco secure checkout',
         payfastEnabled: false,
         payfastCheckoutEndpoint: '',
@@ -692,6 +697,9 @@
       gatewayCheckoutId: String(source.gatewayCheckoutId || noteState.gatewayCheckoutId || ''),
       gatewayPaymentId: String(source.gatewayPaymentId || noteState.gatewayPaymentId || ''),
       gatewayStatus: String(source.gatewayStatus || noteState.gatewayStatus || ''),
+      currency: String(source.currency || 'ZAR'),
+      paidAt: source.paidAt || '',
+      failureReason: String(source.failureReason || ''),
       submittedAt: source.submittedAt || null
     };
   }
@@ -1213,6 +1221,387 @@
     current.unshift(entry);
     write(KEYS.marketingCampaigns, current);
     return clone(entry);
+  }
+
+  const ADMIN_CONTENT_DEFAULTS = {
+    career_hub: {
+      contentKey: 'career_hub',
+      title: 'Career Hub Admin',
+      body: 'Published question papers, study guides, and career practice content are managed here.',
+      status: 'active',
+      settings: {
+        featuredTopic: 'Career practice hub',
+        ctaLabel: 'Open Career Hub',
+        ctaHref: 'career-guidance.html'
+      }
+    },
+    housing_hub: {
+      contentKey: 'housing_hub',
+      title: 'Housing Admin',
+      body: 'Manage housing guidance and availability messaging for learners.',
+      status: 'active',
+      settings: {
+        serviceStatus: 'open',
+        supportPhone: '',
+        ctaLabel: 'Open Housing',
+        ctaHref: 'more-service/accommodation-assist.html'
+      }
+    }
+  };
+
+  function normalizeAdminContentKey(valueArg) {
+    const value = String(valueArg || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    if (value === 'career' || value === 'careerhub') return 'career_hub';
+    if (value === 'housing' || value === 'accommodation') return 'housing_hub';
+    return value || 'general';
+  }
+
+  function normalizeAdminContentStatus(valueArg) {
+    const value = String(valueArg || '').trim().toLowerCase();
+    return value === 'inactive' || value === 'disabled' || value === 'draft' ? 'inactive' : 'active';
+  }
+
+  function normalizeAdminContentEntry(entryArg, fallbackKeyArg) {
+    const fallbackKey = normalizeAdminContentKey(fallbackKeyArg);
+    const fallback = ADMIN_CONTENT_DEFAULTS[fallbackKey] || {};
+    const entry = entryArg && typeof entryArg === 'object' ? entryArg : {};
+    let settings = entry.settings || entry.settings_json || fallback.settings || {};
+    if (typeof settings === 'string') {
+      try {
+        settings = JSON.parse(settings);
+      } catch (_error) {
+        settings = {};
+      }
+    }
+    const contentKey = normalizeAdminContentKey(entry.contentKey || entry.content_key || fallback.contentKey || fallbackKey);
+    return {
+      id: String(entry.id || fallback.id || contentKey).trim(),
+      contentKey,
+      title: String(entry.title || fallback.title || 'Admin content').trim(),
+      body: String(entry.body || entry.message || fallback.body || '').trim(),
+      status: normalizeAdminContentStatus(entry.status || fallback.status),
+      settings: {
+        ...(fallback.settings || {}),
+        ...(settings && typeof settings === 'object' ? settings : {})
+      },
+      createdById: String(entry.createdById || entry.created_by || '').trim(),
+      updatedById: String(entry.updatedById || entry.updated_by || '').trim(),
+      createdAt: entry.createdAt || entry.created_at || nowISO(),
+      updatedAt: entry.updatedAt || entry.updated_at || nowISO()
+    };
+  }
+
+  function getAdminContentStore() {
+    const byKey = new Map();
+    Object.keys(ADMIN_CONTENT_DEFAULTS).forEach((key) => {
+      byKey.set(key, normalizeAdminContentEntry(ADMIN_CONTENT_DEFAULTS[key], key));
+    });
+    safeArray(read(KEYS.adminContent, [])).forEach((entry) => {
+      const normalized = normalizeAdminContentEntry(entry, entry?.contentKey || entry?.content_key);
+      byKey.set(normalized.contentKey, normalized);
+    });
+    return Array.from(byKey.values());
+  }
+
+  function saveAdminContentStore(recordsArg) {
+    const normalized = safeArray(recordsArg).map((entry) => normalizeAdminContentEntry(entry, entry?.contentKey || entry?.content_key));
+    write(KEYS.adminContent, normalized);
+    return getAdminContentStore();
+  }
+
+  function getAdminContent(contentKeyArg) {
+    const contentKey = normalizeAdminContentKey(contentKeyArg);
+    return clone(getAdminContentStore().find((entry) => entry.contentKey === contentKey) || normalizeAdminContentEntry(null, contentKey));
+  }
+
+  async function getAdminContentAsync(contentKeyArg) {
+    const local = getAdminContent(contentKeyArg);
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const client = initSupabaseClient();
+      if (!client) return local;
+      const contentKey = normalizeAdminContentKey(contentKeyArg);
+      const result = await client.from('admin_content').select('*').eq('content_key', contentKey).maybeSingle();
+      if (result.error) {
+        const message = String(result.error.message || result.error).toLowerCase();
+        if (message.includes('admin_content') || message.includes('could not find') || message.includes('does not exist')) return local;
+        throw new Error(result.error.message || 'Could not load admin content.');
+      }
+      if (!result.data) return local;
+      const remote = normalizeAdminContentEntry(result.data, contentKey);
+      saveAdminContentStore(getAdminContentStore().filter((entry) => entry.contentKey !== contentKey).concat(remote));
+      return clone(remote);
+    } catch (error) {
+      console.warn('Admin content fell back to local storage.', error);
+      return local;
+    }
+  }
+
+  async function saveAdminContentByAdminAsync(contentKeyArg, payloadArg) {
+    const actor = requireRole([ROLES.MASTER]);
+    const contentKey = normalizeAdminContentKey(contentKeyArg);
+    const current = getAdminContent(contentKey);
+    const next = normalizeAdminContentEntry({
+      ...current,
+      ...(payloadArg || {}),
+      contentKey,
+      updatedById: actor.id,
+      updatedAt: nowISO()
+    }, contentKey);
+    saveAdminContentStore(getAdminContentStore().filter((entry) => entry.contentKey !== contentKey).concat(next));
+
+    if (!isSupabaseEnabled()) return clone(next);
+    try {
+      const client = initSupabaseClient();
+      if (!client) return clone(next);
+      const result = await client.from('admin_content').upsert({
+        content_key: next.contentKey,
+        title: next.title,
+        body: next.body,
+        status: next.status,
+        settings: next.settings,
+        updated_by: actor.supabaseUserId || actor.id || null
+      }, { onConflict: 'content_key' }).select('*').single();
+      if (result.error) {
+        const message = String(result.error.message || result.error).toLowerCase();
+        if (message.includes('admin_content') || message.includes('could not find') || message.includes('does not exist')) return clone(next);
+        throw new Error(result.error.message || 'Could not save admin content.');
+      }
+      const remote = normalizeAdminContentEntry(result.data, contentKey);
+      saveAdminContentStore(getAdminContentStore().filter((entry) => entry.contentKey !== contentKey).concat(remote));
+      return clone(remote);
+    } catch (error) {
+      console.warn('Admin content remote save skipped.', error);
+      return clone(next);
+    }
+  }
+
+  function normalizeAnnouncementAudience(valueArg) {
+    const value = String(valueArg || '').trim().toLowerCase();
+    if (['all', 'all_users', 'all_accounts', 'everyone'].includes(value)) return 'all';
+    if (['assistant', 'assistants', 'assistant_admin', 'assistant_admins', 'staff'].includes(value)) return 'assistants';
+    if (['institution', 'institution_specific', 'institution_users'].includes(value)) return 'institution';
+    return 'learners';
+  }
+
+  function normalizeAnnouncementStatus(valueArg, activeArg) {
+    if (activeArg === false) return 'inactive';
+    const value = String(valueArg || '').trim().toLowerCase();
+    return value === 'inactive' || value === 'disabled' || value === 'draft' ? 'inactive' : 'active';
+  }
+
+  function normalizeAnnouncementEntry(entryArg) {
+    const entry = entryArg && typeof entryArg === 'object' ? entryArg : {};
+    const active = entry.active ?? entry.is_active;
+    return {
+      id: String(entry.id || uid('announcement')).trim(),
+      title: String(entry.title || 'Kagie announcement').trim(),
+      message: String(entry.message || entry.body || '').trim(),
+      type: String(entry.type || 'info').trim().toLowerCase() || 'info',
+      audience: normalizeAnnouncementAudience(entry.audience || entry.target_audience),
+      institutionName: String(entry.institutionName || entry.institution_name || '').trim(),
+      status: normalizeAnnouncementStatus(entry.status, active),
+      active: normalizeAnnouncementStatus(entry.status, active) === 'active',
+      createdById: String(entry.createdById || entry.created_by || '').trim(),
+      updatedById: String(entry.updatedById || entry.updated_by || '').trim(),
+      createdAt: entry.createdAt || entry.created_at || nowISO(),
+      updatedAt: entry.updatedAt || entry.updated_at || nowISO()
+    };
+  }
+
+  function getAnnouncementStore() {
+    return safeArray(read(KEYS.announcements, []))
+      .map(normalizeAnnouncementEntry)
+      .sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
+  }
+
+  function saveAnnouncementStore(recordsArg) {
+    const byId = new Map();
+    safeArray(recordsArg).forEach((entry) => {
+      const normalized = normalizeAnnouncementEntry(entry);
+      byId.set(normalized.id, normalized);
+    });
+    const normalized = Array.from(byId.values()).sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
+    write(KEYS.announcements, normalized);
+    return normalized.map(clone);
+  }
+
+  function announcementMatchesUser(announcement, userArg) {
+    if (!announcement?.active) return false;
+    const user = userArg || currentUser() || {};
+    const role = normalizeKagieRole(user?.role, ROLES.USER);
+    if (announcement.audience === 'all') return true;
+    if (announcement.audience === 'assistants') return role === ROLES.ASSISTANT || role === ROLES.MASTER;
+    if (announcement.audience === 'institution') {
+      const target = String(announcement.institutionName || '').trim().toLowerCase();
+      if (!target) return role === ROLES.USER;
+      const selected = [
+        user?.selectedInstitution,
+        user?.selected_institution,
+        user?.latestInstitution
+      ].concat(safeArray(user?.selectedInstitutions).map((item) => item?.institutionName || item?.name || item))
+        .join(' ')
+        .toLowerCase();
+      return role === ROLES.USER && selected.includes(target);
+    }
+    return role === ROLES.USER;
+  }
+
+  function announcementToNotification(entryArg, userIdArg) {
+    const entry = normalizeAnnouncementEntry(entryArg);
+    return {
+      id: `announcement_${entry.id}`,
+      userId: userIdArg || 'all',
+      title: entry.title,
+      message: entry.message,
+      type: entry.type || 'info',
+      read: false,
+      createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
+      source: 'announcement',
+      announcementId: entry.id
+    };
+  }
+
+  function getAnnouncementsForAdmin() {
+    requireRole([ROLES.MASTER]);
+    return getAnnouncementStore();
+  }
+
+  function getAnnouncementsForUser(userIdArg) {
+    const viewer = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const userId = String(userIdArg || viewer.id || '').trim();
+    const targetUser = getUsers().find((user) => [user.id, user.supabaseUserId, user.email].some((value) => String(value || '').trim() === userId)) || viewer;
+    return getAnnouncementStore().filter((entry) => announcementMatchesUser(entry, targetUser)).map(clone);
+  }
+
+  async function fetchRemoteAnnouncementsForAdmin() {
+    const client = initSupabaseClient();
+    if (!client) return [];
+    const result = await client.from('announcements').select('*').order('created_at', { ascending: false });
+    if (result.error) {
+      const message = String(result.error.message || result.error).toLowerCase();
+      if (message.includes('announcements') || message.includes('could not find') || message.includes('does not exist')) return [];
+      throw new Error(result.error.message || 'Could not load announcements.');
+    }
+    return safeArray(result.data).map(normalizeAnnouncementEntry);
+  }
+
+  async function fetchRemoteAnnouncementsForUser(userArg) {
+    const client = initSupabaseClient();
+    if (!client) return [];
+    const result = await client.from('announcements').select('*').eq('status', 'active').order('created_at', { ascending: false });
+    if (result.error) {
+      const message = String(result.error.message || result.error).toLowerCase();
+      if (message.includes('announcements') || message.includes('could not find') || message.includes('does not exist')) return [];
+      throw new Error(result.error.message || 'Could not load announcements.');
+    }
+    return safeArray(result.data).map(normalizeAnnouncementEntry).filter((entry) => announcementMatchesUser(entry, userArg));
+  }
+
+  async function getAnnouncementsForAdminAsync() {
+    requireRole([ROLES.MASTER]);
+    const local = getAnnouncementsForAdmin();
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const remote = await fetchRemoteAnnouncementsForAdmin();
+      if (remote.length) {
+        saveAnnouncementStore(remote);
+        return remote.map(clone);
+      }
+      return local;
+    } catch (error) {
+      console.warn('Announcement admin list fell back to local storage.', error);
+      return local;
+    }
+  }
+
+  async function getAnnouncementsForUserAsync(userIdArg) {
+    const viewer = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const local = getAnnouncementsForUser(userIdArg);
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const userId = String(userIdArg || viewer.id || '').trim();
+      const targetUser = getUsers().find((user) => [user.id, user.supabaseUserId, user.email].some((value) => String(value || '').trim() === userId)) || viewer;
+      const remote = await fetchRemoteAnnouncementsForUser(targetUser);
+      if (remote.length) {
+        saveAnnouncementStore(remote.concat(getAnnouncementStore().filter((entry) => !remote.some((item) => item.id === entry.id))));
+        return remote.map(clone);
+      }
+      return local;
+    } catch (error) {
+      console.warn('Announcement user list fell back to local storage.', error);
+      return local;
+    }
+  }
+
+  async function saveAnnouncementByAdminAsync(payloadArg) {
+    const actor = requireRole([ROLES.MASTER]);
+    const payload = payloadArg && typeof payloadArg === 'object' ? payloadArg : {};
+    if (!String(payload.title || '').trim()) throw new Error('Announcement title is required.');
+    if (!String(payload.message || payload.body || '').trim()) throw new Error('Announcement message is required.');
+    const current = payload.id ? getAnnouncementStore().find((item) => item.id === payload.id) : null;
+    const next = normalizeAnnouncementEntry({
+      ...current,
+      ...payload,
+      createdById: current?.createdById || actor.id,
+      updatedById: actor.id,
+      createdAt: current?.createdAt || nowISO(),
+      updatedAt: nowISO()
+    });
+    saveAnnouncementStore([next].concat(getAnnouncementStore().filter((item) => item.id !== next.id)));
+
+    if (!isSupabaseEnabled()) return clone(next);
+    try {
+      const client = initSupabaseClient();
+      if (!client) return clone(next);
+      const row = {
+        title: next.title,
+        message: next.message,
+        type: next.type,
+        audience: next.audience,
+        institution_name: next.institutionName || null,
+        status: next.status,
+        updated_by: actor.supabaseUserId || actor.id || null
+      };
+      const result = current && isUuid(next.id)
+        ? await client.from('announcements').update(row).eq('id', next.id).select('*').single()
+        : await client.from('announcements').insert({
+            ...row,
+            created_by: actor.supabaseUserId || actor.id || null
+          }).select('*').single();
+      if (result.error) {
+        const message = String(result.error.message || result.error).toLowerCase();
+        if (message.includes('announcements') || message.includes('could not find') || message.includes('does not exist')) return clone(next);
+        throw new Error(result.error.message || 'Could not save announcement.');
+      }
+      const remote = normalizeAnnouncementEntry(result.data);
+      saveAnnouncementStore([remote].concat(getAnnouncementStore().filter((item) => item.id !== next.id && item.id !== remote.id)));
+      return clone(remote);
+    } catch (error) {
+      console.warn('Announcement remote save skipped.', error);
+      return clone(next);
+    }
+  }
+
+  async function deleteAnnouncementByAdminAsync(announcementIdArg) {
+    requireRole([ROLES.MASTER]);
+    const announcementId = String(announcementIdArg || '').trim();
+    if (!announcementId) throw new Error('Announcement id is required.');
+    const existing = getAnnouncementStore().find((item) => item.id === announcementId);
+    saveAnnouncementStore(getAnnouncementStore().filter((item) => item.id !== announcementId));
+    if (existing && isUuid(announcementId) && isSupabaseEnabled()) {
+      try {
+        const client = initSupabaseClient();
+        if (client) {
+          const result = await client.from('announcements').delete().eq('id', announcementId);
+          if (result.error) throw new Error(result.error.message || 'Could not delete announcement.');
+        }
+      } catch (error) {
+        console.warn('Announcement remote delete skipped.', error);
+      }
+    }
+    return true;
   }
 
   capturePendingPromoCodeFromLocation();
@@ -3644,7 +4033,7 @@
   function ensureInstitutionAvailableForApplication(institution) {
     const match = getInstitutionByNameAndYear(institution?.institutionName || institution?.name, institution?.year);
     if (match && !match.canApply) {
-      throw new Error('Applications for this institution are closed.');
+      throw new Error('Applications for this institution are currently closed.');
     }
     return match;
   }
@@ -5690,7 +6079,6 @@
   }
 
   async function getLiveAdminSetupStatus() {
-    await awaitRuntimeSupabaseConfig();
     const settings = getSettings();
     const endpoint = String(settings?.supabase?.adminConfigStatusEndpoint || '').trim();
 
@@ -7075,6 +7463,13 @@
               proofUploadedAt: paymentNote.proofUploadedAt || '',
               reviewedAt: paymentNote.reviewedAt || '',
               verifiedAt: paymentNote.verifiedAt || '',
+              gatewayProvider: paymentRow?.provider || paymentNote.gatewayProvider || '',
+              gatewayCheckoutId: paymentRow?.gateway_checkout_id || paymentNote.gatewayCheckoutId || '',
+              gatewayPaymentId: paymentRow?.gateway_payment_id || paymentNote.gatewayPaymentId || '',
+              gatewayStatus: paymentRow?.gateway_status || paymentNote.gatewayStatus || '',
+              currency: paymentRow?.currency || 'ZAR',
+              paidAt: paymentRow?.paid_at || '',
+              failureReason: paymentRow?.failure_reason || '',
               submittedAt: paymentRow?.created_at || row.submitted_at || null
             }
           : null,
@@ -8453,6 +8848,21 @@
       throw new Error('You can only edit your own application.');
     }
 
+    if (Array.isArray(patch?.institutions)) {
+      patch = {
+        ...patch,
+        institutions: safeArray(patch.institutions).map((institution) => {
+          const matchedInstitution = ensureInstitutionAvailableForApplication(institution);
+          return {
+            ...institution,
+            year: institution?.year || matchedInstitution?.year || String(new Date().getFullYear()),
+            institutionStatus: matchedInstitution?.status || institution?.institutionStatus || '',
+            canApply: matchedInstitution ? matchedInstitution.canApply : institution?.canApply
+          };
+        })
+      };
+    }
+
     let updated = mergeDeep(current, patch || {});
     if (actingUser.role === ROLES.ASSISTANT && !updated.assistantId) updated.assistantId = actingUser.id;
     if (Object.prototype.hasOwnProperty.call(patch || {}, 'assistantId') || Object.prototype.hasOwnProperty.call(patch || {}, 'assignedAssistantId')) {
@@ -8935,7 +9345,19 @@
     const userId = userIdArg || viewer.id;
     const notifications = normalizeNotificationStore(read(KEYS.notifications, []));
     write(KEYS.notifications, notifications);
-    return notifications
+    const announcementNotices = (() => {
+      try {
+        return getAnnouncementsForUser(userId).map((entry) => announcementToNotification(entry, userId));
+      } catch (_error) {
+        return [];
+      }
+    })();
+    const byId = new Map();
+    notifications.concat(announcementNotices).forEach((item) => {
+      if (!item?.id || byId.has(item.id)) return;
+      byId.set(item.id, item);
+    });
+    return Array.from(byId.values())
       .filter((n) => n.userId === userId || n.userId === 'all')
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .map(clone);
@@ -8991,7 +9413,10 @@
     });
     mirrorRemoteNotifications(remote);
 
-    const combined = [...remote];
+    const announcementNotices = await getAnnouncementsForUserAsync(userId)
+      .then((items) => safeArray(items).map((entry) => announcementToNotification(entry, userId)))
+      .catch(() => []);
+    const combined = [...remote, ...announcementNotices];
     local.forEach((item) => {
       if (!combined.find((remoteItem) => remoteItem.id === item.id)) {
         combined.push(clone(item));
@@ -11020,7 +11445,6 @@
   }
 
   async function bootstrapMasterAdminAccount(data) {
-    await awaitRuntimeSupabaseConfig();
     const fullName = String(data?.fullName || '').trim();
     const email = normalizeEmail(data?.email);
     const password = String(data?.password || '');
@@ -11114,6 +11538,12 @@
     return activeSession?.access_token || cachedSession?.access_token || '';
   }
 
+  async function getActiveSupabaseAccessToken() {
+    const cachedSession = read(KEYS.supabaseSessionCache, null);
+    const activeSession = await getSupabaseSession().catch(() => cachedSession);
+    return activeSession?.access_token || cachedSession?.access_token || '';
+  }
+
   function resolveAdminFunctionEndpoint(preferred, defaultPath) {
     const direct = String(preferred || '').trim();
     if (direct) return direct;
@@ -11140,6 +11570,66 @@
       candidates.push(`${window.location.origin}/api/admin/assistants`);
     }
     return Array.from(new Set(candidates.filter(Boolean)));
+  }
+
+  function getYocoCheckoutEndpointCandidates(preferred) {
+    const primary = resolveAdminFunctionEndpoint(preferred, '/v1/payments/yoco/checkout');
+    const candidates = [];
+    if (primary) candidates.push(primary);
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      candidates.push(`${window.location.origin}/api/payments/yoco/checkout`);
+    }
+    return Array.from(new Set(candidates.filter(Boolean)));
+  }
+
+  async function startYocoCheckoutAsync(paymentData = {}) {
+    requireRole([ROLES.USER]);
+    const endpoints = getYocoCheckoutEndpointCandidates(String(getSettings()?.payments?.yocoCheckoutEndpoint || '').trim());
+    if (!endpoints.length || typeof fetch !== 'function') {
+      throw new Error('Yoco checkout is not configured on this Kagie site yet.');
+    }
+
+    const accessToken = await getActiveSupabaseAccessToken();
+    if (!accessToken) {
+      throw new Error('Please sign in again before starting payment.');
+    }
+
+    let lastError = null;
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`
+          },
+          body: JSON.stringify(paymentData || {})
+        });
+        const rawBody = await response.text().catch(() => '');
+        let payload = null;
+        if (rawBody) {
+          try {
+            payload = JSON.parse(rawBody);
+          } catch (_error) {
+            payload = { message: String(rawBody).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() };
+          }
+        }
+        if (!response.ok) {
+          lastError = new Error(payload?.message || payload?.error || response.statusText || 'Yoco checkout could not be started.');
+          continue;
+        }
+        const checkout = payload?.data || payload || {};
+        if (!checkout.redirectUrl) {
+          lastError = new Error('Yoco did not return a checkout redirect URL.');
+          continue;
+        }
+        return checkout;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error('Could not reach the Kagie Yoco checkout endpoint.');
   }
 
   async function callAdminUsersEndpoint(options = {}) {
@@ -11289,6 +11779,9 @@
             selectedFaculty: String(row?.selectedFaculty || row?.selected_faculty || '').trim(),
             selectedCourses: safeArray(row?.selectedCourses || row?.selected_courses).map((item) => String(item || '').trim()).filter(Boolean),
             hasProfile: Boolean(row?.hasProfile),
+            hasFormDetails: Boolean(row?.hasFormDetails || row?.has_form_details),
+            profileCompletionPercent: Number(row?.profileCompletionPercent ?? row?.profile_completion_percent ?? 0),
+            profileCompletionLabel: String(row?.profileCompletionLabel || row?.profile_completion_label || '').trim(),
             source: 'supabase'
           };
         })
@@ -12092,9 +12585,9 @@
 
     const [profileResult, userResult, guardianResult, schoolResult] = await Promise.allSettled([
       ctx.client.from('profiles').select('*').eq('id', ctx.targetRemoteId).maybeSingle(),
-      ctx.client.from('user_profiles').select('*').eq('user_id', ctx.targetRemoteId).maybeSingle(),
-      ctx.client.from('guardian_profiles').select('*').eq('user_id', ctx.targetRemoteId).maybeSingle(),
-      ctx.client.from('school_profiles').select('*').eq('user_id', ctx.targetRemoteId).maybeSingle()
+      ctx.client.from('user_profiles').select('*').eq('user_id', ctx.targetRemoteId).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+      ctx.client.from('guardian_profiles').select('*').eq('user_id', ctx.targetRemoteId).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+      ctx.client.from('school_profiles').select('*').eq('user_id', ctx.targetRemoteId).order('updated_at', { ascending: false }).limit(1).maybeSingle()
     ]);
 
     const profileResponse = profileResult.status === 'fulfilled'
@@ -12217,7 +12710,7 @@
       role: targetRole,
       profile_image: merged.profileImage || existing?.profileImage || ''
     };
-    let profileWrite = await ctx.client.from('profiles').upsert(profilePayload);
+    let profileWrite = await ctx.client.from('profiles').upsert(profilePayload, { onConflict: 'id' });
     if (profileWrite.error && isProfileSchemaCacheColumnError(profileWrite.error)) {
       profileWriteError = profileWrite.error;
       console.warn('Profiles schema cache is missing compatibility columns. Retrying a minimal profile write; run the Kagie profile schema migration.', profileWrite.error);
@@ -12226,7 +12719,7 @@
         full_name: fullName,
         role: targetRole,
         profile_image: merged.profileImage || existing?.profileImage || ''
-      });
+      }, { onConflict: 'id' });
     }
     if (profileWrite.error) {
       if (isRecoverableProfileSyncError(profileWrite.error)) {
@@ -12249,7 +12742,7 @@
         province: merged.province || '',
         postal_code: merged.postalCode || '',
         address: merged.address || ''
-      }),
+      }, { onConflict: 'user_id' }),
       ctx.client.from('guardian_profiles').upsert({
         user_id: ctx.targetRemoteId,
         relation: merged.guardianRelation || '',
@@ -12262,7 +12755,7 @@
         province: merged.guardianProvince || '',
         postal_code: merged.guardianPostal || '',
         address: merged.guardianAddress || ''
-      }),
+      }, { onConflict: 'user_id' }),
       ctx.client.from('school_profiles').upsert({
         user_id: ctx.targetRemoteId,
         school_name: schoolName,
@@ -12271,7 +12764,7 @@
         school_type: merged.schoolType || '',
         completion_year: toIntegerOrNull(merged.completionYear),
         average: toNumericOrNull(merged.average)
-      })
+      }, { onConflict: 'user_id' })
     ]);
 
     writes.forEach((result) => {
@@ -12565,11 +13058,20 @@
       }
 
       if (Array.isArray(patch?.institutions)) {
+        const safeInstitutions = safeArray(patch.institutions).map((institution) => {
+          const matchedInstitution = ensureInstitutionAvailableForApplication(institution);
+          return {
+            ...institution,
+            year: institution?.year || matchedInstitution?.year || String(new Date().getFullYear()),
+            institutionStatus: matchedInstitution?.status || institution?.institutionStatus || '',
+            canApply: matchedInstitution ? matchedInstitution.canApply : institution?.canApply
+          };
+        });
         const cleared = await ctx.client.from('application_institutions').delete().eq('application_id', appId);
         if (cleared.error) throw new Error(cleared.error.message || 'Could not refresh institutions.');
 
-        if (patch.institutions.length) {
-          const rows = patch.institutions.map((item) => ({
+        if (safeInstitutions.length) {
+          const rows = safeInstitutions.map((item) => ({
             application_id: appId,
             province: item?.province || '',
             institution_type: item?.institutionType || '',
@@ -13837,6 +14339,7 @@
     submitApplicationFromCart,
     submitApplicationFromCartAsync,
     submitPayment,
+    startYocoCheckoutAsync,
     assignAssistant,
     assignAssistantAsync,
     assignUserToAssistantAsync,
@@ -13905,6 +14408,15 @@
     getMarketingCampaigns,
     sendMarketingBroadcast,
     sendMarketingBroadcastAsync,
+    getAdminContent,
+    getAdminContentAsync,
+    saveAdminContentByAdminAsync,
+    getAnnouncementsForAdmin,
+    getAnnouncementsForAdminAsync,
+    getAnnouncementsForUser,
+    getAnnouncementsForUserAsync,
+    saveAnnouncementByAdminAsync,
+    deleteAnnouncementByAdminAsync,
     markNotificationRead,
     markNotificationReadAsync,
     markAllNotificationsRead,
@@ -13943,4 +14455,536 @@
 
     resetAllData
   };
+
+  (function initKagieUxToolkit() {
+    if (window.KagieUX?.__initialized) return;
+
+    const locks = new Set();
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    const ensureStyles = () => {
+      if (typeof document === "undefined" || document.getElementById("kagie-ux-styles")) return;
+      const style = document.createElement("style");
+      style.id = "kagie-ux-styles";
+      style.textContent = `
+        .kagie-btn-loading,
+        .kagie-btn-loading:disabled,
+        [aria-busy="true"].kagie-btn-loading {
+          cursor: progress !important;
+          opacity: .76 !important;
+          pointer-events: none !important;
+          transition: opacity .18s ease, transform .18s ease, filter .18s ease;
+        }
+        .kagie-btn-content {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: .58rem;
+          min-height: 1em;
+        }
+        .kagie-btn-spinner {
+          width: 1em;
+          height: 1em;
+          border-radius: 999px;
+          border: 2px solid transparent;
+          border-top-color: currentColor;
+          border-right-color: currentColor;
+          opacity: .72;
+          animation: kagie-spin .78s linear infinite;
+          flex: 0 0 auto;
+        }
+        .kagie-skeleton-shell {
+          position: relative;
+          overflow: hidden;
+        }
+        .kagie-skeleton,
+        .kagie-skeleton-circle {
+          position: relative;
+          overflow: hidden;
+          background: #e6ebf1;
+        }
+        .kagie-skeleton {
+          border-radius: 16px;
+        }
+        .kagie-skeleton-circle {
+          border-radius: 999px;
+        }
+        .kagie-skeleton::after,
+        .kagie-skeleton-circle::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          transform: translateX(-100%);
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .58), transparent);
+          animation: kagie-shimmer 1.32s ease-in-out infinite;
+        }
+        .kagie-skeleton-stack {
+          display: grid;
+          gap: 10px;
+        }
+        .kagie-skeleton-line {
+          height: 12px;
+          border-radius: 999px;
+        }
+        .kagie-skeleton-line.sm {
+          height: 10px;
+        }
+        .kagie-skeleton-line.lg {
+          height: 16px;
+        }
+        .kagie-skeleton-line.w-100 { width: 100%; }
+        .kagie-skeleton-line.w-92 { width: 92%; }
+        .kagie-skeleton-line.w-88 { width: 88%; }
+        .kagie-skeleton-line.w-80 { width: 80%; }
+        .kagie-skeleton-line.w-72 { width: 72%; }
+        .kagie-skeleton-line.w-64 { width: 64%; }
+        .kagie-skeleton-line.w-56 { width: 56%; }
+        .kagie-skeleton-line.w-48 { width: 48%; }
+        .kagie-skeleton-line.w-40 { width: 40%; }
+        .kagie-inline-error {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 14px 16px;
+          border-radius: 18px;
+          border: 1px solid rgba(148, 163, 184, .26);
+          background: rgba(248, 250, 252, .96);
+          color: #334155;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
+        }
+        .kagie-inline-error-copy {
+          display: grid;
+          gap: 4px;
+        }
+        .kagie-inline-error-copy strong {
+          font-size: .95rem;
+          font-weight: 700;
+          color: #0f172a;
+        }
+        .kagie-inline-error-copy span {
+          font-size: .88rem;
+          line-height: 1.45;
+        }
+        .kagie-inline-retry {
+          border: 0;
+          border-radius: 999px;
+          padding: .72rem 1rem;
+          background: #0f172a;
+          color: #fff;
+          font: inherit;
+          font-weight: 700;
+          cursor: pointer;
+          transition: opacity .18s ease, transform .18s ease;
+        }
+        .kagie-inline-retry:hover:not(:disabled) {
+          transform: translateY(-1px);
+        }
+        .kagie-dashboard-boot {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          background: rgba(248, 250, 252, .96);
+          backdrop-filter: blur(10px);
+          opacity: 1;
+          transition: opacity .28s ease, visibility .28s ease;
+        }
+        .kagie-dashboard-boot.is-hidden {
+          opacity: 0;
+          visibility: hidden;
+          pointer-events: none;
+        }
+        .kagie-dashboard-boot-card {
+          width: min(360px, 100%);
+          padding: 28px 26px;
+          border-radius: 28px;
+          background: #fff;
+          border: 1px solid rgba(148, 163, 184, .18);
+          box-shadow: 0 28px 70px rgba(15, 23, 42, .09);
+          text-align: center;
+          display: grid;
+          gap: 14px;
+        }
+        .kagie-dashboard-boot-logo {
+          width: 56px;
+          height: 56px;
+          margin: 0 auto;
+          border-radius: 18px;
+          display: grid;
+          place-items: center;
+          font-size: 1.2rem;
+          font-weight: 800;
+          color: #fff;
+          background: #c1121f;
+          box-shadow: 0 14px 32px rgba(193, 18, 31, .18);
+        }
+        .kagie-dashboard-boot h2 {
+          margin: 0;
+          font-size: 1.1rem;
+          font-weight: 800;
+          color: #0f172a;
+        }
+        .kagie-dashboard-boot p {
+          margin: 0;
+          color: #64748b;
+          font-size: .95rem;
+          line-height: 1.55;
+        }
+        .kagie-dashboard-boot-loader {
+          width: 34px;
+          height: 34px;
+          margin: 0 auto;
+          border-radius: 999px;
+          border: 2px solid rgba(100, 116, 139, .16);
+          border-top-color: #0f172a;
+          animation: kagie-spin .88s linear infinite;
+        }
+        .kagie-fade-in {
+          animation: kagie-fade-in .24s ease;
+        }
+        @keyframes kagie-spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes kagie-shimmer {
+          100% { transform: translateX(100%); }
+        }
+        @keyframes kagie-fade-in {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .kagie-btn-loading,
+          .kagie-inline-retry,
+          .kagie-dashboard-boot,
+          .kagie-dashboard-boot-loader,
+          .kagie-btn-spinner,
+          .kagie-skeleton::after,
+          .kagie-skeleton-circle::after,
+          .kagie-fade-in {
+            animation: none !important;
+            transition: none !important;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    };
+
+    const setButtonLoading = (button, loading, options = {}) => {
+      if (!button) return;
+      ensureStyles();
+      const busyText = String(options.busyText || options.label || "Working...").trim() || "Working...";
+      if (loading) {
+        if (!button.dataset.kagieOriginalHtml) button.dataset.kagieOriginalHtml = button.innerHTML;
+        if (!button.dataset.kagieOriginalMinWidth) button.dataset.kagieOriginalMinWidth = button.style.minWidth || "";
+        if (!button.dataset.kagieLockedWidth) button.dataset.kagieLockedWidth = `${Math.max(button.offsetWidth || 0, 92)}px`;
+        button.style.minWidth = button.dataset.kagieLockedWidth;
+        button.classList.add("kagie-btn-loading");
+        button.dataset.kagieBusy = "1";
+        button.setAttribute("aria-busy", "true");
+        button.setAttribute("aria-disabled", "true");
+        if ("disabled" in button) button.disabled = true;
+        button.innerHTML = `<span class="kagie-btn-content"><span class="kagie-btn-spinner" aria-hidden="true"></span><span class="kagie-btn-label">${escapeHtml(busyText)}</span></span>`;
+        return;
+      }
+      if (button.dataset.kagieOriginalHtml) {
+        button.innerHTML = button.dataset.kagieOriginalHtml;
+      }
+      button.classList.remove("kagie-btn-loading");
+      delete button.dataset.kagieBusy;
+      button.removeAttribute("aria-busy");
+      button.removeAttribute("aria-disabled");
+      if ("disabled" in button) button.disabled = Boolean(options.keepDisabled);
+      button.style.minWidth = button.dataset.kagieOriginalMinWidth || "";
+      delete button.dataset.kagieOriginalHtml;
+      delete button.dataset.kagieOriginalMinWidth;
+      delete button.dataset.kagieLockedWidth;
+    };
+
+    const withButtonLock = async (button, key, busyText, task, options = {}) => {
+      const lockKey = String(key || button?.dataset?.action || button?.id || button?.textContent || "kagie-action");
+      if (locks.has(lockKey) || button?.dataset?.kagieBusy === "1") return null;
+      locks.add(lockKey);
+      let completed = false;
+      let slowTimer = 0;
+      setButtonLoading(button, true, { busyText });
+      if (options.slowMs !== 0) {
+        slowTimer = window.setTimeout(() => {
+          if (typeof options.onSlow === "function") options.onSlow();
+        }, Number(options.slowMs || 3200));
+      }
+      try {
+        const result = await task();
+        completed = true;
+        return result;
+      } finally {
+        if (slowTimer) window.clearTimeout(slowTimer);
+        locks.delete(lockKey);
+        if (!options.keepLockedOnSuccess || !completed) {
+          setButtonLoading(button, false, { keepDisabled: false });
+        }
+      }
+    };
+
+    const withFormLock = async ({
+      event,
+      form,
+      key,
+      busyText,
+      task,
+      button,
+      statusNode,
+      slowText = "Still processing, please wait...",
+      slowMs = 3200,
+      keepLockedOnSuccess = false
+    }) => {
+      event?.preventDefault?.();
+      const targetForm = form || event?.currentTarget;
+      if (!targetForm) return null;
+      const lockKey = String(key || targetForm.id || targetForm.dataset.action || busyText || "kagie-form-action");
+      if (locks.has(lockKey) || targetForm.dataset.kagieBusy === "1") return null;
+      targetForm.dataset.kagieBusy = "1";
+      const actionButton = button || event?.submitter || targetForm.querySelector('button[type="submit"], .panel-link, .action-button, .topbar-button, .table-action');
+      try {
+        return await withButtonLock(actionButton, lockKey, busyText, task, {
+          keepLockedOnSuccess,
+          slowMs,
+          onSlow: () => {
+            if (!statusNode) return;
+            statusNode.className = "status-message info";
+            statusNode.textContent = slowText;
+          }
+        });
+      } finally {
+        targetForm.dataset.kagieBusy = "0";
+      }
+    };
+
+    const debounce = (fn, delay = 180) => {
+      let timer = 0;
+      const debounced = (...args) => {
+        if (timer) window.clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          timer = 0;
+          fn(...args);
+        }, delay);
+      };
+      debounced.cancel = () => {
+        if (timer) window.clearTimeout(timer);
+        timer = 0;
+      };
+      return debounced;
+    };
+
+    const showBootScreen = ({
+      id = "kagie-dashboard-boot",
+      title = "Kagie",
+      message = "Loading your dashboard...",
+      logo = "K"
+    } = {}) => {
+      if (typeof document === "undefined") return { hide() {}, update() {} };
+      ensureStyles();
+      let node = document.getElementById(id);
+      if (!node) {
+        node = document.createElement("div");
+        node.id = id;
+        node.className = "kagie-dashboard-boot";
+        document.body.appendChild(node);
+      }
+      node.innerHTML = `
+        <div class="kagie-dashboard-boot-card">
+          <div class="kagie-dashboard-boot-logo">${escapeHtml(logo)}</div>
+          <div class="kagie-dashboard-boot-loader" aria-hidden="true"></div>
+          <h2>${escapeHtml(title)}</h2>
+          <p>${escapeHtml(message)}</p>
+        </div>
+      `;
+      node.classList.remove("is-hidden");
+      return {
+        hide() {
+          node.classList.add("is-hidden");
+          window.setTimeout(() => {
+            if (node?.parentNode) node.parentNode.removeChild(node);
+          }, 320);
+        },
+        update(nextTitle, nextMessage) {
+          const heading = node.querySelector("h2");
+          const copy = node.querySelector("p");
+          if (heading && nextTitle) heading.textContent = nextTitle;
+          if (copy && nextMessage) copy.textContent = nextMessage;
+        }
+      };
+    };
+
+    const skeletonLine = (widthClass = "w-100", sizeClass = "") => `<div class="kagie-skeleton kagie-skeleton-line ${sizeClass} ${widthClass}"></div>`;
+    const skeletonStatCards = (count = 4) => Array.from({ length: count }, () => `
+      <article class="stat-card kagie-skeleton-shell">
+        <div class="stat-icon blue kagie-skeleton-circle" style="width:56px;height:56px"></div>
+        <div class="kagie-skeleton-stack" style="width:100%">
+          ${skeletonLine("w-48", "sm")}
+          ${skeletonLine("w-72", "lg")}
+          ${skeletonLine("w-92", "sm")}
+        </div>
+      </article>
+    `).join("");
+    const skeletonQueueRows = ({ rows = 4, columns = 7 } = {}) => Array.from({ length: rows }, () => `
+      <div class="queue-row kagie-skeleton-shell">
+        ${Array.from({ length: columns }, (_value, index) => `
+          <div class="queue-cell" data-label="">
+            ${index === 0
+              ? `<div class="queue-user"><div class="queue-avatar kagie-skeleton-circle" style="width:42px;height:42px"></div><div class="kagie-skeleton-stack" style="width:min(180px,100%)">${skeletonLine("w-72")}${skeletonLine("w-48", "sm")}</div></div>`
+              : skeletonLine(index === columns - 1 ? "w-56" : "w-80")}
+          </div>
+        `).join("")}
+      </div>
+    `).join("");
+    const skeletonList = ({ rows = 4, avatar = true, lines = 2, pill = true } = {}) => Array.from({ length: rows }, () => `
+      <article class="assistant-item kagie-skeleton-shell">
+        ${avatar ? '<div class="queue-avatar kagie-skeleton-circle" style="width:42px;height:42px"></div>' : ""}
+        <div class="item-copy" style="flex:1 1 auto">
+          <div class="kagie-skeleton-stack">
+            ${Array.from({ length: lines }, (_entry, index) => skeletonLine(index === 0 ? "w-64" : "w-88", index === 0 ? "" : "sm")).join("")}
+          </div>
+        </div>
+        ${pill ? '<div class="kagie-skeleton" style="width:72px;height:28px;border-radius:999px"></div>' : ""}
+      </article>
+    `).join("");
+    const skeletonInspector = () => `
+      <section class="inspector-profile kagie-skeleton-shell">
+        <div class="inspector-profile-head">
+          <div class="queue-avatar kagie-skeleton-circle" style="width:56px;height:56px"></div>
+          <div class="inspector-profile-copy" style="flex:1 1 auto">
+            <div class="kagie-skeleton-stack">
+              ${skeletonLine("w-56")}
+              ${skeletonLine("w-40", "sm")}
+              ${skeletonLine("w-72", "sm")}
+            </div>
+          </div>
+          <div class="kagie-skeleton" style="width:96px;height:32px;border-radius:999px"></div>
+        </div>
+      </section>
+      <div class="detail-list kagie-fade-in">
+        ${Array.from({ length: 8 }, () => `
+          <div class="detail-item kagie-skeleton-shell">
+            <span class="detail-label">${skeletonLine("w-48", "sm")}</span>
+            <span class="detail-value">${skeletonLine("w-80")}</span>
+          </div>
+        `).join("")}
+      </div>
+    `;
+    const skeletonOverview = () => `
+      <div class="summary-layout kagie-skeleton-shell">
+        <div class="kagie-skeleton-circle" style="width:150px;height:150px;margin-inline:auto"></div>
+        <div class="legend-list">
+          ${Array.from({ length: 3 }, () => `
+            <div class="legend-row">
+              ${skeletonLine("w-56")}
+              ${skeletonLine("w-24")}
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+    const skeletonQuickLinks = (count = 4) => Array.from({ length: count }, () => `
+      <div class="quick-link kagie-skeleton-shell" aria-hidden="true">
+        <div class="kagie-skeleton-stack">
+          ${skeletonLine("w-40", "sm")}
+          ${skeletonLine("w-72", "lg")}
+          ${skeletonLine("w-100", "sm")}
+        </div>
+      </div>
+    `).join("");
+    const skeletonInsightCards = (count = 3) => Array.from({ length: count }, () => `
+      <article class="insight-card kagie-skeleton-shell">
+        <div class="kagie-skeleton-stack">
+          ${skeletonLine("w-36", "sm")}
+          ${skeletonLine("w-80")}
+          ${skeletonLine("w-96", "sm")}
+          ${skeletonLine("w-72", "sm")}
+        </div>
+      </article>
+    `).join("");
+
+    window.KagieUX = {
+      __initialized: true,
+      ensureStyles,
+      escapeHtml,
+      debounce,
+      setButtonLoading,
+      withButtonLock,
+      withFormLock,
+      showBootScreen,
+      buildInlineError(message, retryLabel = "Retry", retryAction = "retry") {
+        ensureStyles();
+        return `
+          <div class="kagie-inline-error kagie-fade-in">
+            <div class="kagie-inline-error-copy">
+              <strong>Something needs attention</strong>
+              <span>${escapeHtml(message || "This section could not load right now.")}</span>
+            </div>
+            <button class="kagie-inline-retry" type="button" data-kagie-retry="${escapeHtml(retryAction)}">${escapeHtml(retryLabel)}</button>
+          </div>
+        `;
+      },
+      skeletonStatCards,
+      skeletonQueueRows,
+      skeletonList,
+      skeletonInspector,
+      skeletonOverview,
+      skeletonQuickLinks,
+      skeletonInsightCards
+    };
+  })();
+
+  [
+    'saveProfileAsync',
+    'saveFormSectionAsync',
+    'updateApplicationAsync',
+    'submitApplicationFromCartAsync',
+    'saveDocumentsAsync',
+    'saveQuestionPaperByAdminAsync',
+    'updateQuestionPaperByAdminAsync',
+    'addInstitutionByAdminAsync',
+    'updateInstitutionByAdminAsync',
+    'saveAdminContentByAdminAsync',
+    'saveAnnouncementByAdminAsync',
+    'submitAccommodationRequestAsync',
+    'submitTransportRequestAsync',
+    'saveProspectusDocumentByStaffAsync',
+    'savePastPaperByStaffAsync',
+    'startYocoCheckoutAsync',
+    'applyPromoCodeAsync',
+    'updateCartItemAsync',
+    'addCartItemAsync',
+    'removeCartItemAsync',
+    'clearCartAsync',
+    'sendSupportMessageAsync',
+    'requestCallbackAsync',
+    'setDocumentReviewAsync',
+    'updateCallRequestAsync'
+  ].forEach((methodName) => {
+    const original = window.KagieAPI?.[methodName];
+    if (typeof original !== 'function' || original.__kagieTimed) return;
+    const timed = async function timedKagieApiMethod(...args) {
+      const shouldLog = (() => {
+        try {
+          return localStorage.getItem('kagie_perf_debug') === '1';
+        } catch (_error) {
+          return false;
+        }
+      })();
+      const startedAt = shouldLog && typeof performance !== 'undefined' ? performance.now() : 0;
+      try {
+        return await original.apply(this, args);
+      } finally {
+        if (shouldLog && typeof performance !== 'undefined') {
+          console.info(`Kagie API timing: ${methodName}`, `${Math.round(performance.now() - startedAt)}ms`);
+        }
+      }
+    };
+    timed.__kagieTimed = true;
+    window.KagieAPI[methodName] = timed;
+  });
 })();

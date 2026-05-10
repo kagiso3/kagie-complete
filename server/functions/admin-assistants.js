@@ -1,5 +1,3 @@
-const { normalizeSupabaseUrl } = require("./_supabase-url");
-
 const REST_PAGE_SIZE = 1000;
 const REST_MAX_PAGES = 20;
 
@@ -188,7 +186,7 @@ exports.handler = async (event) => {
     return json(405, { message: "Method not allowed." }, origin);
   }
 
-  const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, process.env.SUPABASE_ANON_KEY);
+  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   const anonKey = String(process.env.SUPABASE_ANON_KEY || "").trim();
   if (!supabaseUrl || (!serviceRoleKey && !anonKey)) {

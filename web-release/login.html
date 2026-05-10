@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kagie | Login</title>
+  <meta name="theme-color" content="#cf111d" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Kagie" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/images/logos/app-icon.png" />
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search || "");
+      const authPayloadPattern = /(access_token|refresh_token|token_hash|type|code)=/i;
+      const hasAuthPayload = authPayloadPattern.test(window.location.search || "") || authPayloadPattern.test(window.location.hash || "");
+      const explicitlyOpeningApp = params.get("app") === "1" || params.get("direct") === "1" || params.get("switch") === "1" || hasAuthPayload;
+      let cameFromAppPage = false;
+      try {
+        const ref = document.referrer ? new URL(document.referrer) : null;
+        cameFromAppPage = Boolean(ref && ref.origin === window.location.origin && !/^\/(?:index\.html)?$/.test(ref.pathname));
+      } catch (error) {
+        cameFromAppPage = false;
+      }
+      if (!explicitlyOpeningApp && !cameFromAppPage) {
+        window.location.replace("./");
+      }
+    })();
+  </script>
+  <script defer src="/js/pwa-init.js?v=20260409a"></script>
+  <script defer src="/js/install-app.js?v=20260409a"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-left: #ebe4e6;
+      --bg-right: #e5e7eb;
+      --card: rgba(248, 248, 249, .84);
+      --text: #090909;
+      --muted: #72809a;
+      --line: #2e2e2e;
+      --red1: #ff4d4d;
+      --red2: #df0000;
+      --shadow: 0 28px 60px rgba(0, 0, 0, .10);
+      --button-shadow: 0 18px 32px rgba(223, 0, 0, .22);
+      --radius: 38px;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      min-height: 100%
+    }
+
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      background:
+        radial-gradient(circle at left top, rgba(255, 255, 255, .55), transparent 32%),
+        linear-gradient(90deg, var(--bg-left) 0%, var(--bg-right) 100%);
+      color: var(--text);
+    }
+
+    .bg-blur {
+      position: fixed;
+      inset: -10%;
+      pointer-events: none;
+      filter: blur(55px);
+      opacity: .58;
+      z-index: 0;
+    }
+
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      animation: float 10s ease-in-out infinite;
+    }
+
+    .blob.one {
+      width: 320px;
+      height: 320px;
+      left: 4%;
+      top: 6%;
+      background: rgba(255, 255, 255, .58);
+    }
+
+    .blob.two {
+      width: 260px;
+      height: 260px;
+      right: 6%;
+      bottom: 10%;
+      background: rgba(255, 0, 0, .08);
+      animation-delay: -4s;
+    }
+
+    .blob.three {
+      width: 240px;
+      height: 240px;
+      right: 18%;
+      top: 12%;
+      background: rgba(54, 196, 238, .08);
+      animation-delay: -2s;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0) translateX(0)
+      }
+
+      50% {
+        transform: translateY(-18px) translateX(12px)
+      }
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 640px;
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 56px 46px 42px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, .65);
+      opacity: 1;
+      transform: none;
+    }
+
+    h1 {
+      margin: 0;
+      text-align: center;
+      font-size: 56px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -.03em;
+    }
+
+    .sub {
+      margin: 24px 0 36px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .provider-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .provider-btn,
+    .mode-btn,
+    .secondary-btn {
+      font-family: inherit;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+
+    .provider-btn {
+      min-height: 62px;
+      border: 2px solid rgba(17, 24, 39, .1);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .72);
+      color: #111827;
+      font-size: 15px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 14px;
+    }
+
+    .provider-btn:hover,
+    .mode-btn:hover,
+    .secondary-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .provider-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      font-weight: 900;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .provider-google .provider-icon {
+      background: #e5efff;
+      color: #0f5bd8;
+    }
+
+    .provider-apple .provider-icon {
+      background: #111827;
+      color: #fff;
+    }
+
+    .provider-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .mode-switch {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0 0 20px;
+      padding: 7px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .42);
+      border: 1px solid rgba(17, 24, 39, .08);
+    }
+
+    .mode-btn {
+      min-height: 52px;
+      border: none;
+      border-radius: 12px;
+      background: transparent;
+      color: #6b7280;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .mode-btn.active {
+      background: #fff;
+      color: #111827;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, .08);
+    }
+
+    .field {
+      margin-bottom: 28px
+    }
+
+    .remember-row{
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      margin:-4px 0 22px;
+      padding:16px 18px;
+      border-radius:16px;
+      background:rgba(255,255,255,.48);
+      border:1px solid rgba(17,24,39,.08);
+    }
+
+    .remember-row input{
+      width:20px;
+      height:20px;
+      margin-top:2px;
+      accent-color:#d00000;
+      flex:0 0 auto;
+    }
+
+    .remember-copy{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width:0;
+    }
+
+    .remember-title{
+      font-size:15px;
+      font-weight:800;
+      color:#111827;
+    }
+
+    .remember-note{
+      font-size:12px;
+      line-height:1.45;
+      color:#6b7280;
+    }
+
+    .input-wrap {
+      position: relative
+    }
+
+    .input {
+      width: 100%;
+      height: 88px;
+      border: 3px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .26);
+      padding: 0 28px;
+      font-size: 19px;
+      font-weight: 700;
+      color: #111827;
+      outline: none;
+      transition: .25s ease;
+      font-family: inherit;
+    }
+
+    .input::placeholder {
+      color: #747784;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      font-weight: 700;
+    }
+
+    .input:focus {
+      border-color: #d00000;
+      box-shadow: 0 0 0 5px rgba(224, 0, 0, .08);
+      transform: translateY(-1px);
+    }
+
+    .toggle-pass {
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-weight: 700;
+      color: #6b7280;
+      font-family: inherit;
+      font-size: 15px;
+      padding: 6px 8px;
+    }
+
+    .btn {
+      width: 100%;
+      height: 86px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(180deg, var(--red1), var(--red2));
+      color: #fff;
+      font-size: 28px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: var(--button-shadow);
+      transition: .25s ease;
+      margin: 14px 0 24px;
+      font-family: inherit;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px)
+    }
+
+    .btn:disabled {
+      opacity: .7;
+      cursor: not-allowed;
+      transform: none
+    }
+
+    .secondary-btn {
+      width: 100%;
+      height: 70px;
+      border-radius: 12px;
+      border: 2px solid rgba(17, 24, 39, .12);
+      background: #fff;
+      color: #111827;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .links {
+      text-align: center;
+      display: grid;
+      gap: 10px;
+    }
+
+    .links a {
+      color: #1d2233;
+      font-size: 20px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: .2s ease;
+    }
+
+    .links a:hover {
+      color: #d00000
+    }
+
+    .message {
+      min-height: 24px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .message.error {
+      color: #b00020
+    }
+
+    .message.success {
+      color: #0f8a43
+    }
+
+    .auth-panel {
+      display: none;
+    }
+
+    .auth-panel.active {
+      display: block;
+    }
+
+    .helper {
+      margin: -6px 0 18px;
+      text-align: center;
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 1.65;
+      font-weight: 600;
+    }
+
+    .hint {
+      margin-top: 14px;
+      text-align: center;
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    @media (max-width:700px) {
+      .auth-card {
+        max-width: 100%;
+        padding: 42px 24px 30px;
+        border-radius: 30px;
+      }
+
+      h1 {
+        font-size: 44px
+      }
+
+      .sub {
+        font-size: 16px;
+        margin: 18px 0 28px
+      }
+
+      .input {
+        height: 74px;
+        font-size: 17px
+      }
+
+      .btn {
+        height: 74px;
+        font-size: 22px
+      }
+
+      .links a {
+        font-size: 16px
+      }
+
+      .provider-row {
+        grid-template-columns: 1fr
+      }
+
+      .secondary-btn {
+        height: 64px
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-blur" aria-hidden="true">
+    <div class="blob one"></div>
+    <div class="blob two"></div>
+    <div class="blob three"></div>
+  </div>
+
+  <div class="page">
+    <main class="auth-card" id="authCard">
+      <h1>Login</h1>
+      <p class="sub">Use your Kagie email and password</p>
+
+      <form id="loginForm" class="auth-panel active" novalidate>
+        <div class="field">
+          <div class="input-wrap">
+            <input class="input" id="email" type="email" placeholder="Email" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="input-wrap">
+            <input class="input" id="password" type="password" placeholder="Password" autocomplete="current-password"
+              required>
+            <button class="toggle-pass" type="button" id="togglePassword" aria-label="Show password">Show</button>
+          </div>
+        </div>
+
+        <button class="btn" id="loginBtn" type="submit">log in</button>
+      </form>
+
+      <label class="remember-row" for="rememberSession">
+        <input id="rememberSession" type="checkbox">
+        <span class="remember-copy">
+          <span class="remember-title">Stay logged in</span>
+          <span class="remember-note">Only keep me signed in on this device if I choose it.</span>
+        </span>
+      </label>
+
+      <div class="message" id="message" aria-live="polite"></div>
+
+      <div class="links">
+        <a href="signup.html">Create new Account</a>
+        <a href="forgot-password.html">Forgot Password?</a>
+      </div>
+
+      <div class="hint">Email login only</div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/backend.js?v=20260507g"></script>
+<script src="js/supabase-config.js?v=20260507g"></script>
+  <script>
+    const form = document.getElementById("loginForm");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const message = document.getElementById("message");
+    const loginBtn = document.getElementById("loginBtn");
+    const togglePassword = document.getElementById("togglePassword");
+    const rememberSession = document.getElementById("rememberSession");
+    const switchAccount = new URLSearchParams(window.location.search).get("switch") === "1";
+    let loginInFlight = false;
+
+    function ensureApiReady() {
+      if (window.KagieAPI) return window.KagieAPI;
+      setMessage("Kagie is still loading on this page. Refresh once and try again.", "error");
+      return null;
+    }
+
+    function formatAuthMessage(raw, fallback = "Kagie could not complete that sign-in step right now.") {
+      const text = String(raw || "").trim();
+      if (!text) return fallback;
+      if (/supabase admin configuration is missing/i.test(text)) {
+        return "Kagie live admin setup is still being completed on this site. Try again after the latest deploy finishes.";
+      }
+      if (/old Kagie MVP storage|only in this browser|only on this device/i.test(text)) {
+        return text;
+      }
+      if (/supabase authentication is not configured/i.test(text)) {
+        return "Kagie live login is missing Supabase configuration on Vercel. Check the Production environment variables, then redeploy.";
+      }
+      if (/could not reach Supabase Auth|failed to fetch|network/i.test(text)) {
+        return "Kagie cannot reach Supabase Auth from this domain. Use the Vercel URL for now and check the custom domain/DNS.";
+      }
+      if (/rejected this site configuration|invalid api key|anon key|jwt/i.test(text)) {
+        return "Supabase rejected this site configuration. Make sure SUPABASE_URL and SUPABASE_ANON_KEY belong to the same Supabase project.";
+      }
+      if (/email.*confirm|email_not_confirmed/i.test(text)) {
+        return "Check your email and confirm your Kagie account before logging in.";
+      }
+      if (/invalid login credentials/i.test(text)) {
+        return "Invalid email or password.";
+      }
+      return text;
+    }
+
+    function setMessage(text, type = "") {
+      message.textContent = text;
+      message.className = type ? `message ${type}` : "message";
+    }
+
+    function setLoading(isLoading) {
+      loginBtn.disabled = isLoading;
+      loginBtn.textContent = isLoading ? "Logging in..." : "log in";
+    }
+
+    function normalizeRole(role) {
+      const value = String(role || "").trim().toLowerCase();
+      if (["master_admin", "master admin", "master-admin", "masteradmin", "super_admin", "super-admin", "super admin", "superadmin", "owner"].includes(value)) return "master_admin";
+      if (["assistant_admin", "assistant admin", "assistant-admin", "assistantadmin", "assistant", "admin", "staff", "administrator", "support", "support_staff", "support-staff", "support staff"].includes(value)) return "assistant_admin";
+      return "user";
+    }
+
+    function redirectByRole(user) {
+      const role = normalizeRole(user?.role);
+
+      if (role === "master_admin") {
+        window.location.href = "master-admin/dashboard.html";
+        return;
+      }
+
+      if (role === "assistant_admin") {
+        window.location.href = "assistant/dashboard.html";
+        return;
+      }
+
+      window.location.href = "home.html";
+    }
+
+    window.addEventListener("load", async () => {
+      const api = ensureApiReady();
+      if (!api) return;
+      rememberSession.checked = Boolean(api.shouldRememberLogin?.());
+      if (switchAccount) {
+        try {
+          if (api?.setLoginPersistence) api.setLoginPersistence(false);
+          if (api?.logoutReal) await api.logoutReal();
+          else await Promise.resolve(api.logout());
+          setMessage("You can now sign in with a different account.", "success");
+        } catch (error) {
+          console.warn("Switch account logout failed", error);
+        }
+
+        history.replaceState({}, document.title, window.location.pathname);
+        return;
+      }
+
+      try {
+        const restored = await api.restoreSession();
+        if (restored) {
+          redirectByRole(restored);
+          return;
+        }
+      } catch (error) {
+        console.warn("Session restore failed", error);
+      }
+    });
+
+    togglePassword.addEventListener("click", () => {
+      const show = passwordInput.type === "password";
+      passwordInput.type = show ? "text" : "password";
+      togglePassword.textContent = show ? "Hide" : "Show";
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (loginInFlight) return;
+      setMessage("");
+      const api = ensureApiReady();
+      if (!api) return;
+
+      const userEmail = emailInput.value.trim().toLowerCase();
+      const userPassword = passwordInput.value;
+
+      if (!userEmail || !userPassword) {
+        setMessage("Enter your email and password.", "error");
+        return;
+      }
+
+      loginInFlight = true;
+      setLoading(true);
+
+      try {
+        const user = await api.login(userEmail, userPassword, { persist: rememberSession.checked });
+        setMessage("Login successful. Redirecting...", "success");
+        setTimeout(() => redirectByRole(user), 500);
+      } catch (err) {
+        console.error(err);
+        setMessage(formatAuthMessage(err.message, "Login failed."), "error");
+        loginInFlight = false;
+        setLoading(false);
+      }
+    });
+  </script>
+</body>
+
+</html>

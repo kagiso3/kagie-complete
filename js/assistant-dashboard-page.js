@@ -29,6 +29,8 @@
     docsCache: new Map(),
     profileCache: new Map()
   };
+  const UX = () => window.KagieUX || null;
+  let bootScreen = null;
 
   function normalizeRole(role) {
     const value = String(role || "").trim().toLowerCase();
@@ -260,6 +262,27 @@
 
   function renderEmptyState(message) {
     return `<div class="empty-state">${esc(message)}</div>`;
+  }
+
+  function buildInlineRetry(message, action) {
+    const ux = UX();
+    if (ux?.buildInlineError) return ux.buildInlineError(message, "Retry", action);
+    return renderEmptyState(message);
+  }
+
+  function renderDashboardLoadingState() {
+    const ux = UX();
+    $("heroTitle").textContent = "Good day";
+    $("heroText").textContent = "Loading your dashboard...";
+    $("stats").innerHTML = ux?.skeletonStatCards?.(4) || "";
+    $("applications").innerHTML = ux?.skeletonQueueRows?.({ rows: 4, columns: 7 }) || renderEmptyState("Loading assigned learners...");
+    $("assistantQueueMeta").textContent = "Loading learner queue...";
+    $("assistantPagination").innerHTML = "";
+    $("learnerInspector").innerHTML = ux?.skeletonInspector?.() || '<div class="inspector-empty">Loading learner details...</div>';
+    $("assistantStatusOverview").innerHTML = ux?.skeletonOverview?.() || renderEmptyState("Loading status overview...");
+    $("activity").innerHTML = ux?.skeletonList?.({ rows: 4, lines: 2 }) || "";
+    const noticeList = $("assistantNoticesList");
+    if (noticeList) noticeList.innerHTML = ux?.skeletonList?.({ rows: 4, lines: 2 }) || "";
   }
 
   function buildStatCard(config) {
@@ -638,18 +661,74 @@
   }
 
   async function refreshDashboard(api) {
-    const [applications, users, notices, activity] = await Promise.all([
-      api.getApplicationsByAssistantAsync(state.user.id).catch(() => []),
-      api.getAllUsersAsync().catch(() => []),
-      api.getNotificationsAsync(state.user.id).catch(() => []),
-      api.getAllAssistantActivityAsync().catch(() => [])
-    ]);
+    renderDashboardLoadingState();
+    bootScreen?.update?.("Kagie", "Loading your dashboard...");
 
-    state.applications = asArray(applications).sort((left, right) => new Date(right?.updatedAt || right?.createdAt || 0) - new Date(left?.updatedAt || left?.createdAt || 0));
-    state.users = asArray(users);
-    state.notices = asArray(notices).sort((left, right) => new Date(right?.createdAt || 0) - new Date(left?.createdAt || 0));
-    state.activity = asArray(activity).sort((left, right) => new Date(right?.createdAt || 0) - new Date(left?.createdAt || 0));
-    renderAll();
+    const coreTask = Promise.all([
+      api.getApplicationsByAssistantAsync(state.user.id)
+        .then((items) => asArray(items))
+        .catch((error) => {
+          throw new Error(error?.message || "Failed to load your assigned learners.");
+        }),
+      api.getAllUsersAsync().then((items) => asArray(items)).catch(() => [])
+    ]);
+    const noticesTask = api.getNotificationsAsync(state.user.id)
+      .then((items) => asArray(items))
+      .catch((error) => {
+        throw new Error(error?.message || "Failed to load notices.");
+      });
+    const activityTask = api.getAllAssistantActivityAsync()
+      .then((items) => asArray(items))
+      .catch((error) => {
+        throw new Error(error?.message || "Failed to load assistant activity.");
+      });
+
+    try {
+      const [applications, users] = await coreTask;
+      state.applications = asArray(applications).sort((left, right) => new Date(right?.updatedAt || right?.createdAt || 0) - new Date(left?.updatedAt || left?.createdAt || 0));
+      state.users = asArray(users);
+      renderStats();
+      renderQueue();
+      renderInspector();
+      renderStatusOverview();
+      updateFilterButton();
+      updateHero();
+      bootScreen?.hide?.();
+      bootScreen = null;
+    } catch (error) {
+      const message = error?.message || "We could not load the assistant queue right now.";
+      $("applications").innerHTML = buildInlineRetry(message, "refresh-dashboard");
+      $("assistantQueueMeta").textContent = "Learner queue unavailable.";
+      $("learnerInspector").innerHTML = `<div class="inspector-empty">${esc(message)}</div>`;
+      $("assistantStatusOverview").innerHTML = renderEmptyState("Status overview unavailable.");
+      $("activity").innerHTML = renderEmptyState("Recent activity unavailable.");
+      bootScreen?.hide?.();
+      bootScreen = null;
+      return;
+    }
+
+    noticesTask
+      .then((notices) => {
+        state.notices = asArray(notices).sort((left, right) => new Date(right?.createdAt || 0) - new Date(left?.createdAt || 0));
+        renderNotices();
+      })
+      .catch((error) => {
+        $("assistantNoticeCount").textContent = "0";
+        $("assistantMessagesCount").textContent = "0";
+        const noticeList = $("assistantNoticesList");
+        if (noticeList) noticeList.innerHTML = buildInlineRetry(error?.message || "Failed to load notices.", "refresh-notices");
+      });
+
+    activityTask
+      .then((activity) => {
+        state.activity = asArray(activity).sort((left, right) => new Date(right?.createdAt || 0) - new Date(left?.createdAt || 0));
+        renderActivity();
+      })
+      .catch((error) => {
+        $("activity").innerHTML = buildInlineRetry(error?.message || "Failed to load recent activity.", "refresh-activity");
+      });
+
+    await Promise.allSettled([noticesTask, activityTask]);
   }
 
   function exportVisibleRows() {
@@ -743,10 +822,16 @@
       $("assistantOverlay").classList.remove("open");
     });
 
-    $("assistantSearchInput").addEventListener("input", () => {
-      state.page = 1;
-      renderQueue();
-    });
+    const debouncedSearch = UX()?.debounce
+      ? UX().debounce(() => {
+        state.page = 1;
+        renderQueue();
+      }, 180)
+      : () => {
+        state.page = 1;
+        renderQueue();
+      };
+    $("assistantSearchInput").addEventListener("input", debouncedSearch);
 
     $("assistantFilterButton").addEventListener("click", () => {
       const currentIndex = FILTER_ORDER.indexOf(state.filter);
@@ -769,19 +854,47 @@
     $("assistantMessagesLink").addEventListener("click", () => $("assistantNoticeBtn").click());
     $("assistantBottomNotice").addEventListener("click", () => $("assistantNoticeBtn").click());
 
-    $("logoutLink").addEventListener("click", async () => {
+    $("logoutLink").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      if (UX()?.withButtonLock) {
+        await UX().withButtonLock(button, "assistant-logout", "Signing out...", async () => {
+          await api.logout().catch(() => {});
+          window.location.href = "../login.html";
+        });
+        return;
+      }
       await api.logout().catch(() => {});
       window.location.href = "../login.html";
     });
 
     $("assistantStatusForm").addEventListener("submit", async (event) => {
-      event.preventDefault();
       const selected = state.applications.find((app) => app.id === state.selectedApplicationId);
       if (!selected) return;
-      const nextStatus = $("assistantStatusSelect").value;
-      const noteText = $("assistantStatusNote").value.trim();
-      setStatusMessage("Saving update...", "info");
       try {
+        if (UX()?.withFormLock) {
+          await UX().withFormLock({
+            event,
+            form: event.currentTarget,
+            busyText: "Saving...",
+            statusNode: $("assistantStatusMsg"),
+            task: async () => {
+              const nextStatus = $("assistantStatusSelect").value;
+              const noteText = $("assistantStatusNote").value.trim();
+              setStatusMessage("Saving update...", "info");
+              await api.updateApplicationAsync(selected.id, { status: nextStatus });
+              if (noteText) await api.addApplicationNoteAsync(selected.id, noteText);
+              setStatusMessage("Application status updated.", "ok");
+              await refreshDashboard(api);
+              closeModal("assistantStatusModal");
+            }
+          });
+          return;
+        }
+
+        event.preventDefault();
+        const nextStatus = $("assistantStatusSelect").value;
+        const noteText = $("assistantStatusNote").value.trim();
+        setStatusMessage("Saving update...", "info");
         await api.updateApplicationAsync(selected.id, { status: nextStatus });
         if (noteText) await api.addApplicationNoteAsync(selected.id, noteText);
         setStatusMessage("Application status updated.", "ok");
@@ -789,6 +902,44 @@
         closeModal("assistantStatusModal");
       } catch (error) {
         setStatusMessage(error?.message || "Could not save the status update.", "err");
+      }
+    });
+
+    document.addEventListener("click", (event) => {
+      const retryButton = event.target.closest("[data-kagie-retry]");
+      if (!retryButton) return;
+      const action = retryButton.getAttribute("data-kagie-retry");
+      if (action === "refresh-dashboard") {
+        void (UX()?.withButtonLock
+          ? UX().withButtonLock(retryButton, "assistant-retry-dashboard", "Retrying...", async () => {
+            await refreshDashboard(api);
+          })
+          : refreshDashboard(api));
+        return;
+      }
+      if (action === "refresh-notices") {
+        void (UX()?.withButtonLock
+          ? UX().withButtonLock(retryButton, "assistant-retry-notices", "Retrying...", async () => {
+            const notices = await api.getNotificationsAsync(state.user.id).catch((error) => {
+              throw new Error(error?.message || "Failed to load notices.");
+            });
+            state.notices = asArray(notices).sort((left, right) => new Date(right?.createdAt || 0) - new Date(left?.createdAt || 0));
+            renderNotices();
+          })
+          : null);
+        return;
+      }
+      if (action === "refresh-activity") {
+        void (UX()?.withButtonLock
+          ? UX().withButtonLock(retryButton, "assistant-retry-activity", "Retrying...", async () => {
+            $("activity").innerHTML = UX()?.skeletonList?.({ rows: 4, lines: 2 }) || renderEmptyState("Loading recent activity...");
+            const activity = await api.getAllAssistantActivityAsync().catch((error) => {
+              throw new Error(error?.message || "Failed to load assistant activity.");
+            });
+            state.activity = asArray(activity).sort((left, right) => new Date(right?.createdAt || 0) - new Date(left?.createdAt || 0));
+            renderActivity();
+          })
+          : null);
       }
     });
 
@@ -863,6 +1014,10 @@
 
     state.user = api.requireRole("assistant_admin");
     setIdentityUI(state.user);
+    bootScreen = UX()?.showBootScreen?.({
+      title: "Kagie",
+      message: "Loading your dashboard..."
+    }) || null;
     bindStaticEvents(api);
     await refreshDashboard(api);
   }
@@ -870,6 +1025,8 @@
   document.addEventListener("DOMContentLoaded", () => {
     main().catch((error) => {
       console.error("Assistant dashboard failed to load:", error);
+      bootScreen?.hide?.();
+      bootScreen = null;
       $("applications").innerHTML = renderEmptyState("We could not load the assistant dashboard right now.");
       $("learnerInspector").innerHTML = `<div class="inspector-empty">Dashboard data is unavailable right now.</div>`;
       $("activity").innerHTML = renderEmptyState("No assistant activity could be loaded.");

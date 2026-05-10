@@ -25,6 +25,14 @@
     assistants: [],
     notices: [],
     summary: null,
+    adminContent: {
+      career: null,
+      housing: null
+    },
+    announcements: [],
+    institutions: [],
+    questionPapers: [],
+    housingListings: [],
     selectedApplicationId: "",
     filter: "all",
     page: 1,
@@ -32,6 +40,66 @@
     detailCache: new Map(),
     pendingDetailKey: ""
   };
+  const UX = () => window.KagieUX || null;
+  let bootScreen = null;
+
+  async function runFormAction(event, busyText, task) {
+    const form = event.currentTarget;
+    const statusNode = form?.querySelector(".status-message");
+    const ux = UX();
+    if (ux?.withFormLock) {
+      return ux.withFormLock({
+        event,
+        form,
+        busyText,
+        task,
+        statusNode
+      });
+    }
+    event.preventDefault();
+    if (!form || form.dataset.busy === "1") return null;
+    form.dataset.busy = "1";
+    const button = event.submitter || form.querySelector('button[type="submit"], .panel-link, .action-button');
+    const originalText = button?.textContent || "";
+    try {
+      if (button) {
+        button.disabled = true;
+        button.setAttribute("aria-busy", "true");
+        if (busyText) button.textContent = busyText;
+      }
+      return await task();
+    } finally {
+      form.dataset.busy = "0";
+      if (button?.isConnected) {
+        button.disabled = false;
+        button.removeAttribute("aria-busy");
+        if (busyText) button.textContent = originalText;
+      }
+    }
+  }
+
+  async function runButtonAction(button, key, busyText, task) {
+    const ux = UX();
+    if (ux?.withButtonLock) {
+      return ux.withButtonLock(button, key, busyText, task);
+    }
+    if (button?.dataset?.kagieBusy === "1") return null;
+    const originalText = button?.textContent || "";
+    if (button) {
+      button.disabled = true;
+      button.setAttribute("aria-busy", "true");
+      if (busyText) button.textContent = busyText;
+    }
+    try {
+      return await task();
+    } finally {
+      if (button?.isConnected) {
+        button.disabled = false;
+        button.removeAttribute("aria-busy");
+        if (busyText) button.textContent = originalText;
+      }
+    }
+  }
 
   function normalizeRole(role) {
     const value = String(role || "").trim().toLowerCase();
@@ -445,6 +513,29 @@
     return `<div class="empty-state">${esc(message)}</div>`;
   }
 
+  function buildInlineRetry(message, action) {
+    const ux = UX();
+    if (ux?.buildInlineError) return ux.buildInlineError(message, "Retry", action);
+    return `<div class="empty-state">${esc(message)}</div>`;
+  }
+
+  function renderDashboardLoadingState() {
+    const ux = UX();
+    $("masterHeroTitle").textContent = "Dashboard Overview";
+    $("masterHeroText").textContent = "Loading your dashboard...";
+    $("masterStats").innerHTML = ux?.skeletonStatCards?.(4) || "";
+    $("masterDataCounts").innerHTML = ux?.skeletonList?.({ rows: 5 }) || "";
+    $("masterAdminPanelGrid").innerHTML = ux?.skeletonList?.({ rows: 5, avatar: false, lines: 3, pill: false }) || "";
+    $("masterApplications").innerHTML = ux?.skeletonQueueRows?.({ rows: 4, columns: 7 }) || renderEmptyState("Loading applications...");
+    $("masterQueueMeta").textContent = "Loading applications queue...";
+    $("masterPagination").innerHTML = "";
+    $("masterLearnerInspector").innerHTML = ux?.skeletonInspector?.() || '<div class="inspector-empty">Loading learner details...</div>';
+    $("masterRecentLearners").innerHTML = ux?.skeletonList?.({ rows: 4 }) || "";
+    $("masterAssistantRoster").innerHTML = ux?.skeletonList?.({ rows: 4 }) || "";
+    const noticeList = $("masterNoticesList");
+    if (noticeList) noticeList.innerHTML = ux?.skeletonList?.({ rows: 4, lines: 2 }) || "";
+  }
+
   function buildStatCard(config) {
     return `
       <article class="stat-card">
@@ -521,6 +612,83 @@
           <div class="item-subtitle">Real Kagie dashboard count</div>
         </div>
         <span class="assistant-load">${esc(String(value || 0))}</span>
+      </article>
+    `).join("");
+  }
+
+  function renderAdminPanels() {
+    const container = $("masterAdminPanelGrid");
+    if (!container) return;
+
+    const career = state.adminContent.career || {};
+    const housing = state.adminContent.housing || {};
+    const institutionRows = asArray(state.institutions);
+    const openInstitutions = institutionRows.filter((item) => item?.canApply !== false && String(item?.status || "").toLowerCase() !== "closed").length;
+    const closedInstitutions = institutionRows.filter((item) => item?.canApply === false || String(item?.status || "").toLowerCase() === "closed").length;
+    const paperRows = asArray(state.questionPapers);
+    const publishedPapers = paperRows.filter((item) => String(item?.status || "").toLowerCase() === "published").length;
+    const draftPapers = paperRows.filter((item) => String(item?.status || "").toLowerCase() !== "published").length;
+    const activeAnnouncements = asArray(state.announcements).filter((item) => item?.active || item?.status === "active").length;
+    const housingStatus = String(housing?.settings?.serviceStatus || "open").replace(/_/g, " ");
+
+    const panels = [
+      {
+        key: "career",
+        title: "Career Hub Admin",
+        meta: career?.status === "inactive" ? "Inactive" : "Active",
+        copy: career?.body || "Manage career hub content and published learning resources.",
+        metric: `${publishedPapers} published papers`,
+        button: "Manage career"
+      },
+      {
+        key: "housing",
+        title: "Housing Admin",
+        meta: housing?.status === "inactive" ? "Inactive" : housingStatus,
+        copy: housing?.body || "Manage housing service settings and learner-facing support copy.",
+        metric: `${asArray(state.housingListings).length} housing listing${asArray(state.housingListings).length === 1 ? "" : "s"}`,
+        button: "Manage housing"
+      },
+      {
+        key: "institutions",
+        title: "Institutions Control",
+        meta: `${openInstitutions} open / ${closedInstitutions} closed`,
+        copy: "Enable, disable, open, or close institutions before learners submit applications.",
+        metric: `${institutionRows.length} institutions`,
+        href: "../institutions.html",
+        button: "Open institutions"
+      },
+      {
+        key: "question-papers",
+        title: "Question Papers Admin",
+        meta: `${publishedPapers} published / ${draftPapers} drafts`,
+        copy: "Upload, edit, publish, disable, and delete question papers and memos.",
+        metric: `${paperRows.length} files`,
+        href: "../question-papers.html",
+        button: "Manage papers"
+      },
+      {
+        key: "announcements",
+        title: "Announcements Admin",
+        meta: `${activeAnnouncements} active`,
+        copy: "Create dashboard notices for learners, assistants, everyone, or an institution group.",
+        metric: `${asArray(state.announcements).length} total`,
+        button: "Manage notices"
+      }
+    ];
+
+    container.innerHTML = panels.map((panel) => `
+      <article class="admin-panel-tile">
+        <div class="admin-panel-head">
+          <div>
+            <h3>${esc(panel.title)}</h3>
+            <p>${esc(panel.meta)}</p>
+          </div>
+          <span class="admin-panel-metric">${esc(panel.metric)}</span>
+        </div>
+        <p class="admin-panel-copy">${esc(panel.copy)}</p>
+        ${panel.href
+          ? `<a class="panel-link" href="${esc(panel.href)}">${esc(panel.button)}</a>`
+          : `<button class="panel-link" type="button" data-panel-open="${esc(panel.key)}">${esc(panel.button)}</button>`}
       </article>
     `).join("");
   }
@@ -833,6 +1001,7 @@
     syncSelectedApplication();
     renderStats();
     renderDataCounts();
+    renderAdminPanels();
     renderQueue();
     renderInspector();
     renderRecentLearners();
@@ -899,34 +1068,218 @@
     openModal("masterAssignModal");
   }
 
-  async function refreshDashboard(api) {
-    const [applications, adminDirectoryUsers, notices, summary] = await Promise.all([
-      api.getAllApplicationsForAdminAsync().catch(() => []),
-      api.getAdminUserDirectoryAsync ? api.getAdminUserDirectoryAsync().catch(() => []) : api.getAllUsersAsync().catch(() => []),
-      api.getNotificationsAsync(state.user.id).catch(() => []),
-      api.getAdminSummaryAsync ? api.getAdminSummaryAsync().catch(() => null) : Promise.resolve(null)
+  async function loadAdminControlData(api) {
+    const [
+      career,
+      housing,
+      institutions,
+      questionPapers,
+      announcements,
+      housingListings
+    ] = await Promise.all([
+      api.getAdminContentAsync ? api.getAdminContentAsync("career_hub").catch(() => null) : Promise.resolve(null),
+      api.getAdminContentAsync ? api.getAdminContentAsync("housing_hub").catch(() => null) : Promise.resolve(null),
+      api.getInstitutionsForAdminAsync ? api.getInstitutionsForAdminAsync({ includeInactive: true }).catch(() => []) : Promise.resolve([]),
+      api.getQuestionPapersForAdminAsync ? api.getQuestionPapersForAdminAsync({ includeAllStatuses: true }).catch(() => []) : Promise.resolve([]),
+      api.getAnnouncementsForAdminAsync ? api.getAnnouncementsForAdminAsync().catch(() => []) : Promise.resolve([]),
+      api.getAccommodationListingsForAdmin ? Promise.resolve().then(() => api.getAccommodationListingsForAdmin()).catch(() => []) : Promise.resolve([])
     ]);
 
-    const sortedApplications = asArray(applications).sort((left, right) => new Date(right?.updatedAt || right?.createdAt || 0) - new Date(left?.updatedAt || left?.createdAt || 0));
-    const derivedLearners = sortedApplications.map(buildLearnerUserFromApplication);
-    const fallbackUsers = asArray(adminDirectoryUsers).length ? [] : await api.getAllUsersAsync().catch(() => []);
-    const mergedUsers = mergeUniqueUsers(asArray(adminDirectoryUsers), asArray(fallbackUsers), derivedLearners);
-    let assistants = mergedUsers.filter((user) => normalizeRole(user?.role) === "assistant_admin");
-    if (!assistants.length && api.getUsersByRoleAsync) {
-      assistants = await api.getUsersByRoleAsync("assistant_admin").catch(() => []);
+    state.adminContent.career = career;
+    state.adminContent.housing = housing;
+    state.institutions = asArray(institutions);
+    state.questionPapers = asArray(questionPapers);
+    state.announcements = asArray(announcements);
+    state.housingListings = asArray(housingListings);
+  }
+
+  function setPanelMessage(id, text, tone) {
+    const node = $(id);
+    if (!node) return;
+    node.textContent = text || "";
+    node.className = tone ? `status-message ${tone}` : "status-message";
+  }
+
+  function populateCareerForm() {
+    const career = state.adminContent.career || {};
+    $("masterCareerTitle").value = career.title || "Career Hub Admin";
+    $("masterCareerFeaturedTopic").value = career.settings?.featuredTopic || "";
+    $("masterCareerBody").value = career.body || "";
+    $("masterCareerStatus").value = career.status || "active";
+    setPanelMessage("masterCareerAdminMsg", "", "");
+  }
+
+  function populateHousingForm() {
+    const housing = state.adminContent.housing || {};
+    $("masterHousingTitle").value = housing.title || "Housing Admin";
+    $("masterHousingServiceStatus").value = housing.settings?.serviceStatus || "open";
+    $("masterHousingSupportPhone").value = housing.settings?.supportPhone || "";
+    $("masterHousingBody").value = housing.body || "";
+    $("masterHousingStatus").value = housing.status || "active";
+    setPanelMessage("masterHousingAdminMsg", "", "");
+  }
+
+  function resetAnnouncementForm() {
+    $("masterAnnouncementId").value = "";
+    $("masterAnnouncementTitle").value = "";
+    $("masterAnnouncementAudience").value = "learners";
+    $("masterAnnouncementInstitution").value = "";
+    $("masterAnnouncementStatus").value = "active";
+    $("masterAnnouncementMessage").value = "";
+    setPanelMessage("masterAnnouncementAdminMsg", "", "");
+  }
+
+  function populateAnnouncementForm(announcement) {
+    $("masterAnnouncementId").value = announcement?.id || "";
+    $("masterAnnouncementTitle").value = announcement?.title || "";
+    $("masterAnnouncementAudience").value = announcement?.audience || "learners";
+    $("masterAnnouncementInstitution").value = announcement?.institutionName || "";
+    $("masterAnnouncementStatus").value = announcement?.status || (announcement?.active === false ? "inactive" : "active");
+    $("masterAnnouncementMessage").value = announcement?.message || "";
+    setPanelMessage("masterAnnouncementAdminMsg", "", "");
+  }
+
+  function renderAnnouncementList() {
+    const container = $("masterAnnouncementList");
+    if (!container) return;
+    const items = asArray(state.announcements);
+    container.innerHTML = items.length ? items.map((item) => `
+      <article class="notice-item">
+        <div class="activity-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="item-copy">
+          <div class="item-title">${esc(item.title || "Announcement")}</div>
+          <div class="item-subtitle">${esc(`${item.audience || "learners"} - ${item.status || "active"} - ${item.message || ""}`)}</div>
+        </div>
+        <div class="admin-list-actions">
+          <button class="table-action" type="button" data-edit-announcement="${esc(item.id)}">Edit</button>
+          <button class="table-action" type="button" data-toggle-announcement="${esc(item.id)}">${item.active || item.status === "active" ? "Pause" : "Activate"}</button>
+          <button class="table-action danger" type="button" data-delete-announcement="${esc(item.id)}">Delete</button>
+        </div>
+      </article>
+    `).join("") : renderEmptyState("No announcements have been created yet.");
+  }
+
+  function openAdminPanel(panel) {
+    if (panel === "career") {
+      populateCareerForm();
+      openModal("masterCareerAdminModal");
+      return;
+    }
+    if (panel === "housing") {
+      populateHousingForm();
+      openModal("masterHousingAdminModal");
+      return;
+    }
+    if (panel === "announcements") {
+      resetAnnouncementForm();
+      renderAnnouncementList();
+      openModal("masterAnnouncementAdminModal");
+      return;
+    }
+    if (panel === "question-papers") {
+      window.location.href = "../question-papers.html";
+      return;
+    }
+    if (panel === "institutions") {
+      window.location.href = "../institutions.html";
+    }
+  }
+
+  async function refreshDashboard(api) {
+    renderDashboardLoadingState();
+    bootScreen?.update?.("Kagie", "Loading your dashboard...");
+
+    const summaryTask = (api.getAdminSummaryAsync ? api.getAdminSummaryAsync() : Promise.resolve(null))
+      .catch(() => null);
+    const coreTask = Promise.all([
+      api.getAllApplicationsForAdminAsync()
+        .then((items) => asArray(items))
+        .catch((error) => {
+          throw new Error(error?.message || "Failed to load applications.");
+        }),
+      (api.getAdminUserDirectoryAsync ? api.getAdminUserDirectoryAsync() : api.getAllUsersAsync())
+        .then((items) => asArray(items))
+        .catch(() => [])
+    ]);
+    const noticesTask = api.getNotificationsAsync(state.user.id)
+      .then((items) => asArray(items))
+      .catch((error) => {
+        throw new Error(error?.message || "Failed to load notices.");
+      });
+    const adminPanelsTask = loadAdminControlData(api);
+
+    const summary = await summaryTask;
+    state.summary = summary || null;
+    updateHero();
+    renderStats();
+    renderDataCounts();
+
+    try {
+      const [applications, adminDirectoryUsers] = await coreTask;
+      const sortedApplications = asArray(applications).sort((left, right) => new Date(right?.updatedAt || right?.createdAt || 0) - new Date(left?.updatedAt || left?.createdAt || 0));
+      const derivedLearners = sortedApplications.map(buildLearnerUserFromApplication);
+      const fallbackUsers = asArray(adminDirectoryUsers).length ? [] : await api.getAllUsersAsync().catch(() => []);
+      const mergedUsers = mergeUniqueUsers(asArray(adminDirectoryUsers), asArray(fallbackUsers), derivedLearners);
+      let assistants = mergedUsers.filter((user) => normalizeRole(user?.role) === "assistant_admin");
+      if (!assistants.length && api.getUsersByRoleAsync) {
+        assistants = await api.getUsersByRoleAsync("assistant_admin").catch(() => []);
+      }
+
+      state.applications = sortedApplications;
+      state.users = mergedUsers;
+      state.assistants = mergeUniqueUsers(
+        asArray(assistants),
+        mergedUsers.filter((user) => normalizeRole(user?.role) === "assistant_admin")
+      );
+      state.detailCache.clear();
+      state.pendingDetailKey = "";
+      renderStats();
+      renderDataCounts();
+      renderQueue();
+      renderInspector();
+      renderRecentLearners();
+      renderAssistantRoster();
+      updateHero();
+      updateFilterButton();
+      bootScreen?.hide?.();
+      bootScreen = null;
+    } catch (error) {
+      const message = error?.message || "We could not load the learner queue right now.";
+      $("masterApplications").innerHTML = buildInlineRetry(message, "refresh-dashboard");
+      $("masterQueueMeta").textContent = "Applications queue unavailable.";
+      $("masterLearnerInspector").innerHTML = `<div class="inspector-empty">${esc(message)}</div>`;
+      $("masterRecentLearners").innerHTML = renderEmptyState("Learner snapshot unavailable.");
+      $("masterAssistantRoster").innerHTML = renderEmptyState("Assistant roster unavailable.");
+      bootScreen?.hide?.();
+      bootScreen = null;
+      return;
     }
 
-    state.applications = sortedApplications;
-    state.users = mergedUsers;
-    state.assistants = mergeUniqueUsers(
-      asArray(assistants),
-      mergedUsers.filter((user) => normalizeRole(user?.role) === "assistant_admin")
-    );
-    state.notices = asArray(notices).sort((left, right) => new Date(right?.createdAt || 0) - new Date(left?.createdAt || 0));
-    state.summary = summary || null;
-    state.detailCache.clear();
-    state.pendingDetailKey = "";
-    renderAll();
+    noticesTask
+      .then((notices) => {
+        state.notices = asArray(notices).sort((left, right) => new Date(right?.createdAt || 0) - new Date(left?.createdAt || 0));
+        renderNotices();
+      })
+      .catch((error) => {
+        const noticeList = $("masterNoticesList");
+        $("masterNoticeCount").textContent = "0";
+        $("masterMessagesCount").textContent = "0";
+        if (noticeList) noticeList.innerHTML = buildInlineRetry(error?.message || "Failed to load notices.", "refresh-notices");
+      });
+
+    adminPanelsTask
+      .then(() => {
+        renderAdminPanels();
+        renderAnnouncementList();
+      })
+      .catch((error) => {
+        console.warn("Master admin control panels loaded in fallback mode:", error);
+        $("masterAdminPanelGrid").innerHTML = buildInlineRetry(error?.message || "Failed to load admin panels.", "refresh-admin-panels");
+      });
+
+    await Promise.allSettled([noticesTask, adminPanelsTask]);
   }
 
   function setRoleSafeRedirect(user) {
@@ -964,6 +1317,15 @@
       });
     });
 
+    document.addEventListener("click", (event) => {
+      const opener = event.target.closest("[data-panel-open]");
+      if (!opener) return;
+      event.preventDefault();
+      openAdminPanel(opener.getAttribute("data-panel-open"));
+      document.body.classList.remove("sidebar-open");
+      $("masterOverlay").classList.remove("open");
+    });
+
     document.querySelectorAll("[data-filter-target]").forEach((node) => {
       node.addEventListener("click", (event) => {
         event.preventDefault();
@@ -980,7 +1342,7 @@
       node.addEventListener("click", () => closeModal(node.getAttribute("data-close-modal")));
     });
 
-    ["masterNoticesModal", "masterAssignModal", "masterDocsModal", "masterCreateAssistantModal"].forEach((id) => {
+    ["masterNoticesModal", "masterAssignModal", "masterDocsModal", "masterCareerAdminModal", "masterHousingAdminModal", "masterAnnouncementAdminModal", "masterCreateAssistantModal"].forEach((id) => {
       const modal = $(id);
       modal.addEventListener("click", (event) => {
         if (event.target === modal) closeModal(id);
@@ -1003,15 +1365,22 @@
     });
 
     let searchTimer = 0;
-    $("masterSearchInput").addEventListener("input", () => {
-      if (searchTimer) window.clearTimeout(searchTimer);
-      searchTimer = window.setTimeout(() => {
-        searchTimer = 0;
+    const debouncedSearch = UX()?.debounce
+      ? UX().debounce(() => {
         state.page = 1;
         syncSelectedApplication();
         renderAll();
-      }, 140);
-    });
+      }, 180)
+      : () => {
+        if (searchTimer) window.clearTimeout(searchTimer);
+        searchTimer = window.setTimeout(() => {
+          searchTimer = 0;
+          state.page = 1;
+          syncSelectedApplication();
+          renderAll();
+        }, 140);
+      };
+    $("masterSearchInput").addEventListener("input", debouncedSearch);
 
     $("masterFilterButton").addEventListener("click", () => {
       const currentIndex = FILTER_ORDER.indexOf(state.filter);
@@ -1032,9 +1401,43 @@
     $("masterMessagesLink").addEventListener("click", () => $("masterNoticeBtn").click());
     $("masterBottomNotice").addEventListener("click", () => $("masterNoticeBtn").click());
 
-    $("masterLogoutLink").addEventListener("click", async () => {
-      await api.logout().catch(() => {});
-      window.location.href = "../login.html";
+    $("masterLogoutLink").addEventListener("click", async (event) => {
+      await runButtonAction(event.currentTarget, "master-logout", "Signing out...", async () => {
+        await api.logout().catch(() => {});
+        window.location.href = "../login.html";
+      });
+    });
+
+    document.addEventListener("click", (event) => {
+      const retryButton = event.target.closest("[data-kagie-retry]");
+      if (!retryButton) return;
+      const action = retryButton.getAttribute("data-kagie-retry");
+      if (action === "refresh-dashboard") {
+        void runButtonAction(retryButton, "master-retry-dashboard", "Retrying...", async () => {
+          await refreshDashboard(api);
+        });
+        return;
+      }
+      if (action === "refresh-notices") {
+        void runButtonAction(retryButton, "master-retry-notices", "Retrying...", async () => {
+          state.notices = [];
+          renderNotices();
+          const notices = await api.getNotificationsAsync(state.user.id).catch((error) => {
+            throw new Error(error?.message || "Failed to load notices.");
+          });
+          state.notices = asArray(notices).sort((left, right) => new Date(right?.createdAt || 0) - new Date(left?.createdAt || 0));
+          renderNotices();
+        });
+        return;
+      }
+      if (action === "refresh-admin-panels") {
+        void runButtonAction(retryButton, "master-retry-panels", "Retrying...", async () => {
+          $("masterAdminPanelGrid").innerHTML = UX()?.skeletonList?.({ rows: 4, avatar: false, lines: 3, pill: false }) || renderEmptyState("Loading admin panels...");
+          await loadAdminControlData(api);
+          renderAdminPanels();
+          renderAnnouncementList();
+        });
+      }
     });
 
     $("masterApplications").addEventListener("click", (event) => {
@@ -1084,8 +1487,7 @@
       }
     });
 
-    $("masterAssignForm").addEventListener("submit", async (event) => {
-      event.preventDefault();
+    $("masterAssignForm").addEventListener("submit", (event) => runFormAction(event, "Saving...", async () => {
       const selected = state.applications.find((app) => app.id === state.selectedApplicationId);
       if (!selected) return;
       const assistantId = $("masterAssignSelect").value;
@@ -1102,7 +1504,7 @@
       } catch (error) {
         setAssignMessage(error?.message || "Could not save the assignment.", "err");
       }
-    });
+    }));
 
     $("masterCreateAssistantOpen").addEventListener("click", () => {
       $("masterAssistantName").value = "";
@@ -1113,8 +1515,7 @@
       openModal("masterCreateAssistantModal");
     });
 
-    $("masterCreateAssistantForm").addEventListener("submit", async (event) => {
-      event.preventDefault();
+    $("masterCreateAssistantForm").addEventListener("submit", (event) => runFormAction(event, "Creating...", async () => {
       setCreateAssistantMessage("Creating assistant account...", "info");
       try {
         await api.createAssistantAccount({
@@ -1128,6 +1529,120 @@
         closeModal("masterCreateAssistantModal");
       } catch (error) {
         setCreateAssistantMessage(error?.message || "Could not create the assistant account.", "err");
+      }
+    }));
+
+    $("masterCareerAdminForm").addEventListener("submit", (event) => runFormAction(event, "Saving...", async () => {
+      setPanelMessage("masterCareerAdminMsg", "Saving Career Hub settings...", "info");
+      try {
+        const saved = await api.saveAdminContentByAdminAsync("career_hub", {
+          title: $("masterCareerTitle").value.trim(),
+          body: $("masterCareerBody").value.trim(),
+          status: $("masterCareerStatus").value,
+          settings: {
+            featuredTopic: $("masterCareerFeaturedTopic").value.trim(),
+            ctaLabel: "Open Career Hub",
+            ctaHref: "career-guidance.html"
+          }
+        });
+        state.adminContent.career = saved;
+        setPanelMessage("masterCareerAdminMsg", "Career Hub settings saved.", "ok");
+        renderAdminPanels();
+      } catch (error) {
+        setPanelMessage("masterCareerAdminMsg", error?.message || "Could not save Career Hub settings.", "err");
+      }
+    }));
+
+    $("masterHousingAdminForm").addEventListener("submit", (event) => runFormAction(event, "Saving...", async () => {
+      setPanelMessage("masterHousingAdminMsg", "Saving Housing settings...", "info");
+      try {
+        const saved = await api.saveAdminContentByAdminAsync("housing_hub", {
+          title: $("masterHousingTitle").value.trim(),
+          body: $("masterHousingBody").value.trim(),
+          status: $("masterHousingStatus").value,
+          settings: {
+            serviceStatus: $("masterHousingServiceStatus").value,
+            supportPhone: $("masterHousingSupportPhone").value.trim(),
+            ctaLabel: "Open Housing",
+            ctaHref: "more-service/accommodation-assist.html"
+          }
+        });
+        state.adminContent.housing = saved;
+        setPanelMessage("masterHousingAdminMsg", "Housing settings saved.", "ok");
+        renderAdminPanels();
+      } catch (error) {
+        setPanelMessage("masterHousingAdminMsg", error?.message || "Could not save Housing settings.", "err");
+      }
+    }));
+
+    $("masterAnnouncementReset").addEventListener("click", resetAnnouncementForm);
+
+    $("masterAnnouncementAdminForm").addEventListener("submit", (event) => runFormAction(event, "Saving...", async () => {
+      setPanelMessage("masterAnnouncementAdminMsg", "Saving announcement...", "info");
+      try {
+        const saved = await api.saveAnnouncementByAdminAsync({
+          id: $("masterAnnouncementId").value.trim(),
+          title: $("masterAnnouncementTitle").value.trim(),
+          message: $("masterAnnouncementMessage").value.trim(),
+          audience: $("masterAnnouncementAudience").value,
+          institutionName: $("masterAnnouncementInstitution").value.trim(),
+          status: $("masterAnnouncementStatus").value,
+          type: "info"
+        });
+        state.announcements = [saved].concat(state.announcements.filter((item) => item.id !== saved.id));
+        resetAnnouncementForm();
+        renderAnnouncementList();
+        renderAdminPanels();
+        setPanelMessage("masterAnnouncementAdminMsg", "Announcement saved. Active notices will appear on user dashboards.", "ok");
+      } catch (error) {
+        setPanelMessage("masterAnnouncementAdminMsg", error?.message || "Could not save announcement.", "err");
+      }
+    }));
+
+    $("masterAnnouncementList").addEventListener("click", async (event) => {
+      const editButton = event.target.closest("[data-edit-announcement]");
+      if (editButton) {
+        const item = state.announcements.find((entry) => entry.id === editButton.getAttribute("data-edit-announcement"));
+        if (item) populateAnnouncementForm(item);
+        return;
+      }
+      const toggleButton = event.target.closest("[data-toggle-announcement]");
+      if (toggleButton) {
+        const id = toggleButton.getAttribute("data-toggle-announcement");
+        const item = state.announcements.find((entry) => entry.id === id);
+        if (!item) return;
+        await runButtonAction(toggleButton, `announcement-toggle:${id}`, "Updating...", async () => {
+          setPanelMessage("masterAnnouncementAdminMsg", "Updating announcement...", "info");
+          try {
+            const saved = await api.saveAnnouncementByAdminAsync({
+              ...item,
+              status: item.active || item.status === "active" ? "inactive" : "active"
+            });
+            state.announcements = [saved].concat(state.announcements.filter((entry) => entry.id !== id && entry.id !== saved.id));
+            renderAnnouncementList();
+            renderAdminPanels();
+            setPanelMessage("masterAnnouncementAdminMsg", "Announcement updated.", "ok");
+          } catch (error) {
+            setPanelMessage("masterAnnouncementAdminMsg", error?.message || "Could not update announcement.", "err");
+          }
+        });
+        return;
+      }
+      const deleteButton = event.target.closest("[data-delete-announcement]");
+      if (deleteButton) {
+        const id = deleteButton.getAttribute("data-delete-announcement");
+        await runButtonAction(deleteButton, `announcement-delete:${id}`, "Deleting...", async () => {
+          setPanelMessage("masterAnnouncementAdminMsg", "Deleting announcement...", "info");
+          try {
+            await api.deleteAnnouncementByAdminAsync(id);
+            state.announcements = state.announcements.filter((entry) => entry.id !== id);
+            renderAnnouncementList();
+            renderAdminPanels();
+            setPanelMessage("masterAnnouncementAdminMsg", "Announcement deleted.", "ok");
+          } catch (error) {
+            setPanelMessage("masterAnnouncementAdminMsg", error?.message || "Could not delete announcement.", "err");
+          }
+        });
       }
     });
   }
@@ -1151,6 +1666,10 @@
 
     state.user = api.requireRole("master_admin");
     setIdentityUI(state.user);
+    bootScreen = UX()?.showBootScreen?.({
+      title: "Kagie",
+      message: "Loading your dashboard..."
+    }) || null;
     bindStaticEvents(api);
     await refreshDashboard(api);
   }
@@ -1158,6 +1677,8 @@
   document.addEventListener("DOMContentLoaded", () => {
     main().catch((error) => {
       console.error("Master dashboard failed to load:", error);
+      bootScreen?.hide?.();
+      bootScreen = null;
       $("masterApplications").innerHTML = renderEmptyState("We could not load the master dashboard right now.");
       $("masterLearnerInspector").innerHTML = `<div class="inspector-empty">Dashboard data is unavailable right now.</div>`;
       $("masterRecentLearners").innerHTML = renderEmptyState("Recent learner data is unavailable.");

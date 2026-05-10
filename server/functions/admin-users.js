@@ -1,5 +1,3 @@
-const { normalizeSupabaseUrl } = require("./_supabase-url");
-
 function json(statusCode, payload, origin = "*") {
   return {
     statusCode,
@@ -107,6 +105,22 @@ async function supabaseFetchAllFirstAvailable(supabaseUrl, paths, options, fallb
   return fallback;
 }
 
+async function supabaseFetchAllMergedAvailable(supabaseUrl, paths, options, fallback = []) {
+  const candidates = Array.isArray(paths) ? paths : [paths];
+  const merged = [];
+
+  for (const path of candidates) {
+    try {
+      const rows = await supabaseFetchAllRows(supabaseUrl, path, options);
+      if (Array.isArray(rows) && rows.length) merged.push(...rows);
+    } catch (_error) {
+      // Compatible deployments may have only one of the legacy/new tables.
+    }
+  }
+
+  return merged.length ? merged : fallback;
+}
+
 function adminHeaders(serviceRoleKey, extras = {}) {
   return {
     apikey: serviceRoleKey,
@@ -164,11 +178,56 @@ function groupBy(rows, key) {
   }, new Map());
 }
 
+function rowUsefulScore(row) {
+  const ignored = new Set([
+    "id",
+    "user_id",
+    "profile_id",
+    "auth_user_id",
+    "profile_user_id",
+    "learner_user_id",
+    "application_id",
+    "app_id",
+    "created_at",
+    "updated_at"
+  ]);
+  return Object.entries(row || {}).reduce((score, [key, value]) => {
+    if (ignored.has(key)) return score;
+    if (Array.isArray(value)) return score + (value.length ? 1 : 0);
+    if (value && typeof value === "object") return score + (Object.keys(value).length ? 1 : 0);
+    return score + (String(value ?? "").trim() ? 1 : 0);
+  }, 0);
+}
+
+function betterRow(existing, candidate) {
+  if (!existing) return candidate || {};
+  const currentScore = rowUsefulScore(existing);
+  const nextScore = rowUsefulScore(candidate);
+  if (nextScore > currentScore) return candidate || {};
+  if (nextScore < currentScore) return existing || {};
+  return byNewest(candidate || {}, existing || {}) < 0 ? (candidate || {}) : (existing || {});
+}
+
+function rowUserKeys(row) {
+  return [
+    row?.user_id,
+    row?.profile_user_id,
+    row?.learner_user_id,
+    row?.auth_user_id,
+    row?.auth_id,
+    row?.profile_id,
+    row?.learner_id,
+    row?.student_id
+  ].map((value) => String(value || "").trim()).filter(Boolean);
+}
+
 function firstByUser(rows) {
   const map = new Map();
   safeArray(rows).sort(byNewest).forEach((row) => {
-    const userId = String(row?.user_id || row?.profile_user_id || row?.learner_user_id || "").trim();
-    if (userId && !map.has(userId)) map.set(userId, row);
+    rowUserKeys(row).forEach((userId) => {
+      if (!userId) return;
+      map.set(userId, betterRow(map.get(userId), row));
+    });
   });
   return map;
 }
@@ -178,7 +237,7 @@ function profileUserId(row) {
 }
 
 function rowUserId(row) {
-  return String(row?.user_id || row?.profile_user_id || row?.learner_user_id || "").trim();
+  return rowUserKeys(row)[0] || "";
 }
 
 function rowApplicationId(row) {
@@ -187,8 +246,10 @@ function rowApplicationId(row) {
 
 function mapByUser(rows) {
   return safeArray(rows).reduce((map, row) => {
-    const userId = rowUserId(row);
-    if (userId && !map.has(userId)) map.set(userId, row || {});
+    rowUserKeys(row).forEach((userId) => {
+      if (!userId) return;
+      map.set(userId, betterRow(map.get(userId), row));
+    });
     return map;
   }, new Map());
 }
@@ -680,6 +741,15 @@ function buildUserDetail(context, userId) {
     },
     guardianInfo: guardian,
     schoolInfo: school,
+    formDetails: {
+      learner: userProfile,
+      guardian,
+      school,
+      subjectsResults: marks,
+      selectedInstitutions: institutions,
+      applications,
+      uploadedDocuments: documents
+    },
     subjectsResults: marks,
     selectedInstitutions: institutions,
     selectedCourses: createCourseList(institutions),
@@ -728,20 +798,20 @@ async function loadAdminData(supabaseUrl, serviceRoleKey, accessToken, anonKey, 
   ] = await Promise.all([
     hasServiceRole ? listAllAuthUsers(supabaseUrl, serviceRoleKey) : Promise.resolve([]),
     supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/profiles?select=*&order=created_at.desc", { method: "GET", headers: readHeaders }),
-    supabaseFetchAllFirstAvailable(supabaseUrl, ["/rest/v1/learner_details?select=*", "/rest/v1/user_profiles?select=*"], { method: "GET", headers: readHeaders }),
-    supabaseFetchAllFirstAvailable(supabaseUrl, ["/rest/v1/parent_details?select=*", "/rest/v1/guardian_profiles?select=*"], { method: "GET", headers: readHeaders }),
-    supabaseFetchAllFirstAvailable(supabaseUrl, ["/rest/v1/school_details?select=*", "/rest/v1/school_profiles?select=*"], { method: "GET", headers: readHeaders }),
+    supabaseFetchAllMergedAvailable(supabaseUrl, ["/rest/v1/user_profiles?select=*", "/rest/v1/learner_details?select=*"], { method: "GET", headers: readHeaders }),
+    supabaseFetchAllMergedAvailable(supabaseUrl, ["/rest/v1/guardian_profiles?select=*", "/rest/v1/parent_details?select=*"], { method: "GET", headers: readHeaders }),
+    supabaseFetchAllMergedAvailable(supabaseUrl, ["/rest/v1/school_profiles?select=*", "/rest/v1/school_details?select=*"], { method: "GET", headers: readHeaders }),
     supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/applications?select=id,user_id,status,assistant_id,assigned_by,assigned_at,assignment_status,package_id,payment_status,payer_name,payer_phone,payment_reference,payment_method,payment_note,payment_amount,submitted_at,created_at,updated_at&order=updated_at.desc", { method: "GET", headers: readHeaders }),
-    supabaseFetchAllFirstAvailable(supabaseUrl, ["/rest/v1/assistant_assignments?select=*&order=assigned_at.desc", "/rest/v1/assignments?select=*&order=assigned_at.desc"], { method: "GET", headers: readHeaders }),
+    supabaseFetchAllMergedAvailable(supabaseUrl, ["/rest/v1/assistant_assignments?select=*&order=assigned_at.desc", "/rest/v1/assignments?select=*&order=assigned_at.desc"], { method: "GET", headers: readHeaders }),
     includeAssistantScopeTables ? supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/callback_requests?select=id,user_id,assigned_assistant_id,phone,preferred_time,note,status,created_at,updated_at", { method: "GET", headers: readHeaders }) : Promise.resolve([]),
     includeAssistantScopeTables ? supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/support_threads?select=id,user_id,assistant_id,status,created_at,updated_at", { method: "GET", headers: readHeaders }) : Promise.resolve([]),
     supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/application_institutions?select=id,application_id,province,institution_type,institution_name,application_fee,application_fee_label,application_fee_note,faculty,choice_1,choice_2,choice_3,created_at,updated_at", { method: "GET", headers: readHeaders }),
-    includeDetails ? supabaseFetchAllFirstAvailable(supabaseUrl, ["/rest/v1/marks?select=*", "/rest/v1/application_marks?select=*"], { method: "GET", headers: readHeaders }) : Promise.resolve([]),
+    includeDetails ? supabaseFetchAllMergedAvailable(supabaseUrl, ["/rest/v1/application_marks?select=*", "/rest/v1/marks?select=*"], { method: "GET", headers: readHeaders }) : Promise.resolve([]),
     includeDetails ? supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/documents?select=id,user_id,application_id,document_type,file_name,file_url,status,created_at,updated_at", { method: "GET", headers: readHeaders }) : Promise.resolve([]),
     includeDetails ? supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/payments?select=*&order=created_at.desc", { method: "GET", headers: readHeaders }) : Promise.resolve([]),
     includeDetails ? supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/carts?select=*", { method: "GET", headers: readHeaders }) : Promise.resolve([]),
     includeDetails ? supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/cart_items?select=*&order=created_at.desc", { method: "GET", headers: readHeaders }) : Promise.resolve([]),
-    includeDetails ? supabaseFetchAllFirstAvailable(supabaseUrl, ["/rest/v1/admin_notes?select=*&order=created_at.desc", "/rest/v1/application_notes?select=*&order=created_at.desc"], { method: "GET", headers: readHeaders }) : Promise.resolve([]),
+    includeDetails ? supabaseFetchAllMergedAvailable(supabaseUrl, ["/rest/v1/admin_notes?select=*&order=created_at.desc", "/rest/v1/application_notes?select=*&order=created_at.desc"], { method: "GET", headers: readHeaders }) : Promise.resolve([]),
     includeDetails ? supabaseFetchAllFirstAvailable(supabaseUrl, ["/rest/v1/activity_logs?select=*&order=timestamp.desc", "/rest/v1/activity_logs?select=*&order=created_at.desc", "/rest/v1/assistant_activity?select=*&order=created_at.desc"], { method: "GET", headers: readHeaders }) : Promise.resolve([]),
     includeDetails ? supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/accommodation_requests?select=*&order=updated_at.desc", { method: "GET", headers: readHeaders }) : Promise.resolve([]),
     includeDetails ? supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/transport_requests?select=*&order=updated_at.desc", { method: "GET", headers: readHeaders }) : Promise.resolve([])
@@ -1016,7 +1086,7 @@ exports.handler = async (event) => {
   const token = getBearerToken(event.headers || {});
   if (!token) return json(401, { message: "Missing Supabase access token." }, origin);
 
-  const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, process.env.SUPABASE_ANON_KEY);
+  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   const anonKey = String(process.env.SUPABASE_ANON_KEY || "").trim();
   if (!supabaseUrl || (!serviceRoleKey && !anonKey)) {

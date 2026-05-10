@@ -1,5 +1,3 @@
-const { normalizeSupabaseUrl } = require("./_supabase-url");
-
 const PAYMENT_NOTE_PREFIX = "__KAGIE_PAYMENT_META__";
 
 const STATUS = {
@@ -42,6 +40,10 @@ function encodeFilter(value) {
 
 function trim(value) {
   return String(value || "").trim();
+}
+
+function normalizeBaseUrl(value) {
+  return trim(value).replace(/\/+$/, "");
 }
 
 function normalizeRole(value) {
@@ -203,6 +205,59 @@ function buildInstitutionRows(applicationId, institutions) {
   }));
 }
 
+function normalizeInstitutionNameKey(value) {
+  return trim(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function isInstitutionClosed(row) {
+  const manualStatus = trim(row?.manual_status).toLowerCase();
+  const closingDate = trim(row?.closing_date);
+  if (row?.is_active === false) return true;
+  if (manualStatus === "closed") return true;
+  if (closingDate && /^\d{4}-\d{2}-\d{2}$/.test(closingDate)) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (closingDate < today) return true;
+  }
+  return false;
+}
+
+async function assertInstitutionsOpen(supabaseUrl, serviceRoleKey, institutions) {
+  const requested = (Array.isArray(institutions) ? institutions : [])
+    .map((item) => ({
+      name: trim(item?.institutionName || item?.name),
+      year: trim(item?.year)
+    }))
+    .filter((item) => item.name);
+  if (!requested.length) return;
+
+  let rows = [];
+  try {
+    rows = await supabaseFetch(
+      supabaseUrl,
+      "/rest/v1/institutions?select=name,year,is_active,manual_status,closing_date&limit=1000",
+      { method: "GET", headers: adminHeaders(serviceRoleKey) }
+    );
+  } catch (error) {
+    const message = String(error?.message || "").toLowerCase();
+    if (message.includes("institutions") || message.includes("does not exist") || message.includes("could not find")) return;
+    throw error;
+  }
+
+  const catalog = new Map();
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const key = `${normalizeInstitutionNameKey(row?.name)}|${trim(row?.year)}`;
+    const fallbackKey = `${normalizeInstitutionNameKey(row?.name)}|`;
+    catalog.set(key, row);
+    if (!catalog.has(fallbackKey)) catalog.set(fallbackKey, row);
+  });
+
+  const closed = requested.find((item) => {
+    const match = catalog.get(`${normalizeInstitutionNameKey(item.name)}|${item.year}`) || catalog.get(`${normalizeInstitutionNameKey(item.name)}|`);
+    return match && isInstitutionClosed(match);
+  });
+  if (closed) throw new Error("Applications for this institution are currently closed.");
+}
+
 async function getOrCreateCart(supabaseUrl, serviceRoleKey, userId) {
   const existing = await supabaseFetch(
     supabaseUrl,
@@ -276,6 +331,8 @@ async function findApplicationPackId(supabaseUrl, serviceRoleKey, packItem) {
 }
 
 async function saveApplicationInstitutions(supabaseUrl, serviceRoleKey, applicationId, institutions) {
+  await assertInstitutionsOpen(supabaseUrl, serviceRoleKey, institutions);
+
   await supabaseFetch(
     supabaseUrl,
     `/rest/v1/application_institutions?application_id=eq.${encodeFilter(applicationId)}`,
@@ -299,6 +356,28 @@ async function saveApplicationInstitutions(supabaseUrl, serviceRoleKey, applicat
 }
 
 async function savePaymentRecord(supabaseUrl, serviceRoleKey, applicationId, paymentPayload) {
+  const legacyPaymentPayload = {
+    payer_name: paymentPayload.payer_name,
+    phone: paymentPayload.phone,
+    reference: paymentPayload.reference,
+    method: paymentPayload.method,
+    note: paymentPayload.note,
+    amount: paymentPayload.amount,
+    status: paymentPayload.status
+  };
+  const hasExtendedColumns = Object.keys(paymentPayload || {}).some((key) =>
+    !Object.prototype.hasOwnProperty.call(legacyPaymentPayload, key)
+  );
+  const shouldRetryLegacy = (error) => {
+    const message = `${error?.message || ""} ${JSON.stringify(error?.payload || {})}`.toLowerCase();
+    return hasExtendedColumns && (
+      error?.status === 400 ||
+      message.includes("schema cache") ||
+      message.includes("column") ||
+      message.includes("could not find")
+    );
+  };
+
   const existing = await supabaseFetch(
     supabaseUrl,
     `/rest/v1/payments?application_id=eq.${encodeFilter(applicationId)}&select=*&order=created_at.desc&limit=1`,
@@ -309,34 +388,58 @@ async function savePaymentRecord(supabaseUrl, serviceRoleKey, applicationId, pay
   );
 
   if (Array.isArray(existing) && existing[0]) {
-    await supabaseFetch(
-      supabaseUrl,
-      `/rest/v1/payments?id=eq.${encodeFilter(existing[0].id)}`,
-      {
-        method: "PATCH",
-        headers: adminHeaders(serviceRoleKey, {
-          "Content-Type": "application/json",
-          Prefer: "return=minimal"
-        }),
-        body: JSON.stringify(paymentPayload)
-      }
-    );
+    try {
+      await supabaseFetch(
+        supabaseUrl,
+        `/rest/v1/payments?id=eq.${encodeFilter(existing[0].id)}`,
+        {
+          method: "PATCH",
+          headers: adminHeaders(serviceRoleKey, {
+            "Content-Type": "application/json",
+            Prefer: "return=minimal"
+          }),
+          body: JSON.stringify(paymentPayload)
+        }
+      );
+    } catch (error) {
+      if (!shouldRetryLegacy(error)) throw error;
+      await supabaseFetch(
+        supabaseUrl,
+        `/rest/v1/payments?id=eq.${encodeFilter(existing[0].id)}`,
+        {
+          method: "PATCH",
+          headers: adminHeaders(serviceRoleKey, {
+            "Content-Type": "application/json",
+            Prefer: "return=minimal"
+          }),
+          body: JSON.stringify(legacyPaymentPayload)
+        }
+      );
+    }
     return existing[0].id;
   }
 
-  return supabaseFetch(supabaseUrl, "/rest/v1/payments", {
-    method: "POST",
-    headers: adminHeaders(serviceRoleKey, {
-      "Content-Type": "application/json",
-      Prefer: "return=representation"
-    }),
-    body: JSON.stringify([
-      {
-        application_id: applicationId,
-        ...paymentPayload
-      }
-    ])
-  }).then((rows) => (Array.isArray(rows) ? rows[0]?.id || null : null));
+  const insertPayload = { application_id: applicationId, ...paymentPayload };
+  try {
+    return await supabaseFetch(supabaseUrl, "/rest/v1/payments", {
+      method: "POST",
+      headers: adminHeaders(serviceRoleKey, {
+        "Content-Type": "application/json",
+        Prefer: "return=representation"
+      }),
+      body: JSON.stringify([insertPayload])
+    }).then((rows) => (Array.isArray(rows) ? rows[0]?.id || null : null));
+  } catch (error) {
+    if (!shouldRetryLegacy(error)) throw error;
+    return supabaseFetch(supabaseUrl, "/rest/v1/payments", {
+      method: "POST",
+      headers: adminHeaders(serviceRoleKey, {
+        "Content-Type": "application/json",
+        Prefer: "return=representation"
+      }),
+      body: JSON.stringify([{ application_id: applicationId, ...legacyPaymentPayload }])
+    }).then((rows) => (Array.isArray(rows) ? rows[0]?.id || null : null));
+  }
 }
 
 function buildCheckoutUrls(body) {
@@ -345,6 +448,16 @@ function buildCheckoutUrls(body) {
     cancelUrl: trim(body?.cancelUrl),
     failureUrl: trim(body?.failureUrl)
   };
+}
+
+function isAllowedReturnUrl(url, origin) {
+  try {
+    const parsedUrl = new URL(url);
+    const parsedOrigin = new URL(origin);
+    return parsedUrl.origin === parsedOrigin.origin;
+  } catch (_error) {
+    return false;
+  }
 }
 
 exports.handler = async (event) => {
@@ -358,9 +471,11 @@ exports.handler = async (event) => {
     return json(405, { message: "Method not allowed." }, origin);
   }
 
-  const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, process.env.SUPABASE_ANON_KEY);
+  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   const yocoSecretKey = process.env.YOCO_SECRET_KEY || "";
+  const yocoApiBaseUrl = normalizeBaseUrl(process.env.YOCO_API_BASE_URL) || "https://payments.yoco.com";
+  const yocoMode = trim(process.env.YOCO_MODE || process.env.YOCO_ENV || "");
 
   if (!supabaseUrl || !serviceRoleKey) {
     return json(500, { message: "Supabase payment configuration is missing on the server." }, origin);
@@ -392,6 +507,9 @@ exports.handler = async (event) => {
   }
   if (!urls.successUrl || !urls.cancelUrl || !urls.failureUrl) {
     return validationError("Success, cancel, and failure URLs are required.", origin);
+  }
+  if (!isAllowedReturnUrl(urls.successUrl, origin) || !isAllowedReturnUrl(urls.cancelUrl, origin) || !isAllowedReturnUrl(urls.failureUrl, origin)) {
+    return validationError("Yoco return URLs must point back to this Kagie site.", origin);
   }
 
   try {
@@ -529,11 +647,12 @@ exports.handler = async (event) => {
         kagieApplicationId: application.id,
         kagieUserId: actorId,
         kagieReference: reference,
-        kagiePromoCode: trim(promoItem?.promoCode)
+        kagiePromoCode: trim(promoItem?.promoCode),
+        kagieMode: yocoMode || undefined
       }
     };
 
-    const yocoResponse = await fetch("https://payments.yoco.com/api/checkouts", {
+    const yocoResponse = await fetch(`${yocoApiBaseUrl}/api/checkouts`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${yocoSecretKey}`,
@@ -564,13 +683,21 @@ exports.handler = async (event) => {
       gatewayStatus
     };
     const paymentPayload = {
+      user_id: actorId,
       payer_name: payerName,
       phone,
       reference,
       method: "Yoco Checkout",
       note: serializePaymentNoteState(finalPaymentMeta),
       amount,
-      status: STATUS.payment.PENDING
+      status: STATUS.payment.PENDING,
+      provider: "yoco",
+      gateway_checkout_id: checkoutId,
+      gateway_payment_id: paymentId || null,
+      gateway_status: gatewayStatus,
+      currency: "ZAR",
+      failure_reason: "",
+      paid_at: null
     };
 
     await savePaymentRecord(supabaseUrl, serviceRoleKey, application.id, paymentPayload);

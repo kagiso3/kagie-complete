@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Transport</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="../js/data.js?v=20260410b"></script>
+  <script defer src="../js/backend.js?v=20260410h"></script>
+  <script defer src="../js/supabase-config.js?v=20260410b"></script>
+  <script defer src="../js/transport-assist-page.js?v=20260410f"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/transport-assist.css?v=20260410f" />
+</head>
+<body>
+  <main class="transport-page">
+    <section class="hero-panel">
+      <header class="transport-topbar">
+        <div class="top-copy">
+          <div class="eyebrow" id="modeEyebrow">Kagie transport</div>
+          <h1 id="pageTitle">Find Your Perfect Bus</h1>
+          <p id="pageCopy">Kagie keeps your booked transport tickets here and helps the master admin send them to learners.</p>
+        </div>
+        <div class="top-actions">
+          <a class="ghost-btn" id="dashboardLink" href="../home.html">Home</a>
+          <a class="ghost-btn" id="homeLink" href="../home.html">Home</a>
+        </div>
+      </header>
+
+      <section class="search-panel hidden" id="adminBookingSection">
+        <div class="booking-head">
+          <div>
+            <div class="section-kicker">Transport Desk</div>
+            <h2>Book learner travel</h2>
+            <p>Search routes, choose the best bus, then send the ticket into the learner's Kagie account.</p>
+          </div>
+        </div>
+
+        <div class="learner-strip">
+          <label class="field-label-inline" for="learnerSelect">Learner</label>
+          <div class="select-shell">
+            <select id="learnerSelect"></select>
+          </div>
+        </div>
+
+        <div class="trip-switch" id="tripSwitch">
+          <button class="trip-btn active" type="button" data-trip-type="One Way">One Way</button>
+          <button class="trip-btn" type="button" data-trip-type="Round Trip">Return</button>
+        </div>
+
+        <div class="search-grid">
+          <label class="search-field">
+            <span class="field-kicker">Departing From</span>
+            <div class="field-shell">
+              <span class="field-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M6 16v3m12-3v3M7 6h10l1 6H6l1-6Zm-1 6h12a2 2 0 0 1 2 2v2H4v-2a2 2 0 0 1 2-2Z" /></svg>
+              </span>
+              <select id="departureFilter"></select>
+            </div>
+          </label>
+
+          <label class="search-field">
+            <span class="field-kicker">Traveling To</span>
+            <div class="field-shell">
+              <span class="field-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M6 16v3m12-3v3M7 6h10l1 6H6l1-6Zm-1 6h12a2 2 0 0 1 2 2v2H4v-2a2 2 0 0 1 2-2Z" /></svg>
+              </span>
+              <select id="destinationFilter"></select>
+            </div>
+          </label>
+
+          <button class="picker-trigger" id="travelDateTrigger" type="button">
+            <span class="picker-copy">
+              <span class="field-kicker">Departure Date</span>
+              <strong id="travelDateText">Select departure date</strong>
+            </span>
+            <span class="field-icon muted" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 4v3m10-3v3M5 9h14M6 6h12a1 1 0 0 1 1 1v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a1 1 0 0 1 1-1Z" /></svg>
+            </span>
+          </button>
+
+          <button class="picker-trigger" id="passengerTrigger" type="button">
+            <span class="picker-copy">
+              <span class="field-kicker">Passengers</span>
+              <strong id="passengerSummary">1 Adult</strong>
+              <small id="passengerBreakdown">1 passenger total</small>
+            </span>
+            <span class="field-icon muted" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm8 1a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5ZM3.5 19a4.5 4.5 0 0 1 9 0m3.5 0a3.5 3.5 0 0 1 7 0" /></svg>
+            </span>
+          </button>
+
+          <button class="picker-trigger hidden field-span-all" id="returnDateField" type="button">
+            <span class="picker-copy">
+              <span class="field-kicker">Return Date</span>
+              <strong id="returnDateText">Select return date</strong>
+            </span>
+            <span class="field-icon muted" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 4v3m10-3v3M5 9h14M6 6h12a1 1 0 0 1 1 1v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a1 1 0 0 1 1-1Z" /></svg>
+            </span>
+          </button>
+        </div>
+
+        <input id="travelDate" type="hidden" />
+        <input id="returnDate" type="hidden" />
+
+        <button class="search-btn" id="searchTripsBtn" type="button">
+          <span class="btn-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m21 21-4.35-4.35m1.35-4.65a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" /></svg>
+          </span>
+          Search Bus Tickets
+        </button>
+
+        <div class="helper-row">
+          <span>Instant confirmation</span>
+          <span>Mobile tickets</span>
+          <span>Easy sharing</span>
+        </div>
+        <div class="page-message" id="adminMessage" aria-live="polite"></div>
+      </section>
+    </section>
+
+    <section class="results-panel hidden" id="routeResultsSection">
+      <div class="results-summary">
+        <div>
+          <div class="summary-route" id="resultsJourneyTitle">Johannesburg to Durban</div>
+          <div class="summary-meta" id="resultsJourneyMeta">Bus journey | 1 passenger</div>
+        </div>
+        <button class="soft-btn" id="editSearchBtn" type="button">Edit Search</button>
+      </div>
+
+      <div class="date-chip-rail" id="dateChipRail"></div>
+
+      <div class="results-layout">
+        <aside class="operator-panel">
+          <div class="operator-head">
+            <h3>Operators</h3>
+            <p>Filter by bus company.</p>
+          </div>
+          <div class="operator-list" id="operatorList"></div>
+        </aside>
+
+        <div class="results-content">
+          <div class="recommendation-board" id="recommendationList"></div>
+
+          <div class="results-toolbar">
+            <div class="results-count" id="routeCountMeta">0 Services</div>
+            <div class="toolbar-select">
+              <label for="sortMode" class="toolbar-label">Sort</label>
+              <select id="sortMode">
+                <option value="recommended">Recommended</option>
+                <option value="price">Lowest price</option>
+                <option value="fastest">Fastest trip</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="route-list" id="routeList"></div>
+        </div>
+      </div>
+
+      <div class="selected-ticket hidden" id="selectedTicketCard">
+        <div class="selected-head">
+          <div>
+            <h3 id="selectedRouteTitle">Selected route</h3>
+            <p id="selectedRouteCopy">Choose a route card to load ticket details here.</p>
+          </div>
+          <span class="ticket-chip" id="selectedLearnerPill">Learner needed</span>
+        </div>
+
+        <div class="selected-journey-strip">
+          <div class="selected-journey-point">
+            <span>Departure</span>
+            <strong id="selectedFromTime">07:00</strong>
+            <small id="selectedFromMeta">Bellville</small>
+          </div>
+          <div class="selected-journey-line">
+            <span class="selected-journey-pill" id="selectedJourneyDuration">7h 36m</span>
+          </div>
+          <div class="selected-journey-point align-right">
+            <span>Arrival</span>
+            <strong id="selectedToTime">14:36</strong>
+            <small id="selectedToMeta">George</small>
+          </div>
+        </div>
+
+        <div class="selected-grid">
+          <div class="selected-stat">
+            <span>Total fare</span>
+            <strong id="selectedFare">R0</strong>
+          </div>
+          <div class="selected-stat">
+            <span>Trip type</span>
+            <strong id="selectedTripType">One Way</strong>
+          </div>
+          <div class="selected-stat">
+            <span>Passengers</span>
+            <strong id="selectedPassengerCount">1</strong>
+          </div>
+        </div>
+
+        <label class="notes-field" for="ticketNote">
+          <span>Ticket note</span>
+          <textarea id="ticketNote" placeholder="Seat notes, luggage notes, or pick-up details."></textarea>
+        </label>
+
+        <div class="selected-actions">
+          <button class="primary-btn" id="sendTicketBtn" type="button">Send Ticket</button>
+          <button class="secondary-btn" id="clearSelectionBtn" type="button">Clear</button>
+        </div>
+
+        <div class="transport-cart-panel hidden" id="transportCartSection">
+          <div class="transport-detail-layout">
+            <section class="transport-detail-main">
+              <div class="transport-detail-card">
+                <div class="transport-detail-head">
+                  <div>
+                    <h4>Passenger Details</h4>
+                    <p>Complete the traveller information, then continue to payment.</p>
+                  </div>
+                  <div class="transport-head-count">Total passengers: <strong id="transportSummaryHeaderCount">1</strong></div>
+                </div>
+
+                <div class="transport-detail-body">
+                  <div class="transport-passenger-list" id="transportPassengerForms"></div>
+                  <div class="transport-cart-message" id="transportCartMessage" aria-live="polite"></div>
+
+                  <div class="transport-inline-actions">
+                    <button class="secondary-btn" id="resetPassengerFormsBtn" type="button">Reset details</button>
+                  </div>
+
+                  <div class="transport-detail-footer">
+                    <button class="secondary-btn" id="transportBackBtn" type="button">Back</button>
+                    <button class="primary-btn" id="addTransportToCartBtn" type="button">Continue to payment</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <aside class="transport-detail-side">
+              <section class="transport-side-card">
+                <div class="transport-side-head">Trip Summary</div>
+                <div class="transport-summary-box">
+                  <div class="transport-operator-row">
+                    <div>
+                      <strong id="transportSummaryCompany">Transport company</strong>
+                      <span id="transportSummaryCode">Route code</span>
+                    </div>
+                    <span class="meta-chip red" id="transportSummaryTripType">One Way</span>
+                  </div>
+
+                  <div class="transport-route-grid">
+                    <div>
+                      <span>From</span>
+                      <strong id="transportSummaryFrom">Departure</strong>
+                      <small id="transportSummaryDepartAt">Date and time</small>
+                    </div>
+                    <div class="transport-route-arrow">
+                      <span>&rarr;</span>
+                      <small id="transportSummaryDuration">Travel time</small>
+                    </div>
+                    <div>
+                      <span>To</span>
+                      <strong id="transportSummaryTo">Destination</strong>
+                      <small id="transportSummaryArriveAt">Arrival time</small>
+                    </div>
+                  </div>
+
+                  <div class="transport-mini-row">
+                    <div>
+                      <strong>Passengers</strong>
+                      <small id="transportSummaryPassengerMix">1 Adult</small>
+                    </div>
+                    <span class="meta-chip blue" id="transportSummaryPassengerCount">1 passenger</span>
+                  </div>
+
+                  <div class="transport-mini-row transport-price-row">
+                    <div>
+                      <strong>Total Price</strong>
+                      <small id="transportSummaryPriceNote">Including Kagie support fees</small>
+                    </div>
+                    <span class="transport-price" id="transportSummaryTotal">R0</span>
+                  </div>
+                </div>
+              </section>
+
+              <section class="transport-side-card">
+                <div class="transport-side-head">Traveler Tips</div>
+                <div class="transport-tips">
+                  <div class="transport-tip">
+                    <strong>Arrive early</strong>
+                    <span>Please arrive at least 30 minutes before departure so boarding is smooth.</span>
+                  </div>
+                  <div class="transport-tip">
+                    <strong>Carry the same ID</strong>
+                    <span>Use the same ID or passport details entered here when you travel.</span>
+                  </div>
+                  <div class="transport-tip">
+                    <strong>Student travel</strong>
+                    <span>If a passenger is a student, add the institution and student number correctly.</span>
+                  </div>
+                  <div class="transport-tip">
+                    <strong>Emergency contact</strong>
+                    <span>Keep an emergency number active in case the carrier needs to reach someone.</span>
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tickets-panel" id="ticketsSection">
+      <div class="panel-head">
+        <div>
+          <div class="section-kicker">Tickets</div>
+          <h2 id="ticketsHeading">My Tickets</h2>
+          <p id="ticketsCopy">Kagie places your booked transport tickets here once they are arranged.</p>
+        </div>
+      </div>
+
+      <div class="ticket-switch">
+        <button class="ticket-tab active" id="currentTicketsBtn" type="button">Current</button>
+        <button class="ticket-tab" id="pastTicketsBtn" type="button">Past</button>
+      </div>
+
+      <div class="ticket-list" id="ticketList"></div>
+
+      <div class="empty-state hidden" id="ticketEmpty">
+        <h3>No tickets yet</h3>
+        <p id="emptyCopy">Kagie will send your transport ticket here once travel is arranged.</p>
+      </div>
+    </section>
+
+    <section class="access-panel hidden" id="accessSection">
+      <div class="panel-head">
+        <div>
+          <div class="section-kicker">Transport Access</div>
+          <h2>Master admin only</h2>
+          <p>Only the master admin can search buses, book transport, and send learner tickets from Kagie.</p>
+        </div>
+      </div>
+      <a class="secondary-link" id="accessBackLink" href="../assistant/dashboard.html">Back to dashboard</a>
+    </section>
+  </main>
+
+  <div class="modal hidden" id="datePickerModal" role="dialog" aria-modal="true" aria-labelledby="datePickerTitle">
+    <div class="modal-backdrop" data-close-modal="datePickerModal"></div>
+    <div class="modal-card date-modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="datePickerTitle">Select departure date</h2>
+          <p>Pick the travel date for this ticket.</p>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="datePickerModal">Close</button>
+      </div>
+
+      <div class="calendar-nav">
+        <button class="nav-btn" id="calendarPrevBtn" type="button" aria-label="Previous month">Prev</button>
+        <button class="nav-btn" id="calendarNextBtn" type="button" aria-label="Next month">Next</button>
+      </div>
+
+      <div class="calendar-months" id="calendarMonths"></div>
+
+      <div class="quick-select">
+        <span>Quick select</span>
+        <div class="quick-chip-row">
+          <button class="quick-chip" type="button" data-quick-date="today">Today</button>
+          <button class="quick-chip" type="button" data-quick-date="tomorrow">Tomorrow</button>
+          <button class="quick-chip" type="button" data-quick-date="weekend">This Weekend</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="passengerModal" role="dialog" aria-modal="true" aria-labelledby="passengerModalTitle">
+    <div class="modal-backdrop" data-close-modal="passengerModal"></div>
+    <div class="modal-card passenger-modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="passengerModalTitle">Select Passengers</h2>
+          <p>Set the traveller mix for this ticket.</p>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="passengerModal">Close</button>
+      </div>
+
+      <div class="passenger-list">
+        <div class="passenger-row" data-passenger-type="adult">
+          <div>
+            <strong>Adult</strong>
+            <span>12 years and older</span>
+          </div>
+          <div class="counter">
+            <button type="button" data-passenger-action="decrease" data-passenger-type="adult">-</button>
+            <span id="count-adult">1</span>
+            <button type="button" data-passenger-action="increase" data-passenger-type="adult">+</button>
+          </div>
+        </div>
+
+        <div class="passenger-row" data-passenger-type="senior">
+          <div>
+            <strong>Senior</strong>
+            <span>Older than 60 years</span>
+          </div>
+          <div class="counter">
+            <button type="button" data-passenger-action="decrease" data-passenger-type="senior">-</button>
+            <span id="count-senior">0</span>
+            <button type="button" data-passenger-action="increase" data-passenger-type="senior">+</button>
+          </div>
+        </div>
+
+        <div class="passenger-row" data-passenger-type="child">
+          <div>
+            <strong>Child</strong>
+            <span>Younger than 12 years</span>
+          </div>
+          <div class="counter">
+            <button type="button" data-passenger-action="decrease" data-passenger-type="child">-</button>
+            <span id="count-child">0</span>
+            <button type="button" data-passenger-action="increase" data-passenger-type="child">+</button>
+          </div>
+        </div>
+
+        <div class="passenger-row" data-passenger-type="student">
+          <div>
+            <strong>Student</strong>
+            <span>Student card is required</span>
+          </div>
+          <div class="counter">
+            <button type="button" data-passenger-action="decrease" data-passenger-type="student">-</button>
+            <span id="count-student">0</span>
+            <button type="button" data-passenger-action="increase" data-passenger-type="student">+</button>
+          </div>
+        </div>
+
+        <div class="passenger-row" data-passenger-type="sapsandf">
+          <div>
+            <strong>SAPSANDF</strong>
+            <span>SAPS or SANDF identification is required</span>
+          </div>
+          <div class="counter">
+            <button type="button" data-passenger-action="decrease" data-passenger-type="sapsandf">-</button>
+            <span id="count-sapsandf">0</span>
+            <button type="button" data-passenger-action="increase" data-passenger-type="sapsandf">+</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="primary-btn wide-btn" id="applyPassengersBtn" type="button">Apply</button>
+    </div>
+  </div>
+
+  <div class="search-overlay hidden" id="searchOverlay" aria-live="polite" aria-hidden="true">
+    <div class="search-overlay-card">
+      <div class="overlay-icon">
+        <svg viewBox="0 0 24 24"><path d="m21 21-4.35-4.35m1.35-4.65a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" /></svg>
+      </div>
+      <h2>Finding the best journey</h2>
+      <p>Searching Kagie transport routes for your learner.</p>
+
+      <div class="overlay-trip">
+        <span id="searchOverlayRoute">Johannesburg to Durban</span>
+        <span id="searchOverlayDate">Today</span>
+        <span id="searchOverlayPassengers">1 passenger</span>
+      </div>
+
+      <div class="overlay-progress">
+        <div class="overlay-progress-bar" id="searchOverlayProgress"></div>
+      </div>
+
+      <div class="overlay-stats">
+        <div class="overlay-stat">
+          <strong id="overlayRouteCount">0</strong>
+          <span>Routes found</span>
+        </div>
+        <div class="overlay-stat">
+          <strong id="overlayOperatorCount">0</strong>
+          <span>Operators</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <a class="bottom-nav-item" href="/home.html">
+      <span class="bottom-nav-kicker">App</span>
+      <span>Home</span>
+    </a>
+    <a class="bottom-nav-item" href="/career-guidance.html">
+      <span class="bottom-nav-kicker">Plan</span>
+      <span>Career</span>
+    </a>
+    <a class="bottom-nav-item" href="/recommendation.html">
+      <span class="bottom-nav-kicker">Match</span>
+      <span>Courses</span>
+    </a>
+    <a class="bottom-nav-item" href="/more-service/accommodation-assist.html">
+      <span class="bottom-nav-kicker">Stay</span>
+      <span>Housing</span>
+    </a>
+    <a class="bottom-nav-item active" href="/more-service/transport-assist.html">
+      <span class="bottom-nav-kicker">Move</span>
+      <span>Transport</span>
+    </a>
+  </div>
+</body>
+</html>

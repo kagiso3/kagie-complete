@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import { z } from "zod";
 import { ROLES, type ApplicationMark } from "@kagie/shared";
 import {
@@ -18,6 +18,7 @@ import {
   getPackCatalog,
   getProfileSnapshot,
   getReferenceCatalog,
+  listDocuments,
   listInstitutions,
   getSupportSnapshot,
   markNotificationRead,
@@ -28,7 +29,8 @@ import {
   saveMarks,
   sendSupportMessage,
   setPackage,
-  submitCheckout
+  submitCheckout,
+  uploadDocument
 } from "./applications.service";
 
 const router = Router();
@@ -152,6 +154,36 @@ router.post("/me/:applicationId/checkout", async (req: SupabaseAuthenticatedRequ
   const body = checkoutSchema.parse(req.body);
   return ok(res, await submitCheckout(req.supabaseAuth!.userId, params.applicationId, body), 201);
 });
+
+router.get("/me/documents", async (req: SupabaseAuthenticatedRequest, res) => {
+  return ok(res, await listDocuments(req.supabaseAuth!.userId));
+});
+
+router.post(
+  "/me/:applicationId/documents",
+  express.raw({
+    type: ["application/pdf", "image/jpeg", "image/png", "application/octet-stream"],
+    limit: "20mb"
+  }),
+  async (req: SupabaseAuthenticatedRequest, res) => {
+    const params = z.object({ applicationId: z.string().uuid() }).parse(req.params);
+    const headerValue = (name: string) => {
+      const value = req.headers[name.toLowerCase()];
+      const raw = Array.isArray(value) ? value[0] : value;
+      return decodeURIComponent(String(raw || "").replace(/\+/g, "%20"));
+    };
+    const fileName = z.string().min(1).parse(headerValue("x-kagie-file-name"));
+    const documentType = z.string().min(2).parse(headerValue("x-kagie-document-type"));
+    const mimeType = z.string().min(3).parse(req.headers["content-type"] || "");
+    const buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from([]);
+    return ok(res, await uploadDocument(req.supabaseAuth!.userId, params.applicationId, {
+      fileName,
+      documentType,
+      mimeType,
+      buffer
+    }), 201);
+  }
+);
 
 router.get("/me/dashboard", async (req: SupabaseAuthenticatedRequest, res) => {
   return ok(res, await getDashboardSummary(req.supabaseAuth!.userId));

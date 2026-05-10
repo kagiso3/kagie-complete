@@ -1,5 +1,3 @@
-const { normalizeSupabaseUrl } = require("./_supabase-url");
-
 function json(statusCode, payload, origin = "*") {
   return {
     statusCode,
@@ -69,7 +67,7 @@ async function getProfileSnapshot(supabaseUrl, serviceRoleKey, userId) {
   if (!userId) return null;
   const rows = await supabaseFetch(
     supabaseUrl,
-    `/rest/v1/profiles?id=eq.${encodeFilter(userId)}&select=*&limit=1`,
+    `/rest/v1/profiles?id=eq.${encodeFilter(userId)}&select=id,role,full_name&limit=1`,
     {
       method: "GET",
       headers: adminHeaders(serviceRoleKey)
@@ -106,8 +104,13 @@ async function findAuthUserByEmail(supabaseUrl, serviceRoleKey, email) {
   return null;
 }
 
-async function upsertProfilePayload(supabaseUrl, serviceRoleKey, payload) {
-  return supabaseFetch(
+async function ensureProfileRecord(supabaseUrl, serviceRoleKey, userId, role, fullName, phone) {
+  if (!userId) return null;
+
+  const existing = await getProfileSnapshot(supabaseUrl, serviceRoleKey, userId).catch(() => null);
+  if (existing) return existing;
+
+  await supabaseFetch(
     supabaseUrl,
     "/rest/v1/profiles?on_conflict=id",
     {
@@ -116,56 +119,13 @@ async function upsertProfilePayload(supabaseUrl, serviceRoleKey, payload) {
         "Content-Type": "application/json",
         Prefer: "resolution=merge-duplicates,return=representation"
       }),
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        id: userId,
+        full_name: fullName,
+        role
+      })
     }
-  );
-}
-
-async function ensureProfileRecord(supabaseUrl, serviceRoleKey, userId, role, fullName, phone, email) {
-  if (!userId) return null;
-
-  const base = {
-    id: userId,
-    full_name: fullName,
-    role
-  };
-
-  const attempts = [
-    {
-      ...base,
-      user_id: userId,
-      email: normalizeEmail(email),
-      phone: String(phone || "").trim(),
-      is_active: true,
-      updated_at: new Date().toISOString()
-    },
-    {
-      ...base,
-      email: normalizeEmail(email),
-      phone: String(phone || "").trim(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      ...base,
-      updated_at: new Date().toISOString()
-    },
-    base
-  ];
-
-  for (const payload of attempts) {
-    try {
-      await upsertProfilePayload(supabaseUrl, serviceRoleKey, payload);
-      return getProfileSnapshot(supabaseUrl, serviceRoleKey, userId).catch(() => ({
-        ...payload,
-        full_name: fullName
-      }));
-    } catch (error) {
-      const message = String(error?.message || "");
-      if (!/column|schema cache|Could not find/i.test(message)) {
-        throw error;
-      }
-    }
-  }
+  ).catch(() => null);
 
   return getProfileSnapshot(supabaseUrl, serviceRoleKey, userId).catch(() => null);
 }
@@ -181,7 +141,7 @@ exports.handler = async (event) => {
     return json(405, { message: "Method not allowed." }, origin);
   }
 
-  const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, process.env.SUPABASE_ANON_KEY);
+  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
   if (!supabaseUrl || !serviceRoleKey) {
@@ -278,14 +238,13 @@ exports.handler = async (event) => {
           existingUserId,
           "master_admin",
           fullName,
-          phone,
-          email
+          phone
         ).catch(() => null);
         return json(200, {
           data: {
             id: existingUserId,
             role: "master_admin",
-            fullName: repaired?.full_name || fullName,
+            fullName: repaired.full_name || fullName,
             email,
             phone,
             createdAt: new Date().toISOString(),
@@ -307,58 +266,6 @@ exports.handler = async (event) => {
           }
         );
       }
-    }
-
-    const existingAuthByEmail = await findAuthUserByEmail(supabaseUrl, serviceRoleKey, email);
-    if (existingAuthByEmail?.id) {
-      const existingUserId = String(existingAuthByEmail.id || "").trim();
-      await supabaseFetch(
-        supabaseUrl,
-        `/auth/v1/admin/users/${encodeURIComponent(existingUserId)}`,
-        {
-          method: "PUT",
-          headers: adminHeaders(serviceRoleKey, {
-            "Content-Type": "application/json"
-          }),
-          body: JSON.stringify({
-            email,
-            password,
-            email_confirm: true,
-            user_metadata: {
-              full_name: fullName,
-              phone,
-              role: "master_admin"
-            },
-            app_metadata: {
-              role: "master_admin"
-            }
-          })
-        }
-      );
-
-      const profile = await ensureProfileRecord(
-        supabaseUrl,
-        serviceRoleKey,
-        existingUserId,
-        "master_admin",
-        fullName,
-        phone,
-        email
-      ).catch(() => null);
-
-      return json(200, {
-        data: {
-          id: existingUserId,
-          role: "master_admin",
-          fullName: profile?.full_name || fullName,
-          email,
-          phone,
-          createdAt: existingAuthByEmail.created_at || new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          alreadyExists: true,
-          promoted: true
-        }
-      }, origin);
     }
 
     const created = await supabaseFetch(supabaseUrl, "/auth/v1/admin/users", {
@@ -388,17 +295,16 @@ exports.handler = async (event) => {
         supabaseUrl,
         serviceRoleKey,
         userId,
-          "master_admin",
-          fullName,
-          phone,
-          email
+        "master_admin",
+        fullName,
+        phone
       ).catch(() => null);
 
       return json(201, {
         data: {
           id: userId,
           role: "master_admin",
-          fullName: profile?.full_name || fullName,
+          fullName: profile.full_name || fullName,
           email,
           phone,
           createdAt: new Date().toISOString(),

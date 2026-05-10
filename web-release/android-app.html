@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie Android App</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #f5f7fb;
+      color: #10203a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: min(100%, 460px);
+      background: #ffffff;
+      border-radius: 28px;
+      padding: 36px 24px 28px;
+      box-shadow: 0 24px 60px rgba(16, 32, 58, 0.12);
+      text-align: center;
+      border: 1px solid #e7edf5;
+    }
+
+    .logo {
+      font-size: 48px;
+      line-height: 1;
+      font-weight: 800;
+      color: #df1017;
+      letter-spacing: -1px;
+      margin-bottom: 14px;
+      text-transform: lowercase;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .copy {
+      color: #60708c;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 58px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #2fb0f7 0%, #238fe1 100%);
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 18px;
+      font-weight: 700;
+      box-shadow: 0 18px 34px rgba(47, 176, 247, 0.24);
+      margin-bottom: 18px;
+    }
+
+    .help {
+      background: #fff7e7;
+      color: #6b5524;
+      border-radius: 18px;
+      padding: 16px 14px;
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .help strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #4b3609;
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="logo">kagie</div>
+    <h1 class="title">Download Kagie for Android</h1>
+    <p class="copy">Install the latest Kagie Android app directly on your phone and open the live platform in one place.</p>
+    <a class="download-btn" href="./Kagie-Android-Release.apk" download>Download Android App</a>
+    <div class="help">
+      <strong>If Android blocks the install:</strong>
+      Open the downloaded APK, allow <em>Install unknown apps</em> for your browser or Files app, then tap <em>Install</em>.
+    </div>
+  </main>
+</body>
+</html>

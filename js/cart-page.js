@@ -243,6 +243,28 @@
       billableCount: 0,
       payableTotal: 0
     };
+    async function runCartAction(button, key, busyText, task) {
+      const ux = window.KagieUX;
+      if (ux?.withButtonLock) {
+        return ux.withButtonLock(button, key, busyText, task);
+      }
+      if (button?.dataset?.kagieBusy === "1") return null;
+      const originalText = button?.textContent || "";
+      if (button) {
+        button.disabled = true;
+        button.setAttribute("aria-busy", "true");
+        if (busyText) button.textContent = busyText;
+      }
+      try {
+        return await task();
+      } finally {
+        if (button?.isConnected) {
+          button.disabled = false;
+          button.removeAttribute("aria-busy");
+          if (busyText) button.textContent = originalText;
+        }
+      }
+    }
 
     const transportSummaryMarkup = (item, draft) => {
       const from = item?.departureCity || item?.transportDetails?.departureCity || "Departure";
@@ -683,9 +705,11 @@
 
     $("list").addEventListener("click", async (event) => {
       if (event.target.id === "promoInlineClear") {
-        if (api.clearAppliedPromoCodeAsync) await api.clearAppliedPromoCodeAsync(user.id);
-        else if (api.clearAppliedPromoCode) api.clearAppliedPromoCode(user.id);
-        await render();
+        await runCartAction(event.target, "promo-inline-clear", "Clearing...", async () => {
+          if (api.clearAppliedPromoCodeAsync) await api.clearAppliedPromoCodeAsync(user.id);
+          else if (api.clearAppliedPromoCode) api.clearAppliedPromoCode(user.id);
+          await render();
+        });
         return;
       }
       const focusTransport = event.target.getAttribute("data-focus-transport");
@@ -695,9 +719,11 @@
       }
       const id = event.target.getAttribute("data-remove");
       if (!id) return;
-      if (api.removeCartItemAsync) await api.removeCartItemAsync(id, user.id);
-      else api.removeCartItem(id, user.id);
-      await render();
+      await runCartAction(event.target, `cart-remove:${id}`, "Removing...", async () => {
+        if (api.removeCartItemAsync) await api.removeCartItemAsync(id, user.id);
+        else api.removeCartItem(id, user.id);
+        await render();
+      });
     });
     $("transportCartForms")?.addEventListener("input", (event) => {
       const field = event.target.closest("[data-passenger-field]");
@@ -714,7 +740,7 @@
       if (!choice) return;
       chooseDraftValue(choice);
     });
-    $("transportSaveBtn")?.addEventListener("click", async () => {
+    $("transportSaveBtn")?.addEventListener("click", (event) => runCartAction(event.currentTarget, "transport-save", "Saving...", async () => {
       if (!state.transportItem) return;
       const validation = validateTransportDraft(state.transportDraft);
       if (validation) {
@@ -751,8 +777,8 @@
         state.transportTone = "err";
         refreshTransportUI();
       }
-    });
-    $("applyPromoBtn").addEventListener("click", async () => {
+    }));
+    $("applyPromoBtn").addEventListener("click", (event) => runCartAction(event.currentTarget, "promo-apply", "Applying...", async () => {
       const code = $("promoCodeInput").value.trim();
       if (!code) return;
       try {
@@ -763,14 +789,14 @@
       } catch (error) {
         $("promoSummary").textContent = error.message || "Could not apply that promo code.";
       }
-    });
-    $("clearPromoBtn").addEventListener("click", async () => {
+    }));
+    $("clearPromoBtn").addEventListener("click", (event) => runCartAction(event.currentTarget, "promo-clear", "Clearing...", async () => {
       if (api.clearAppliedPromoCodeAsync) await api.clearAppliedPromoCodeAsync(user.id);
       else if (api.clearAppliedPromoCode) api.clearAppliedPromoCode(user.id);
       $("promoCodeInput").value = "";
       await render();
-    });
-    $("checkoutBtn").addEventListener("click", async () => {
+    }));
+    $("checkoutBtn").addEventListener("click", (event) => runCartAction(event.currentTarget, "checkout-open", "Preparing...", async () => {
       const cart = await getItems();
       const { packs, services, others } = splitCart(cart);
       if (!(packs.length + services.length + others.length)) return;
@@ -782,8 +808,8 @@
         return;
       }
       window.location.href = "checkout.html";
-    });
-    $("clearCartBtn").addEventListener("click", async () => {
+    }));
+    $("clearCartBtn").addEventListener("click", (event) => runCartAction(event.currentTarget, "cart-clear", "Clearing...", async () => {
       const cart = await getItems();
       const { packs, services, others } = splitCart(cart);
       if (!(packs.length + services.length + others.length)) return;
@@ -791,7 +817,7 @@
       if (api.clearCartAsync) await api.clearCartAsync(user.id);
       else api.clearCart(user.id);
       await render();
-    });
+    }));
 
     await render();
   }

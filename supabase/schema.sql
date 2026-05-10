@@ -384,6 +384,7 @@ create table if not exists public.cart_items (
 create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
   application_id uuid not null references public.applications(id) on delete cascade,
+  user_id uuid references public.profiles(id) on delete set null,
   payer_name text not null,
   phone text not null,
   reference text not null,
@@ -391,10 +392,33 @@ create table if not exists public.payments (
   note text not null default '',
   amount numeric(10,2) not null default 0,
   status text not null default 'Pending Verification' check (
-    status in ('Payment Pending', 'Pending Verification', 'Verified')
+    status in ('Payment Pending', 'Pending Verification', 'Verified', 'Rejected', 'Failed', 'Cancelled', 'Refunded')
   ),
+  provider text not null default '',
+  gateway_checkout_id text,
+  gateway_payment_id text,
+  gateway_status text not null default '',
+  currency text not null default 'ZAR',
+  paid_at timestamptz,
+  failure_reason text not null default '',
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.payment_webhook_events (
+  id uuid primary key default gen_random_uuid(),
+  event_id text not null unique,
+  provider text not null default 'yoco',
+  event_type text not null default '',
+  payment_id uuid references public.payments(id) on delete set null,
+  application_id uuid references public.applications(id) on delete set null,
+  gateway_checkout_id text,
+  gateway_payment_id text,
+  processing_status text not null default 'processed' check (processing_status in ('processed', 'duplicate', 'ignored', 'error')),
+  processing_error text not null default '',
+  payload jsonb not null default '{}'::jsonb,
+  processed_at timestamptz not null default timezone('utc', now()),
+  created_at timestamptz not null default timezone('utc', now())
 );
 
 create table if not exists public.documents (
@@ -680,12 +704,12 @@ select public.seed_default_packs();
 
 alter table public.applications drop constraint if exists applications_payment_status_check;
 alter table public.applications add constraint applications_payment_status_check check (
-  payment_status in ('Payment Pending', 'Pending Verification', 'Verified', 'Rejected')
+  payment_status in ('Payment Pending', 'Pending Verification', 'Verified', 'Rejected', 'Failed', 'Cancelled', 'Refunded')
 );
 
 alter table public.payments drop constraint if exists payments_status_check;
 alter table public.payments add constraint payments_status_check check (
-  status in ('Payment Pending', 'Pending Verification', 'Verified', 'Rejected')
+  status in ('Payment Pending', 'Pending Verification', 'Verified', 'Rejected', 'Failed', 'Cancelled', 'Refunded')
 );
 
 create index if not exists idx_applications_user_id on public.applications(user_id);
@@ -694,6 +718,12 @@ create index if not exists idx_promo_campaigns_code on public.promo_campaigns(co
 create index if not exists idx_application_marks_application_id on public.application_marks(application_id);
 create index if not exists idx_application_institutions_application_id on public.application_institutions(application_id);
 create index if not exists idx_cart_items_cart_id on public.cart_items(cart_id);
+create unique index if not exists idx_payments_gateway_checkout_unique on public.payments(gateway_checkout_id) where gateway_checkout_id is not null and gateway_checkout_id <> '';
+create index if not exists idx_payments_user_created on public.payments(user_id, created_at desc);
+create index if not exists idx_payments_application_created on public.payments(application_id, created_at desc);
+create index if not exists idx_payments_provider_status_created on public.payments(provider, status, created_at desc);
+create index if not exists idx_payment_webhook_events_provider_created on public.payment_webhook_events(provider, created_at desc);
+create index if not exists idx_payment_webhook_events_checkout on public.payment_webhook_events(gateway_checkout_id);
 create index if not exists idx_documents_user_id on public.documents(user_id);
 create index if not exists idx_documents_application_id on public.documents(application_id);
 create index if not exists idx_notifications_user_id on public.notifications(user_id);
@@ -781,6 +811,7 @@ alter table public.application_institutions enable row level security;
 alter table public.carts enable row level security;
 alter table public.cart_items enable row level security;
 alter table public.payments enable row level security;
+alter table public.payment_webhook_events enable row level security;
 alter table public.documents enable row level security;
 alter table public.document_reviews enable row level security;
 alter table public.notifications enable row level security;
@@ -903,6 +934,11 @@ create policy "payments_staff_update" on public.payments for update using (
 ) with check (
   public.is_master_admin()
   or exists (select 1 from public.applications a where a.id = application_id and a.assistant_id = auth.uid())
+);
+
+drop policy if exists "payment_webhook_events_staff_select" on public.payment_webhook_events;
+create policy "payment_webhook_events_staff_select" on public.payment_webhook_events for select using (
+  public.is_staff()
 );
 
 drop policy if exists "documents_self_or_staff" on public.documents;

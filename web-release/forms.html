@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Application Forms</title>
+  <meta name="theme-color" content="#cf111d" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Kagie" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/images/logos/app-icon.png" />
+  <script defer src="/js/pwa-init.js?v=20260409a"></script>
+  <script defer src="/js/install-app.js?v=20260409a"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="js/backend.js?v=20260501a"></script>
+  <script defer src="js/data.js?v=20260426a"></script>
+  <script defer src="js/supabase-config.js?v=20260406a"></script>
+  <script defer src="js/dob-wheel-picker.js?v=20260426a"></script>
+  <script defer src="js/forms-page.js?v=20260504b"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#f5f8fc;
+      --text:#10233d;
+      --muted:#66788f;
+      --line:#d8e4f0;
+      --card:#ffffff;
+      --red:#c24848;
+      --red-hero:#db0f16;
+      --blue:#1f8aea;
+      --blue2:#63b9ff;
+      --yellow:#f2cd67;
+      --orange:#f39a38;
+      --green:#1a6b4a;
+      --shadow:0 18px 34px rgba(16,35,61,.09);
+      --soft:0 10px 22px rgba(16,35,61,.06);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      padding:18px 18px 112px;
+      font-family:"Roboto",system-ui,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left,rgba(31,138,234,.14),transparent 28%),
+        radial-gradient(circle at bottom right,rgba(219,15,22,.10),transparent 28%),
+        var(--bg);
+    }
+    .shell{
+      width:min(430px,100%);
+      margin:0 auto;
+      display:grid;
+      gap:12px;
+    }
+    .top,.card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+    }
+    .top{
+      padding:14px 16px;
+      background:linear-gradient(135deg,var(--red-hero),var(--red));
+      color:#fff;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .top h1,.head h3{margin:0;font-family:"Poppins",sans-serif}
+    .top h1{font-size:22px;font-weight:800}
+    .top p{margin:4px 0 0;font-size:12px;opacity:.9}
+    .actions,.footer,.row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .btn,.mini,.step-btn,.pack{
+      border:none;
+      cursor:pointer;
+      text-decoration:none;
+      transition:.18s ease;
+      font:inherit;
+    }
+    .btn,.mini{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:14px;
+      font-weight:700;
+    }
+    .btn{
+      height:42px;
+      padding:0 14px;
+      background:rgba(255,255,255,.14);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:none;
+    }
+    .mini{
+      min-height:42px;
+      padding:10px 16px;
+      background:linear-gradient(135deg,var(--blue),var(--blue2));
+      color:#fff;
+      box-shadow:var(--soft);
+    }
+    .mini.alt{background:linear-gradient(135deg,var(--orange),#ffb067)}
+    .mini.gold{background:linear-gradient(135deg,var(--yellow),#f8df9a);color:#6b5000}
+    .mini.green{background:linear-gradient(135deg,var(--green),#38a274)}
+    .btn:hover,.mini:hover,.step-btn:hover,.pack:hover{transform:translateY(-2px)}
+    .pill{
+      padding:7px 11px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+    }
+    .notice{
+      display:none;
+      padding:14px 16px;
+      border-radius:18px;
+      font-size:13px;
+      line-height:1.5;
+      box-shadow:var(--soft);
+    }
+    .notice.show{display:block}
+    .notice.info{background:rgba(31,138,234,.1);border:1px solid rgba(31,138,234,.15);color:var(--blue)}
+    .notice.success{background:rgba(26,107,74,.12);border:1px solid rgba(26,107,74,.16);color:var(--green)}
+    .notice.warn{background:rgba(242,205,103,.18);border:1px solid rgba(242,205,103,.2);color:#8a6500}
+    .layout{display:block}
+    .card{padding:14px}
+    .form-card{display:grid;gap:14px}
+    .form-intro{display:grid;gap:10px}
+    .head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+    .head p,.item p,.pack p{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.55;
+    }
+    .head.compact{margin-bottom:4px}
+    .steps,.section,.list{display:grid;gap:10px}
+    .steps{
+      grid-auto-flow:column;
+      grid-auto-columns:minmax(96px,1fr);
+      overflow-x:auto;
+      scroll-snap-type:x proximity;
+      padding:4px;
+      background:#edf2f8;
+      border-radius:16px;
+    }
+    .steps::-webkit-scrollbar,.pack-grid::-webkit-scrollbar{height:6px}
+    .steps::-webkit-scrollbar-thumb,.pack-grid::-webkit-scrollbar-thumb{
+      background:rgba(15,23,42,.12);
+      border-radius:999px;
+    }
+    .step-btn,.item,.pack{
+      background:rgba(255,255,255,.92);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:0 8px 18px rgba(15,23,42,.04);
+    }
+    .step-btn{
+      min-width:112px;
+      padding:10px 12px;
+      text-align:center;
+      display:grid;
+      gap:4px;
+      scroll-snap-align:center;
+      background:transparent;
+      box-shadow:none;
+    }
+    .step-btn strong,.item strong,.pack strong{
+      display:block;
+      font-size:14px;
+      font-weight:800;
+    }
+    .step-btn small{
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.35;
+    }
+    .step-btn.active{
+      background:#fff;
+      border-color:rgba(31,138,234,.22);
+      box-shadow:0 8px 18px rgba(15,23,42,.06);
+    }
+    .step-btn.done small{color:#0f7a47}
+    .section{display:none}
+    .section.active{display:grid}
+    .pill{
+      background:rgba(31,138,234,.1);
+      color:var(--blue);
+      border:1px solid rgba(31,138,234,.14);
+    }
+    .grid2,.grid3,.apply-grid{display:grid;gap:10px;grid-template-columns:1fr}
+    .marks-row{
+      display:grid;
+      gap:10px;
+      grid-template-columns:minmax(0,1fr) 120px auto;
+      align-items:end;
+    }
+    .field-wrap{display:grid;gap:6px;position:relative}
+    .field-span-all{grid-column:1/-1}
+    .choice-label{
+      font-size:13px;
+      font-weight:700;
+      color:var(--text);
+    }
+    .choice-group{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+    .choice-option{
+      min-height:48px;
+      padding:0 14px;
+      border:1px solid rgba(15,23,42,.12);
+      border-radius:14px;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:700;
+      color:var(--text);
+      box-shadow:0 8px 18px rgba(15,23,42,.04);
+    }
+    .choice-option.active{
+      border-color:rgba(18,160,92,.32);
+      background:rgba(18,160,92,.08);
+      box-shadow:0 10px 18px rgba(18,160,92,.08);
+    }
+    .choice-tick{
+      width:20px;
+      height:20px;
+      border-radius:50%;
+      border:2px solid #cbd5e1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color:transparent;
+      font-size:12px;
+      font-weight:800;
+      transition:.18s ease;
+      flex-shrink:0;
+    }
+    .choice-option.active .choice-tick{
+      border-color:var(--green);
+      background:var(--green);
+      color:#fff;
+    }
+    .label{
+      position:absolute;
+      left:-9999px;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+    }
+    .field,select,textarea{
+      width:100%;
+      min-width:0;
+      border:1px solid rgba(15,23,42,.16);
+      border-radius:8px;
+      padding:11px 12px;
+      font:inherit;
+      background:#fff;
+      outline:none;
+      box-shadow:none;
+    }
+    select.field,
+    select{
+      appearance:none;
+      background-image:linear-gradient(45deg,transparent 50%,#94a3b8 50%),linear-gradient(135deg,#94a3b8 50%,transparent 50%);
+      background-position:calc(100% - 18px) calc(50% - 2px),calc(100% - 12px) calc(50% - 2px);
+      background-size:6px 6px,6px 6px;
+      background-repeat:no-repeat;
+      padding-right:34px;
+    }
+    .field::placeholder,textarea::placeholder{color:#8e9aaf}
+    .field:focus,select:focus,textarea:focus{
+      border-color:rgba(47,164,255,.65);
+      box-shadow:0 0 0 3px rgba(47,164,255,.08);
+    }
+    textarea{
+      min-height:92px;
+      resize:vertical;
+    }
+    .pack-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+    .pack{
+      padding:14px 12px;
+      text-align:center;
+      display:grid;
+      gap:8px;
+      background:#fff;
+    }
+    .pack.active{
+      border-color:rgba(47,164,255,.32);
+      box-shadow:0 12px 22px rgba(47,164,255,.12);
+      background:#fff;
+    }
+    .pack-top{
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      color:#111827;
+      line-height:1.35;
+      min-height:28px;
+    }
+    .pack-count{
+      font-family:"Poppins",sans-serif;
+      font-size:34px;
+      font-weight:800;
+      line-height:1;
+      color:#111827;
+    }
+    .pack-caption{
+      font-size:11px;
+      font-weight:800;
+      color:#111827;
+      text-transform:lowercase;
+    }
+    .pack-note{
+      font-size:11px;
+      line-height:1.45;
+      color:var(--muted);
+      min-height:48px;
+    }
+    .pack-action{
+      display:grid;
+      gap:8px;
+    }
+    .pack .mini{
+      width:100%;
+      min-height:38px;
+      border-radius:10px;
+      padding:8px 12px;
+    }
+    .row{justify-content:space-between;align-items:flex-start}
+    .badge{
+      padding:7px 12px;
+      border-radius:999px;
+      background:rgba(47,164,255,.08);
+      border:1px solid rgba(47,164,255,.12);
+      color:var(--blue);
+      font-size:12px;
+      font-weight:800;
+      white-space:nowrap;
+      justify-self:center;
+    }
+    .empty{
+      text-align:center;
+      padding:18px 12px;
+      border-radius:18px;
+      border:1px dashed rgba(15,23,42,.16);
+      color:var(--muted);
+      font-size:13px;
+      font-weight:600;
+    }
+    .hintbox{
+      padding:12px;
+      border-radius:14px;
+      background:rgba(47,164,255,.08);
+      border:1px solid rgba(47,164,255,.12);
+    }
+    .status-panel{display:grid;gap:10px}
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      border:1px solid transparent;
+    }
+    .status-open{background:rgba(18,160,92,.12);color:#0f7a47;border-color:rgba(18,160,92,.16)}
+    .status-soon{background:rgba(245,200,76,.18);color:#8a6500;border-color:rgba(245,200,76,.2)}
+    .status-closed{background:rgba(201,0,0,.12);color:#a70000;border-color:rgba(201,0,0,.16)}
+    .institution-card.closed{opacity:.82;background:linear-gradient(135deg,rgba(15,23,42,.04),rgba(255,255,255,.92))}
+    .school-results,.study-grid,.study-courses{display:grid;gap:10px}
+    .school-match,.study-card{
+      background:rgba(255,255,255,.92);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      box-shadow:0 8px 18px rgba(15,23,42,.04);
+    }
+    .school-match{
+      cursor:pointer;
+      text-align:left;
+      transition:.18s ease;
+    }
+    .school-match:hover{transform:translateY(-1px);border-color:rgba(47,164,255,.28)}
+    .school-match strong,.study-card strong{display:block;font-size:14px;font-weight:800}
+    .school-match small,.study-card small{
+      display:block;
+      margin-top:6px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+    .study-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .study-courses{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+    .course-chip{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px 10px;
+      border-radius:14px;
+      background:rgba(47,164,255,.1);
+      border:1px solid rgba(47,164,255,.12);
+      color:var(--blue);
+      font-size:12px;
+      font-weight:700;
+      text-align:center;
+    }
+    .helper-meta{font-size:12px;color:var(--muted);line-height:1.55}
+    .institution-search-wrap{
+      grid-column:1/-1;
+      position:relative;
+    }
+    .institution-search-wrap::after{
+      content:"Search";
+      position:absolute;
+      right:10px;
+      top:50%;
+      transform:translateY(-50%);
+      padding:5px 9px;
+      border-radius:999px;
+      background:linear-gradient(135deg,rgba(219,15,22,.10),rgba(243,154,56,.12));
+      color:var(--red-hero);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      pointer-events:none;
+    }
+    .institution-search-wrap .field{
+      padding-right:78px;
+      border-radius:16px;
+      background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(255,246,242,.96));
+    }
+    .institution-result-meta{
+      grid-column:1/-1;
+      margin-top:-4px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+    .institution-group-option{
+      font-weight:700;
+    }
+    .more-details{
+      margin-top:2px;
+      padding-top:8px;
+      border-top:1px solid rgba(15,23,42,.08);
+    }
+    .more-details summary{
+      list-style:none;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:800;
+      color:var(--blue);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .more-details summary::-webkit-details-marker{display:none}
+    .more-open{display:none}
+    .more-details[open] .more-open{display:inline}
+    .more-details[open] .more-closed{display:none}
+    .more-content{display:grid;gap:8px;padding-top:10px}
+    .feature-list{
+      display:grid;
+      gap:6px;
+      margin:0;
+      padding-left:18px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.5;
+    }
+    .feature-list li{margin:0}
+    .apply-actions{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+      align-items:stretch;
+    }
+    .section-block{
+      display:grid;
+      gap:10px;
+    }
+    .shortlist-simple .item{
+      padding:14px;
+    }
+    .shortlist-simple .row{
+      align-items:center;
+    }
+    .package-institutions-shell{
+      padding:14px;
+      display:grid;
+      gap:10px;
+    }
+    .institution-inline-list{
+      display:grid;
+      gap:10px;
+      padding-top:6px;
+    }
+    .institution-inline-row{
+      display:grid;
+      gap:10px;
+      padding:12px 0;
+      border-top:1px solid rgba(15,23,42,.08);
+    }
+    .institution-inline-row:first-child{
+      border-top:none;
+      padding-top:0;
+    }
+    .institution-inline-main strong{
+      display:block;
+      font-size:14px;
+      font-weight:800;
+      margin-bottom:4px;
+    }
+    .institution-inline-main p{
+      margin:0;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+    .institution-inline-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .institution-inline-meta .meta-left,
+    .institution-inline-meta .meta-right{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+    .footer{
+      justify-content:space-between;
+      align-items:center;
+      padding-top:10px;
+      position:sticky;
+      bottom:8px;
+      background:linear-gradient(180deg,rgba(245,248,252,0),rgba(245,248,252,.94) 30%,rgba(245,248,252,.98));
+      border-top:1px solid var(--line);
+    }
+    .footer .mini[disabled],#addInstitutionBtn[disabled]{
+      opacity:.6;
+      cursor:not-allowed;
+      transform:none;
+    }
+    @media (max-width:760px){
+      .marks-row{grid-template-columns:1fr}
+      .apply-actions{grid-template-columns:1fr}
+      .footer{position:static;background:none;border-top:none;padding-top:6px}
+    }
+    @media (max-width:640px){
+      body{padding:12px 12px 104px}
+      .top,.hero,.card{border-radius:20px}
+      .shell{width:min(430px,100%)}
+      .actions,.footer{width:100%}
+      .btn,.mini{width:100%}
+      .study-grid{grid-template-columns:1fr}
+      .steps{grid-auto-columns:minmax(110px,1fr)}
+    }
+    .bottom-nav{
+      position:fixed;
+      left:50%;
+      bottom:14px;
+      transform:translateX(-50%);
+      width:min(430px,calc(100% - 24px));
+      background:rgba(255,255,255,.94);
+      border:1px solid var(--line);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(20px);
+      -webkit-backdrop-filter:blur(20px);
+      display:flex;
+      justify-content:space-between;
+      gap:6px;
+      padding:8px;
+      z-index:50;
+    }
+    .bottom-nav-item{
+      flex:1;
+      min-height:52px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      border-radius:18px;
+      text-decoration:none;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
+    .bottom-nav-item.active{
+      background:linear-gradient(135deg,var(--red-hero),var(--orange));
+      color:#fff;
+      box-shadow:0 10px 20px rgba(219,15,22,.18);
+    }
+    .bottom-nav-kicker{font-size:9px;opacity:.72;letter-spacing:.08em}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div><h1>Application Forms</h1><p>Fill details, choose package, add institutions, go to cart.</p></div>
+      <div class="actions"><a class="btn" href="home.html">Home</a></div>
+    </header>
+    <div class="notice info" id="notice"></div>
+    <section class="layout">
+      <main class="card form-card">
+        <section class="form-intro">
+          <div class="head compact">
+            <div>
+              <h3>Steps</h3>
+              <p>Tap a step and continue.</p>
+            </div>
+          </div>
+          <div class="steps" id="stepList"></div>
+        </section>
+        <section class="section active" data-step="learner">
+          <div class="head"><div><h3>Learner Details</h3></div><span class="pill">Step 1 / 6</span></div>
+          <div class="grid3" id="learnerFields"></div>
+        </section>
+        <section class="section" data-step="parent">
+          <div class="head"><div><h3>Parent or Guardian</h3></div><span class="pill">Step 2 / 6</span></div>
+          <div class="grid3" id="parentFields"></div>
+        </section>
+        <section class="section" data-step="school">
+          <div class="head"><div><h3>School Information</h3></div><span class="pill">Step 3 / 6</span></div>
+          <div class="grid3" id="schoolFields"></div>
+          <datalist id="schoolNameOptions"></datalist>
+          <div class="hintbox"><p id="schoolLookupMeta" style="margin:0;color:var(--muted);font-size:12px;line-height:1.55">Search school or type it manually.</p></div>
+          <div class="list" id="schoolLookupResults"></div>
+        </section>
+        <section class="section" data-step="marks">
+          <div class="head"><div><h3>NSC Marks</h3></div><span class="pill">Step 4 / 6</span></div>
+          <div class="marks-row">
+            <div class="field-wrap"><label class="label" for="subjectSelect">Subject</label><select class="field" id="subjectSelect"></select></div>
+            <div class="field-wrap"><label class="label" for="subjectPercent">Percent</label><input class="field" id="subjectPercent" type="number" min="0" max="100" placeholder="0 to 100" /></div>
+            <button class="mini" id="addSubjectBtn" type="button">Add subject</button>
+          </div>
+          <div class="row"><span class="pill" id="marksCountPill">0 subjects</span><span class="pill" id="marksAvgPill">Average pending</span><span class="pill" id="apsPill">APS pending</span></div>
+          <div class="list" id="marksList"></div>
+        </section>
+        <section class="section" data-step="pack">
+          <div class="head"><div><h3>Choose Your Package</h3></div><span class="pill">Step 5 / 6</span></div>
+          <div class="pack-grid" id="packGrid"></div>
+          <div class="item" id="packSummaryCard"></div>
+        </section>
+        <section class="section" data-step="apply">
+          <div class="head"><div><h3>Institution Choices</h3></div><span class="pill">Step 6 / 6</span></div>
+          <div class="apply-grid">
+            <div class="field-wrap"><label class="label" for="applyYear">Year</label><select class="field" id="applyYear"></select></div>
+            <div class="field-wrap"><label class="label" for="applyProvince">Province</label><select class="field" id="applyProvince"></select></div>
+            <div class="field-wrap"><label class="label" for="institutionType">Institution type</label><select class="field" id="institutionType"></select></div>
+            <div class="field-wrap institution-search-wrap"><label class="label" for="institutionSearch">Search institution</label><input class="field" id="institutionSearch" type="search" placeholder="Search universities, TVET colleges, private colleges" autocomplete="off" /></div>
+            <div class="field-wrap"><label class="label" for="institutionName">Institution</label><select class="field" id="institutionName"></select></div>
+            <p class="institution-result-meta" id="institutionSearchMeta">Search or choose from grouped institutions.</p>
+            <div class="field-wrap"><label class="label" for="facultyName">Faculty</label><input class="field" id="facultyName" list="facultyOptions" placeholder="Select or type faculty" autocomplete="off" /></div>
+            <div class="field-wrap"><label class="label" for="choice1">Choice 1</label><input class="field" id="choice1" list="courseOptions" placeholder="Type choice 1" autocomplete="off" /></div>
+            <div class="field-wrap"><label class="label" for="choice2">Choice 2</label><input class="field" id="choice2" list="courseOptions" placeholder="Type choice 2" autocomplete="off" /></div>
+            <div class="field-wrap"><label class="label" for="choice3">Choice 3</label><input class="field" id="choice3" list="courseOptions" placeholder="Type choice 3" autocomplete="off" /></div>
+          </div>
+          <datalist id="facultyOptions"></datalist>
+          <datalist id="courseOptions"></datalist>
+          <div class="hintbox status-panel">
+            <div class="row"><span class="status-pill status-open" id="institutionStatusPill">Application year</span><span class="pill" id="instLimitPill">No package selected yet</span></div>
+            <p id="institutionDatesMeta" style="margin:0;color:var(--muted);font-size:12px;line-height:1.55">Pick institution status.</p>
+            <p id="applyCatalogMeta" style="margin:0;color:var(--muted);font-size:12px;line-height:1.55">Choose faculty and type course if needed.</p>
+          </div>
+          <div class="apply-actions">
+            <button class="mini gold" id="editPackageBtn" type="button">Edit package</button>
+            <button class="mini green" id="addInstitutionBtn" type="button">Add institution</button>
+            <button class="mini" id="goCartBtn" type="button">Add to cart</button>
+          </div>
+          <div class="section-block">
+            <div class="head compact"><div><h3 id="packageInstitutionsTitle">Inside selected package</h3><p id="packageInstitutionsMeta">The institutions below will move with the selected package to cart.</p></div></div>
+            <div class="list shortlist-simple" id="institutionsList"></div>
+          </div>
+        </section>
+        <div class="footer">
+          <button class="mini alt" id="prevBtn" type="button">Back</button>
+          <button class="mini" id="nextBtn" type="button">Continue</button>
+        </div>
+      </main>
+    </section>
+  </div>
+  <div class="bottom-nav">
+    <a class="bottom-nav-item active" href="home.html"><span class="bottom-nav-kicker">App</span><span>Home</span></a>
+    <a class="bottom-nav-item" href="career-guidance.html"><span class="bottom-nav-kicker">Plan</span><span>Career</span></a>
+    <a class="bottom-nav-item" href="recommendation.html"><span class="bottom-nav-kicker">Match</span><span>Courses</span></a>
+    <a class="bottom-nav-item" href="more-service/accommodation-assist.html"><span class="bottom-nav-kicker">Stay</span><span>Housing</span></a>
+    <a class="bottom-nav-item" href="more-service/transport-assist.html"><span class="bottom-nav-kicker">Move</span><span>Transport</span></a>
+  </div>
+    <!-- Legacy inline fallback removed. Forms logic now runs from js/forms-page.js -->
+</body>
+</html>
+

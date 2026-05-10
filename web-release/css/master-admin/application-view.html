@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kagie | Master Admin Review</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f3f5f7;
+      --text:#0f172a;
+      --muted:#6b7280;
+      --line:rgba(2,6,23,.08);
+
+      --red:#c90000;
+      --yellow:#f5c84c;
+      --orange:#e45a2a;
+      --blue:#2fa4ff;
+      --green:#0d9f5e;
+
+      --shadow:0 18px 38px rgba(2,6,23,.12);
+      --shadow-soft:0 10px 22px rgba(2,6,23,.08);
+      --radius:24px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+
+    body{
+      margin:0;
+      font-family:"Roboto",system-ui,-apple-system,Segoe UI,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 480px at 20% 0%, rgba(47,164,255,.15), transparent 60%),
+        radial-gradient(900px 520px at 80% 8%, rgba(245,200,76,.16), transparent 60%),
+        radial-gradient(900px 520px at 60% 100%, rgba(228,90,42,.10), transparent 60%),
+        var(--bg);
+      padding:18px;
+    }
+
+    .app{
+      width:min(1280px,100%);
+      margin:0 auto;
+      display:grid;
+      gap:16px;
+    }
+
+    .topbar{
+      min-height:76px;
+      background:linear-gradient(180deg,#c90000,#af0000);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:16px 18px;
+      color:#fff;
+      border-radius:28px;
+      box-shadow:var(--shadow);
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+
+    .logo{
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      display:grid;
+      place-items:center;
+      background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.25);
+      box-shadow:0 10px 24px rgba(0,0,0,.16);
+      font-weight:900;
+      font-size:18px;
+    }
+
+    .topbar-sub{
+      font-size:12px;
+      opacity:.9;
+      margin-top:3px;
+      font-weight:500;
+    }
+
+    .top-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .btn{
+      height:44px;
+      border:none;
+      border-radius:14px;
+      padding:0 16px;
+      font:inherit;
+      font-weight:800;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      transition:.18s ease;
+    }
+
+    .btn:hover{transform:translateY(-1px)}
+
+    .btn-ghost{
+      background:rgba(255,255,255,.16);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.24);
+    }
+
+    .btn-success{
+      background:linear-gradient(135deg,var(--green),#43d38a);
+      color:#fff;
+    }
+
+    .btn-red{
+      background:linear-gradient(135deg,var(--red),#ef4444);
+      color:#fff;
+    }
+
+    .btn-blue{
+      background:linear-gradient(135deg,var(--blue),#66c8ff);
+      color:#fff;
+    }
+
+    .btn-orange{
+      background:linear-gradient(135deg,var(--orange),#ff9568);
+      color:#fff;
+    }
+
+    .btn-yellow{
+      background:linear-gradient(135deg,var(--yellow),#efd977);
+      color:#6a4e00;
+    }
+
+    .hero{
+      border-radius:24px;
+      padding:18px;
+      background:linear-gradient(135deg, rgba(47,164,255,.95), rgba(201,0,0,.88));
+      color:#fff;
+      box-shadow:var(--shadow-soft);
+    }
+
+    .hero-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:14px;
+      flex-wrap:wrap;
+    }
+
+    .hero-title{
+      font-size:26px;
+      font-weight:900;
+      margin-bottom:6px;
+      line-height:1.1;
+    }
+
+    .hero-sub{
+      font-size:13px;
+      color:rgba(255,255,255,.9);
+      line-height:1.45;
+    }
+
+    .hero-badge{
+      min-width:110px;
+      text-align:center;
+      padding:12px 14px;
+      border-radius:18px;
+      background:rgba(255,255,255,.18);
+      border:1px solid rgba(255,255,255,.25);
+      backdrop-filter:blur(8px);
+      font-weight:900;
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:12px;
+    }
+
+    .stat-card,
+    .card{
+      border-radius:22px;
+      padding:16px;
+      background:rgba(255,255,255,.72);
+      border:1px solid rgba(255,255,255,.62);
+      box-shadow:var(--shadow-soft);
+      backdrop-filter:blur(12px);
+    }
+
+    .stat-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:10px;
+    }
+
+    .stat-title{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    .stat-icon{
+      width:38px;
+      height:38px;
+      border-radius:13px;
+      display:grid;
+      place-items:center;
+      color:#fff;
+      box-shadow:0 10px 20px rgba(2,6,23,.12);
+    }
+
+    .bg-red{background:linear-gradient(135deg,var(--red),#ff4545)}
+    .bg-yellow{background:linear-gradient(135deg,var(--yellow),#f1dd7d); color:#624500}
+    .bg-blue{background:linear-gradient(135deg,var(--blue),#66c8ff)}
+    .bg-orange{background:linear-gradient(135deg,var(--orange),#ff8d5e)}
+
+    .stat-value{
+      font-size:28px;
+      font-weight:900;
+      line-height:1;
+    }
+
+    .stat-sub{
+      margin-top:6px;
+      font-size:12px;
+      color:var(--muted);
+      font-weight:600;
+    }
+
+    .layout{
+      display:grid;
+      grid-template-columns:1.15fr .85fr;
+      gap:16px;
+    }
+
+    .stack{
+      display:grid;
+      gap:16px;
+    }
+
+    .section-title{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:18px;
+      font-weight:900;
+      margin-bottom:14px;
+    }
+
+    .section-title .dot{
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      background:var(--blue);
+      box-shadow:0 0 0 4px rgba(47,164,255,.14);
+    }
+
+    .list{
+      display:grid;
+      gap:10px;
+    }
+
+    .item{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      padding:12px;
+      border-radius:16px;
+      background:rgba(255,255,255,.58);
+      border:1px solid rgba(2,6,23,.07);
+    }
+
+    .item h4{
+      margin:0 0 4px;
+      font-size:14px;
+      font-weight:900;
+    }
+
+    .item p{
+      margin:0;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.45;
+    }
+
+    .meta-grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:10px;
+    }
+
+    .field{
+      display:grid;
+      gap:7px;
+      margin-bottom:14px;
+    }
+
+    .field label{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    .field select,
+    .field textarea,
+    .field input{
+      width:100%;
+      border:none;
+      border-radius:14px;
+      background:#fff;
+      box-shadow:inset 0 0 0 1px rgba(2,6,23,.08);
+      font:inherit;
+      padding:0 14px;
+    }
+
+    .field select,
+    .field input{
+      height:46px;
+    }
+
+    .field textarea{
+      min-height:110px;
+      resize:vertical;
+      padding:14px;
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    .status-chip{
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:900;
+      white-space:nowrap;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .chip-blue{background:rgba(47,164,255,.12); color:var(--blue); border:1px solid rgba(47,164,255,.18)}
+    .chip-yellow{background:rgba(245,200,76,.18); color:#8c6b00; border:1px solid rgba(245,200,76,.25)}
+    .chip-red{background:rgba(201,0,0,.12); color:var(--red); border:1px solid rgba(201,0,0,.16)}
+    .chip-orange{background:rgba(228,90,42,.12); color:var(--orange); border:1px solid rgba(228,90,42,.16)}
+    .chip-green{background:rgba(0,170,90,.12); color:#0d9f5e; border:1px solid rgba(0,170,90,.18)}
+
+    .summary-grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:10px;
+    }
+
+    .empty{
+      text-align:center;
+      color:var(--muted);
+      padding:18px;
+      font-size:13px;
+      font-weight:600;
+    }
+
+    @media (max-width: 1024px){
+      .layout{grid-template-columns:1fr}
+      .stats{grid-template-columns:repeat(2,1fr)}
+      .meta-grid{grid-template-columns:1fr}
+      .summary-grid{grid-template-columns:1fr}
+    }
+
+    @media (max-width: 600px){
+      .stats{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <div class="brand">
+          <div class="logo">K</div>
+          <div>
+            <div>Master Admin Review</div>
+            <div class="topbar-sub">Review, control, and update learner applications</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <a class="btn btn-ghost" href="dashboard.html">Back</a>
+        <button class="btn btn-ghost" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <section class="hero" id="heroBox">
+      <div class="hero-top">
+        <div>
+          <div class="hero-title">Loading application...</div>
+          <div class="hero-sub">Please wait while Kagie loads the application record.</div>
+        </div>
+        <div class="hero-badge">Review</div>
+      </div>
+    </section>
+
+    <section class="stats" id="statsRow"></section>
+
+    <section class="layout">
+      <div class="stack">
+        <div class="card">
+          <h2 class="section-title"><span class="dot"></span> Application Summary</h2>
+          <div id="summaryBox"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title"><span class="dot"></span> Applicant Details</h2>
+          <div id="learnerBox"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title"><span class="dot"></span> Selected Courses</h2>
+          <div id="itemsBox" class="list"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title"><span class="dot"></span> Notes</h2>
+          <div id="notesBox" class="list"></div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="card">
+          <h2 class="section-title"><span class="dot"></span> Administrative Controls</h2>
+
+          <form id="adminForm">
+            <div class="field">
+              <label>Application Status</label>
+              <select id="applicationStatus">
+                <option>Draft</option>
+                <option>Submitted</option>
+                <option>Under Review</option>
+                <option>Missing Documents</option>
+                <option>Ready to Apply</option>
+                <option>Applied</option>
+                <option>Pending Feedback</option>
+                <option>Accepted</option>
+                <option>Rejected</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Payment Status</label>
+              <select id="paymentStatus">
+                <option>Payment Pending</option>
+                <option>Pending Verification</option>
+                <option>Verified</option>
+                <option>Rejected</option>
+              </select>
+            </div>
+
+            <div class="actions">
+              <button class="btn btn-success" type="submit">Save Changes</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title"><span class="dot"></span> Quick Actions</h2>
+          <div class="actions">
+            <button class="btn btn-blue" type="button" id="reviewBtn">Set Under Review</button>
+            <button class="btn btn-orange" type="button" id="missingBtn">Mark Missing Docs</button>
+            <button class="btn btn-yellow" type="button" id="readyBtn">Ready To Apply</button>
+            <button class="btn btn-green" type="button" id="acceptBtn">Accept</button>
+            <button class="btn btn-red" type="button" id="rejectBtn">Reject</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="../js/backend.js"></script>
+  <script src="../js/ui.js"></script>
+  <script>
+    const admin = KagieAPI.requireRole("master_admin");
+
+    const logoutBtn = document.getElementById("logoutBtn");
+    const heroBox = document.getElementById("heroBox");
+    const statsRow = document.getElementById("statsRow");
+    const summaryBox = document.getElementById("summaryBox");
+    const learnerBox = document.getElementById("learnerBox");
+    const itemsBox = document.getElementById("itemsBox");
+    const notesBox = document.getElementById("notesBox");
+    const adminForm = document.getElementById("adminForm");
+    const applicationStatus = document.getElementById("applicationStatus");
+    const paymentStatus = document.getElementById("paymentStatus");
+
+    logoutBtn.onclick = async () => {
+      try{
+        if (KagieAPI.logoutReal) {
+          await KagieAPI.logoutReal();
+        } else {
+          KagieAPI.logout();
+        }
+      } catch(err){
+        localStorage.removeItem("kagie_current_user");
+      }
+      location.href = "../login.html";
+    };
+
+    function getChipClass(status){
+      const s = String(status || "").toLowerCase();
+      if (s.includes("accept")) return "chip-green";
+      if (s.includes("review")) return "chip-blue";
+      if (s.includes("submit")) return "chip-orange";
+      if (s.includes("pending") || s.includes("missing")) return "chip-yellow";
+      if (s.includes("reject")) return "chip-red";
+      if (s.includes("applied")) return "chip-blue";
+      return "chip-orange";
+    }
+
+    function moneyStatusClass(status){
+      const s = String(status || "").toLowerCase();
+      if (s.includes("verified")) return "chip-green";
+      if (s.includes("pending")) return "chip-yellow";
+      if (s.includes("reject")) return "chip-red";
+      return "chip-orange";
+    }
+
+    const appId = KagieUI.qs("id");
+    const app = KagieAPI.getApplication(appId);
+
+    if (!app) {
+      document.body.innerHTML = `
+        <div class="app">
+          <div class="card">
+            <div class="empty">Application not found.</div>
+          </div>
+        </div>
+      `;
+    } else {
+      const user = KagieAPI.getProfile(app.userId) || {};
+      const assignedAssistant = KagieAPI.getUserById(app.assignedAssistantId);
+      const notes = KagieAPI.getNotes(app.id);
+      const docReviews = KagieAPI.getDocumentReviewsForUser(app.userId) || [];
+
+      applicationStatus.value = app.status || "Draft";
+      paymentStatus.value = app.paymentStatus || "Payment Pending";
+
+      heroBox.innerHTML = `
+        <div class="hero-top">
+          <div>
+            <div class="hero-title">${app.applicant || user.fullName || "Applicant"}</div>
+            <div class="hero-sub">
+              Application ID: ${app.id}<br>
+              Assigned Assistant: ${assignedAssistant?.fullName || "Unassigned"}
+            </div>
+          </div>
+          <div class="hero-badge">${app.status || "Draft"}</div>
+        </div>
+      `;
+
+      statsRow.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-head">
+            <div class="stat-title">Application Status</div>
+            <div class="stat-icon bg-blue">A</div>
+          </div>
+          <div class="status-chip ${getChipClass(app.status)}">${app.status || "Draft"}</div>
+          <div class="stat-sub">Current workflow stage</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-head">
+            <div class="stat-title">Payment Status</div>
+            <div class="stat-icon bg-yellow">P</div>
+          </div>
+          <div class="status-chip ${moneyStatusClass(app.paymentStatus)}">${app.paymentStatus || "Payment Pending"}</div>
+          <div class="stat-sub">Proof of payment review</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-head">
+            <div class="stat-title">Institutions</div>
+            <div class="stat-icon bg-orange">${(app.items || []).length}</div>
+          </div>
+          <div class="stat-value">${(app.items || []).length}</div>
+          <div class="stat-sub">Selected application choices</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-head">
+            <div class="stat-title">Notes</div>
+            <div class="stat-icon bg-red">${notes.length}</div>
+          </div>
+          <div class="stat-value">${notes.length}</div>
+          <div class="stat-sub">Assistant and review notes</div>
+        </div>
+      `;
+
+      summaryBox.innerHTML = `
+        <div class="summary-grid">
+          <div class="item">
+            <div>
+              <h4>Applicant</h4>
+              <p>${app.applicant || user.fullName || "-"}</p>
+            </div>
+          </div>
+          <div class="item">
+            <div>
+              <h4>Assigned Assistant</h4>
+              <p>${assignedAssistant?.fullName || "Unassigned"}</p>
+            </div>
+          </div>
+          <div class="item">
+            <div>
+              <h4>Created At</h4>
+              <p>${app.createdAt ? new Date(app.createdAt).toLocaleString("en-ZA") : "-"}</p>
+            </div>
+          </div>
+          <div class="item">
+            <div>
+              <h4>Updated At</h4>
+              <p>${app.updatedAt ? new Date(app.updatedAt).toLocaleString("en-ZA") : "-"}</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const learnerRows = [
+        ["Full Name", user.fullName],
+        ["Email", user.email],
+        ["Phone", user.phone],
+        ["Province", user.province],
+        ["School", user.schoolName || user.schoolAttended],
+        ["Average", user.average],
+        ["Guardian", user.guardianName],
+        ["Date of Birth", user.dob]
+      ];
+
+      learnerBox.innerHTML = `
+        <div class="meta-grid">
+          ${learnerRows.map(([k,v]) => `
+            <div class="item">
+              <div>
+                <h4>${k}</h4>
+                <p>${v || "-"}</p>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+
+      itemsBox.innerHTML = (app.items && app.items.length)
+        ? app.items.map((i, index) => `
+          <div class="item">
+            <div>
+              <h4>${i.institution || i.university || `Institution ${index + 1}`}</h4>
+              <p>${i.faculty || "-"} • ${i.course || i.programme || "-"}</p>
+            </div>
+            <div class="status-chip chip-blue">Choice ${i.choice || index + 1}</div>
+          </div>
+        `).join("")
+        : `<div class="empty">No selected courses.</div>`;
+
+      const noteHtml = notes.length
+        ? notes.map(n => `
+          <div class="item">
+            <div>
+              <h4>${KagieAPI.getUserById(n.assistantId)?.fullName || "Assistant"}</h4>
+              <p>${n.noteText}</p>
+              <p style="margin-top:6px;">${n.createdAt ? new Date(n.createdAt).toLocaleString("en-ZA") : ""}</p>
+            </div>
+          </div>
+        `).join("")
+        : `<div class="empty">No notes.</div>`;
+
+      const reviewHtml = docReviews.length
+        ? docReviews.map(r => `
+          <div class="item">
+            <div>
+              <h4>${r.doc?.name || r.doc?.title || r.doc?.type || "Document"}</h4>
+              <p>Status: ${r.review?.status || r.doc?.status || "Uploaded"}</p>
+              <p>${r.review?.comment || "-"}</p>
+            </div>
+          </div>
+        `).join("")
+        : "";
+
+      notesBox.innerHTML = noteHtml + reviewHtml;
+
+      adminForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        KagieAPI.updateApplication(
+          app.id,
+          {
+            status: applicationStatus.value,
+            paymentStatus: paymentStatus.value
+          },
+          admin.id
+        );
+
+        alert("Application updated");
+        location.reload();
+      });
+
+      document.getElementById("reviewBtn").addEventListener("click", () => {
+        applicationStatus.value = "Under Review";
+      });
+
+      document.getElementById("missingBtn").addEventListener("click", () => {
+        applicationStatus.value = "Missing Documents";
+      });
+
+      document.getElementById("readyBtn").addEventListener("click", () => {
+        applicationStatus.value = "Ready to Apply";
+      });
+
+      document.getElementById("acceptBtn").addEventListener("click", () => {
+        applicationStatus.value = "Accepted";
+      });
+
+      document.getElementById("rejectBtn").addEventListener("click", () => {
+        applicationStatus.value = "Rejected";
+      });
+    }
+  </script>
+</body>
+</html>

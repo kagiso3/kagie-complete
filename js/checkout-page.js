@@ -28,14 +28,12 @@
     "Yoco Checkout": {
       title: "Yoco secure checkout",
       lines: [
-        "Kagie will open the Yoco payment link for you.",
-        "Enter the exact total shown on this Kagie checkout screen when you pay on Yoco.",
-        "After paying on Yoco, come back here and confirm the payment so Kagie support can track it."
+        "Kagie creates a secure Yoco checkout for this exact order.",
+        "The amount is calculated on Kagie's server from your cart, not from browser input.",
+        "After payment, Yoco confirms the result to Kagie automatically by webhook."
       ]
     }
   };
-
-  const YOCO_MANUAL_FLOW_KEY = "kagie_yoco_manual_flow_v1";
 
   function firstNonEmpty(...values) {
     for (const value of values) {
@@ -68,7 +66,7 @@
       branchCode: firstNonEmpty(settings?.payments?.branchCode),
       verificationMessage: firstNonEmpty(
         settings?.payments?.verificationMessage,
-        "Payments are verified manually after checkout."
+        "Payments are confirmed automatically by Yoco after checkout."
       ),
       yocoEnabled: Boolean(settings?.payments?.yocoEnabled),
       yocoCheckoutEndpoint: firstNonEmpty(settings?.payments?.yocoCheckoutEndpoint),
@@ -90,6 +88,14 @@
       payment: params.get("payment") || "",
       checkoutId: params.get("checkoutId") || ""
     };
+  }
+
+  function buildCheckoutReturnUrl(paymentState) {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.searchParams.set("provider", "yoco");
+    url.searchParams.set("payment", paymentState);
+    return url.toString();
   }
 
   function splitCart(cart) {
@@ -261,7 +267,6 @@
     let paymentSubmitted = false;
     let currentPricingTotal = 0;
     let currentPricing = { subtotal: 0, discount: 0, total: 0, promo: null };
-    let yocoLinkOpened = false;
     const returnState = readCheckoutReturnState();
 
     function setPaymentNotice(message, allowHtml = false) {
@@ -273,7 +278,7 @@
     function renderReturnMessage() {
       if (returnState.provider === "yoco") {
         if (returnState.payment === "success") {
-          return "Yoco received your payment successfully. Kagie is confirming it now.";
+          return "Yoco returned you after payment. Kagie will update the dashboard as soon as the secure webhook confirms it.";
         }
         if (returnState.payment === "cancel") {
           return "Your Yoco payment was not completed. Your Kagie order is still saved and you can try again.";
@@ -294,21 +299,18 @@
     }
 
     function syncMethodPanel() {
-      const usingYoco = true;
-      const hasPaymentLink = Boolean(merchantDetails.yocoPaymentLink);
+      const hasCheckoutEndpoint = Boolean(merchantDetails.yocoCheckoutEndpoint);
       el.methodGuide.innerHTML = renderMethodGuide(el.method.value);
-      el.bankingPanel.innerHTML = hasPaymentLink
-        ? `<div class="guide-title">${esc(merchantDetails.yocoProviderLabel)}</div><div class="banking-copy">Kagie will open the Yoco payment link for this order.</div><div class="banking-copy">Enter the exact amount shown on this screen when you pay, then come back here and confirm your payment reference.</div>`
-        : `<div class="guide-title">${esc(merchantDetails.yocoProviderLabel)}</div><div class="banking-copy">Yoco payment has not been configured on this Kagie site yet.</div>`;
-      el.supportLine.textContent = hasPaymentLink
-        ? "First open Yoco, pay the amount shown on Kagie, then return here and confirm the payment."
+      el.bankingPanel.innerHTML = hasCheckoutEndpoint
+        ? `<div class="guide-title">${esc(merchantDetails.yocoProviderLabel)}</div><div class="banking-copy">Kagie will create a secure Yoco checkout for this order and redirect you to Yoco.</div><div class="banking-copy">Do not close the Yoco page until it returns you to Kagie.</div>`
+        : `<div class="guide-title">${esc(merchantDetails.yocoProviderLabel)}</div><div class="banking-copy">Yoco checkout has not been configured on this Kagie site yet.</div>`;
+      el.supportLine.textContent = hasCheckoutEndpoint
+        ? "Yoco confirms paid or failed payments directly to Kagie. You do not need to manually mark yourself as paid."
         : "Yoco payment is not available yet on this Kagie site.";
       el.proofIntroBox.classList.remove("hidden");
       el.proofNameWrap.classList.remove("hidden");
       el.proofFileWrap.classList.remove("hidden");
-      el.confirmText.innerHTML = yocoLinkOpened
-        ? "I confirm that I have already paid on <strong>Yoco</strong> and that Kagie may use my payment reference to track this order."
-        : "I understand that Kagie will open <strong>Yoco</strong> and that I must enter the exact total shown on this checkout screen.";
+      el.confirmText.innerHTML = "I understand Kagie will redirect me to <strong>Yoco secure checkout</strong> and that payment is only confirmed after Yoco's server notification reaches Kagie.";
       syncReferenceHint();
     }
 
@@ -326,9 +328,7 @@
       const promoLine = Number(currentPricing.discount || 0) > 0
         ? `Subtotal ${money(currentPricing.subtotal)} less ${money(currentPricing.discount)} promo discount.`
         : "This is the exact total from your current Kagie cart.";
-      const paymentFlowLine = yocoLinkOpened
-        ? "Pay on Yoco, then come back here and confirm the payment in Kagie."
-        : "Kagie will open the Yoco pay link and you will enter this amount yourself.";
+      const paymentFlowLine = "Kagie will redirect you to a secure Yoco checkout and wait for Yoco's server confirmation.";
       const followUpLine = checkoutGate.ready
         ? paymentFlowLine
         : `Kagie will still follow up on ${checkoutGate.missing.join(", ")} after payment if needed.`;
@@ -347,65 +347,32 @@
     function syncButton(hasCartItems) {
       const onlineReady = Boolean(
         merchantDetails.yocoEnabled
-        && merchantDetails.yocoPaymentLink
+        && merchantDetails.yocoCheckoutEndpoint
       );
+      const ux = window.KagieUX;
       el.confirmBtn.disabled = !hasCartItems || submitting || !onlineReady;
-      el.confirmBtn.textContent = submitting
-        ? (yocoLinkOpened ? "Confirming payment..." : "Opening Yoco...")
-        : hasCartItems && onlineReady
-          ? (yocoLinkOpened ? "Confirm Yoco payment" : `Continue to pay ${money(currentPricingTotal)}`)
+      if (submitting && ux?.setButtonLoading) {
+        ux.setButtonLoading(el.confirmBtn, true, { busyText: "Creating secure checkout..." });
+      } else if (ux?.setButtonLoading) {
+        ux.setButtonLoading(el.confirmBtn, false, { keepDisabled: !hasCartItems || !onlineReady });
+        el.confirmBtn.textContent = hasCartItems && onlineReady
+          ? `Pay ${money(currentPricingTotal)} with Yoco`
           : "Continue to Yoco";
+      } else {
+        el.confirmBtn.textContent = submitting
+          ? "Creating secure checkout..."
+          : hasCartItems && onlineReady
+            ? `Pay ${money(currentPricingTotal)} with Yoco`
+            : "Continue to Yoco";
+      }
       el.confirmBtn.style.opacity = !hasCartItems || submitting || !onlineReady ? ".7" : "1";
     }
 
-    function setYocoManualFlowState(active) {
-      yocoLinkOpened = Boolean(active);
-      try {
-        if (active) sessionStorage.setItem(YOCO_MANUAL_FLOW_KEY, "1");
-        else sessionStorage.removeItem(YOCO_MANUAL_FLOW_KEY);
-      } catch (_error) {
+    async function startYocoCheckout(payload) {
+      if (typeof api.startYocoCheckoutAsync !== "function") {
+        throw new Error("Live Yoco checkout is not available on this Kagie site yet.");
       }
-    }
-
-    function restoreYocoManualFlowState() {
-      try {
-        yocoLinkOpened = sessionStorage.getItem(YOCO_MANUAL_FLOW_KEY) === "1";
-      } catch (_error) {
-        yocoLinkOpened = false;
-      }
-    }
-
-    function openYocoPaymentLink() {
-      const paymentLink = String(merchantDetails.yocoPaymentLink || "").trim();
-      if (!merchantDetails.yocoEnabled || !paymentLink) {
-        throw new Error("The Kagie Yoco payment link is not configured yet.");
-      }
-      setYocoManualFlowState(true);
-      window.location.assign(paymentLink);
-    }
-
-    async function confirmManualYocoPayment(payload) {
-      const paymentPayload = {
-        payerName: payload.payerName,
-        phone: payload.phone,
-        reference: payload.reference,
-        note: payload.note,
-        method: "Yoco Payment Link",
-        amount: currentPricingTotal
-      };
-
-      if (api.submitApplicationFromCartAsync) {
-        await api.submitApplicationFromCartAsync(paymentPayload);
-      } else if (api.submitApplicationFromCart) {
-        api.submitApplicationFromCart(paymentPayload);
-      } else if (api.submitPayment) {
-        await Promise.resolve(api.submitPayment(paymentPayload));
-      } else {
-        throw new Error("Kagie could not save the order before opening Yoco.");
-      }
-
-      paymentSubmitted = true;
-      setYocoManualFlowState(false);
+      return api.startYocoCheckoutAsync(payload);
     }
 
     async function render() {
@@ -423,7 +390,7 @@
       const itemCount = packs.length + services.length + others.length;
       const leadPack = packs[0] || null;
       checkoutGate = evaluateCheckoutGate(leadPack, latestApplication);
-      const pendingVerification = paymentSubmitted || latest?.paymentStatus === "Pending Verification";
+      const pendingVerification = paymentSubmitted || returnState.payment === "success" || latest?.paymentStatus === "Pending Verification";
 
       el.heroTitle.textContent = `Hello, ${user.fullName || "Student"}`;
       el.heroText.textContent = itemCount
@@ -444,19 +411,17 @@
       const returnMessage = renderReturnMessage();
       const noticeMessage = returnMessage
         ? esc(returnMessage)
-        : yocoLinkOpened
-          ? `Yoco should be open already. Pay <strong>${esc(money(pricing.total))}</strong> there, then come back here and click <strong>Confirm Yoco payment</strong>.`
-          : !checkoutGate.ready && itemCount
+        : !checkoutGate.ready && itemCount
             ? `Payment is still open even though ${esc(checkoutGate.missing.join(", "))} ${checkoutGate.missing.length === 1 ? "is" : "are"} still missing. Kagie assistants will see the gaps, contact the learner, and continue the application manually if needed.`
             : pendingVerification
-              ? `Payment submitted successfully. Kagie will verify it and keep your application moving. <a class="proof-link" href="home.html">Open Kagie home</a>`
+              ? `Payment submitted successfully. Kagie is waiting for secure confirmation. <a class="proof-link" href="home.html">Open Kagie home</a>`
               : latest?.paymentStatus === "Rejected"
                 ? `Your previous proof of payment was rejected${latest?.payment?.rejectionReason ? `: ${esc(latest.payment.rejectionReason)}` : ""}. Upload a clearer proof before confirming again.`
                 : esc(merchantDetails.verificationMessage);
       setPaymentNotice(noticeMessage, true);
 
-      const paymentLinkReady = Boolean(merchantDetails.yocoEnabled && merchantDetails.yocoPaymentLink);
-      const yocoAvailable = paymentLinkReady;
+      const checkoutReady = Boolean(merchantDetails.yocoEnabled && merchantDetails.yocoCheckoutEndpoint);
+      const yocoAvailable = checkoutReady;
       const yocoOption = el.method.querySelector('option[value="Yoco Checkout"]');
       if (yocoOption && !yocoAvailable) {
         yocoOption.disabled = true;
@@ -467,9 +432,9 @@
         setPaymentNotice(
           "Instant online payment is not configured yet on this Kagie site."
         );
-      } else if (paymentLinkReady && !yocoLinkOpened) {
+      } else if (checkoutReady && !returnMessage) {
         setPaymentNotice(
-          `Kagie will open the Yoco payment link first. Enter the total shown here: ${esc(money(pricing.total))}. Then return here and confirm the payment.`,
+          `Kagie will create a secure Yoco checkout for ${esc(money(pricing.total))}. Yoco will confirm the payment directly to Kagie after checkout.`,
           true
         );
       }
@@ -548,9 +513,9 @@
         "Use the same payment reference everywhere",
         !checkoutGate.ready
           ? "Kagie assistants will still see the missing sections after payment"
-          : latest?.paymentStatus === "Rejected"
-          ? "Your last proof was rejected, so upload a new one before you leave checkout"
-          : "Upload proof now or later if Kagie asks for it"
+        : latest?.paymentStatus === "Rejected"
+          ? "Your last payment attempt was rejected, so retry Yoco checkout"
+          : "Yoco will confirm payment directly to Kagie"
       ];
 
       el.orderChecklist.innerHTML = checklist.map((item) => `<div class="check-item">${esc(item)}</div>`).join("");
@@ -559,7 +524,6 @@
       syncButton(Boolean(itemCount));
     }
 
-    restoreYocoManualFlowState();
     el.method.addEventListener("change", syncMethodPanel);
     if (el.reference) {
       el.reference.addEventListener("input", () => {
@@ -570,53 +534,75 @@
     el.confirmBtn.addEventListener("click", async () => {
       const cart = await getItems();
       if (!cart.length || submitting) return;
+      const hasItems = Boolean(cart.length);
 
       const method = el.method.value;
       const usingYoco = isYocoMethod(method);
+      let slowTimer = 0;
 
       try {
         submitting = true;
         syncButton(true);
+        slowTimer = window.setTimeout(() => {
+          setPaymentNotice("Still creating your secure checkout, please wait...");
+        }, 3200);
 
         if (!usingYoco) {
           setPaymentNotice("Kagie currently supports instant online payment through Yoco only.");
           return;
         }
 
-        if (!yocoLinkOpened) {
-          openYocoPaymentLink();
-        } else if (merchantDetails.yocoPaymentLink) {
-          const payerName = el.payerName.value.trim();
-          const phone = el.payerPhone.value.trim();
-          const reference = el.reference.value.trim();
-          const note = $("note").value.trim();
+        const payerName = el.payerName.value.trim();
+        const phone = el.payerPhone.value.trim();
+        const reference = el.reference.value.trim();
+        const note = $("note").value.trim();
 
-          if (!payerName || !phone || !reference) {
-            setPaymentNotice("After paying on Yoco, enter payer name, phone number, and payment reference before confirming.");
-            return;
-          }
-
-          if (!el.confirmCheck.checked) {
-            setPaymentNotice("Please confirm that you already paid on Yoco before Kagie records the payment.");
-            return;
-          }
-
-          await confirmManualYocoPayment({ payerName, phone, reference, note });
-          await render();
-        } else {
-          throw new Error("Yoco payment is not configured on this Kagie site yet.");
+        if (!payerName || !phone || !reference) {
+          setPaymentNotice("Enter payer name, phone number, and the payment reference before starting Yoco checkout.");
+          return;
         }
-        return;
+
+        if (!el.confirmCheck.checked) {
+          setPaymentNotice("Please confirm that Kagie may redirect you to Yoco secure checkout.");
+          return;
+        }
+
+        if (!merchantDetails.yocoEnabled || !merchantDetails.yocoCheckoutEndpoint) {
+          throw new Error("Yoco checkout is not configured on this Kagie site yet.");
+        }
+
+        setPaymentNotice("Creating your secure Yoco checkout. Please wait...");
+        const checkout = await startYocoCheckout({
+          payerName,
+          phone,
+          reference,
+          note,
+          successUrl: buildCheckoutReturnUrl("success"),
+          cancelUrl: buildCheckoutReturnUrl("cancel"),
+          failureUrl: buildCheckoutReturnUrl("failed")
+        });
+
+        if (!checkout?.redirectUrl) {
+          throw new Error("Yoco did not return a checkout redirect URL.");
+        }
+
+        paymentSubmitted = true;
+        window.location.assign(checkout.redirectUrl);
 
       } catch (error) {
         console.error(error);
         setPaymentNotice(describeCheckoutError(error));
       } finally {
+        if (slowTimer) window.clearTimeout(slowTimer);
         submitting = false;
-        syncButton(Boolean((await getItems()).length));
+        syncButton(hasItems);
       }
     });
 
+    el.summary.innerHTML = window.KagieUX?.skeletonList?.({ rows: 3, lines: 2, pill: false }) || '<div class="empty">Loading your order...</div>';
+    el.pricingSummary.innerHTML = window.KagieUX?.skeletonList?.({ rows: 1, lines: 3, avatar: false, pill: false }) || "";
+    el.orderChecklist.innerHTML = window.KagieUX?.skeletonList?.({ rows: 5, lines: 1, avatar: false, pill: false }) || "";
+    syncButton(false);
     await render();
   }
 

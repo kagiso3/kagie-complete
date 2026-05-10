@@ -1,7 +1,6 @@
 node_modules/
 .npm-cache/
 dist/
-web-release/
 .expo/
 .turbo/
 .vscode/
@@ -15,8 +14,6 @@ coverage/
 *.apk
 *.aab
 *.zip.part
-tmp-*.png
-test-icon.png
 tmp_*.xls
 _tmp_*.apk
 kagie-mobile/.expo/
@@ -26,11 +23,10 @@ kagie-api/.env
 kagie-mobile/android/keystore.properties
 kagie-mobile/android/app/*.jks
 kagie-mobile/android/app/*.keystore
+!packages/shared/dist/
+!packages/shared/dist/**
 
 # Local Vercel folder
 .vercel
 .vercel-*.log
 .vercel-*.txt
-
-# Old provider/local deploy leftovers
-kagie-web/.netlify/

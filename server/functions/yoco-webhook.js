@@ -1,16 +1,20 @@
 const crypto = require("crypto");
-const { normalizeSupabaseUrl } = require("./_supabase-url");
 
 const PAYMENT_NOTE_PREFIX = "__KAGIE_PAYMENT_META__";
 const WEBHOOK_THRESHOLD_SECONDS = 180;
 
 const STATUS = {
   application: {
-    PROCESSING: "Application being processed"
+    PROCESSING: "Application being processed",
+    REJECTED: "Rejected"
   },
   payment: {
     PENDING: "Payment Pending",
-    VERIFIED: "Verified"
+    VERIFIED: "Verified",
+    FAILED: "Failed",
+    CANCELLED: "Cancelled",
+    REFUNDED: "Refunded",
+    REJECTED: "Rejected"
   }
 };
 
@@ -155,20 +159,23 @@ function readRawBody(event) {
   return event.isBase64Encoded ? Buffer.from(event.body, "base64").toString("utf8") : String(event.body);
 }
 
-function parseWebhookSignature(signatureHeader) {
-  const firstChunk = String(signatureHeader || "").split(" ")[0];
-  if (!firstChunk) return "";
-  const commaParts = firstChunk.split(",");
-  if (commaParts.length > 1) return trim(commaParts[1]);
-  return trim(firstChunk.replace(/^v1,?/, ""));
+function parseWebhookSignatures(signatureHeader) {
+  return String(signatureHeader || "")
+    .split(" ")
+    .map((part) => {
+      const chunks = part.split(",");
+      return chunks.length > 1 ? chunks[1] : part.replace(/^v1,?/, "");
+    })
+    .map(trim)
+    .filter(Boolean);
 }
 
 function verifyYocoWebhook(headers, rawBody, secret) {
   const webhookId = trim(getHeader(headers, "webhook-id"));
   const webhookTimestamp = trim(getHeader(headers, "webhook-timestamp"));
-  const webhookSignature = parseWebhookSignature(getHeader(headers, "webhook-signature"));
+  const webhookSignatures = parseWebhookSignatures(getHeader(headers, "webhook-signature"));
 
-  if (!webhookId || !webhookTimestamp || !webhookSignature) {
+  if (!webhookId || !webhookTimestamp || !webhookSignatures.length) {
     return { ok: false, message: "Missing Yoco webhook verification headers." };
   }
 
@@ -190,17 +197,45 @@ function verifyYocoWebhook(headers, rawBody, secret) {
     .update(signedContent)
     .digest("base64");
 
-  const actualBuffer = Buffer.from(webhookSignature);
   const expectedBuffer = Buffer.from(expectedSignature);
-  if (actualBuffer.length !== expectedBuffer.length) {
-    return { ok: false, message: "Invalid Yoco webhook signature length." };
-  }
-
-  if (!crypto.timingSafeEqual(expectedBuffer, actualBuffer)) {
+  const matched = webhookSignatures.some((signature) => {
+    const actualBuffer = Buffer.from(signature);
+    return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(expectedBuffer, actualBuffer);
+  });
+  if (!matched) {
     return { ok: false, message: "Invalid Yoco webhook signature." };
   }
 
   return { ok: true };
+}
+
+function extractCheckoutId(body, payload) {
+  return trim(
+    payload?.metadata?.checkoutId ||
+    payload?.metadata?.checkout_id ||
+    payload?.metadata?.kagieCheckoutId ||
+    payload?.checkoutId ||
+    payload?.checkout_id ||
+    body?.metadata?.checkoutId ||
+    body?.checkoutId
+  );
+}
+
+function extractPaymentId(payload) {
+  return trim(payload?.id || payload?.paymentId || payload?.payment_id);
+}
+
+function extractFailureReason(payload) {
+  return trim(payload?.failureReason || payload?.failure_reason || payload?.errorMessage || payload?.message);
+}
+
+function isMissingColumnError(error) {
+  const message = `${error?.message || ""} ${JSON.stringify(error?.payload || {})}`.toLowerCase();
+  return error?.status === 400 && (
+    message.includes("schema cache") ||
+    message.includes("column") ||
+    message.includes("could not find")
+  );
 }
 
 async function bestEffortNotification(supabaseUrl, serviceRoleKey, userId, title, message, type = "info") {
@@ -305,6 +340,124 @@ async function bestEffortPromoRedemption(supabaseUrl, serviceRoleKey, code, user
   }
 }
 
+async function findPaymentByCheckoutId(supabaseUrl, serviceRoleKey, checkoutId) {
+  try {
+    const rows = await supabaseFetch(
+      supabaseUrl,
+      `/rest/v1/payments?gateway_checkout_id=eq.${encodeFilter(checkoutId)}&select=id,application_id,note,status,reference,method,amount,payer_name,phone,gateway_checkout_id,gateway_payment_id,gateway_status&order=created_at.desc&limit=1`,
+      {
+        method: "GET",
+        headers: adminHeaders(serviceRoleKey)
+      }
+    );
+    const direct = Array.isArray(rows) ? rows[0] || null : null;
+    if (direct) return direct;
+  } catch (error) {
+    if (!isMissingColumnError(error)) throw error;
+  }
+
+  const paymentRows = await supabaseFetch(
+    supabaseUrl,
+    "/rest/v1/payments?select=id,application_id,note,status,reference,method,amount,payer_name,phone&order=created_at.desc&limit=500",
+    {
+      method: "GET",
+      headers: adminHeaders(serviceRoleKey)
+    }
+  );
+
+  return (Array.isArray(paymentRows) ? paymentRows : []).find((row) =>
+    String(row?.note || "").includes(checkoutId)
+  ) || null;
+}
+
+async function patchPaymentRecord(supabaseUrl, serviceRoleKey, paymentId, patch) {
+  const legacyPatch = {
+    note: patch.note,
+    status: patch.status
+  };
+
+  try {
+    await supabaseFetch(
+      supabaseUrl,
+      `/rest/v1/payments?id=eq.${encodeFilter(paymentId)}`,
+      {
+        method: "PATCH",
+        headers: adminHeaders(serviceRoleKey, {
+          "Content-Type": "application/json",
+          Prefer: "return=minimal"
+        }),
+        body: JSON.stringify(patch)
+      }
+    );
+  } catch (error) {
+    if (!isMissingColumnError(error)) {
+      const isStatusConstraint = String(error?.message || "").toLowerCase().includes("payments_status_check");
+      if (!isStatusConstraint) throw error;
+    }
+    await supabaseFetch(
+      supabaseUrl,
+      `/rest/v1/payments?id=eq.${encodeFilter(paymentId)}`,
+      {
+        method: "PATCH",
+        headers: adminHeaders(serviceRoleKey, {
+          "Content-Type": "application/json",
+          Prefer: "return=minimal"
+        }),
+        body: JSON.stringify({
+          ...legacyPatch,
+          status: patch.status === STATUS.payment.VERIFIED ? STATUS.payment.VERIFIED : STATUS.payment.REJECTED
+        })
+      }
+    );
+  }
+}
+
+async function patchApplicationPayment(supabaseUrl, serviceRoleKey, applicationId, patch) {
+  try {
+    await supabaseFetch(
+      supabaseUrl,
+      `/rest/v1/applications?id=eq.${encodeFilter(applicationId)}`,
+      {
+        method: "PATCH",
+        headers: adminHeaders(serviceRoleKey, {
+          "Content-Type": "application/json",
+          Prefer: "return=minimal"
+        }),
+        body: JSON.stringify(patch)
+      }
+    );
+  } catch (error) {
+    const isStatusConstraint = String(error?.message || "").toLowerCase().includes("applications_payment_status_check");
+    if (!isStatusConstraint) throw error;
+    await supabaseFetch(
+      supabaseUrl,
+      `/rest/v1/applications?id=eq.${encodeFilter(applicationId)}`,
+      {
+        method: "PATCH",
+        headers: adminHeaders(serviceRoleKey, {
+          "Content-Type": "application/json",
+          Prefer: "return=minimal"
+        }),
+        body: JSON.stringify({
+          ...patch,
+          payment_status: patch.payment_status === STATUS.payment.VERIFIED ? STATUS.payment.VERIFIED : STATUS.payment.REJECTED
+        })
+      }
+    );
+  }
+}
+
+async function bestEffortWebhookEventLog(supabaseUrl, serviceRoleKey, row) {
+  await fetch(`${supabaseUrl}/rest/v1/payment_webhook_events`, {
+    method: "POST",
+    headers: adminHeaders(serviceRoleKey, {
+      "Content-Type": "application/json",
+      Prefer: "resolution=ignore-duplicates,return=minimal"
+    }),
+    body: JSON.stringify([row])
+  }).catch(() => {});
+}
+
 exports.handler = async (event) => {
   const origin = event.headers.origin || "*";
 
@@ -316,7 +469,7 @@ exports.handler = async (event) => {
     return json(405, { message: "Method not allowed." }, origin);
   }
 
-  const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, process.env.SUPABASE_ANON_KEY);
+  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   const webhookSecret = process.env.YOCO_WEBHOOK_SECRET || "";
 
@@ -339,29 +492,31 @@ exports.handler = async (event) => {
 
   const eventType = trim(body?.type);
   const payload = body?.payload && typeof body.payload === "object" ? body.payload : {};
-  const checkoutId = trim(payload?.metadata?.checkoutId);
-  const paymentId = trim(payload?.id);
+  const checkoutId = extractCheckoutId(body, payload);
+  const paymentId = extractPaymentId(payload);
   const gatewayStatus = trim(payload?.status || eventType);
+  const failureReason = extractFailureReason(payload);
+  const eventId = trim(body?.id || getHeader(event.headers || {}, "webhook-id") || `${eventType}:${checkoutId}:${paymentId}`);
 
   if (!checkoutId || !["payment.succeeded", "payment.failed"].includes(eventType)) {
     return json(200, { ok: true, ignored: true }, origin);
   }
 
   try {
-    const paymentRows = await supabaseFetch(
-      supabaseUrl,
-      "/rest/v1/payments?select=id,application_id,note,status,reference,method,amount,payer_name,phone&order=created_at.desc&limit=500",
-      {
-        method: "GET",
-        headers: adminHeaders(serviceRoleKey)
-      }
-    );
-
-    const paymentRow = (Array.isArray(paymentRows) ? paymentRows : []).find((row) =>
-      String(row?.note || "").includes(checkoutId)
-    );
+    const paymentRow = await findPaymentByCheckoutId(supabaseUrl, serviceRoleKey, checkoutId);
 
     if (!paymentRow) {
+      await bestEffortWebhookEventLog(supabaseUrl, serviceRoleKey, {
+        event_id: eventId,
+        provider: "yoco",
+        event_type: eventType,
+        gateway_checkout_id: checkoutId,
+        gateway_payment_id: paymentId,
+        processing_status: "ignored",
+        processing_error: "payment_not_found",
+        payload: body,
+        processed_at: nowISO()
+      });
       return json(200, { ok: true, ignored: true, reason: "payment_not_found" }, origin);
     }
 
@@ -390,48 +545,50 @@ exports.handler = async (event) => {
     };
 
     const note = serializePaymentNoteState(nextMeta);
-    const paymentStatus = eventType === "payment.succeeded" ? STATUS.payment.VERIFIED : STATUS.payment.PENDING;
+    const isSuccessful = eventType === "payment.succeeded";
+    const paymentStatus = isSuccessful ? STATUS.payment.VERIFIED : STATUS.payment.FAILED;
 
-    await supabaseFetch(
-      supabaseUrl,
-      `/rest/v1/payments?id=eq.${encodeFilter(paymentRow.id)}`,
-      {
-        method: "PATCH",
-        headers: adminHeaders(serviceRoleKey, {
-          "Content-Type": "application/json",
-          Prefer: "return=minimal"
-        }),
-        body: JSON.stringify({
-          note,
-          status: paymentStatus
-        })
-      }
-    );
+    if (isSuccessful && paymentRow.status === STATUS.payment.VERIFIED) {
+      await bestEffortWebhookEventLog(supabaseUrl, serviceRoleKey, {
+        event_id: eventId,
+        provider: "yoco",
+        event_type: eventType,
+        payment_id: paymentRow.id,
+        application_id: application.id,
+        gateway_checkout_id: checkoutId,
+        gateway_payment_id: paymentId,
+        processing_status: "duplicate",
+        payload: body,
+        processed_at: nowISO()
+      });
+      return json(200, { ok: true, duplicate: true }, origin);
+    }
+
+    await patchPaymentRecord(supabaseUrl, serviceRoleKey, paymentRow.id, {
+      note,
+      status: paymentStatus,
+      gateway_checkout_id: checkoutId,
+      gateway_payment_id: paymentId || null,
+      gateway_status: gatewayStatus,
+      provider: "yoco",
+      currency: trim(payload?.currency || "ZAR"),
+      paid_at: isSuccessful ? nowISO() : null,
+      failure_reason: isSuccessful ? "" : failureReason || gatewayStatus
+    });
 
     const applicationPatch = {
       payment_note: note,
-      payment_status: paymentStatus
+      payment_status: isSuccessful ? STATUS.payment.VERIFIED : STATUS.application.REJECTED
     };
 
-    if (eventType === "payment.succeeded") {
+    if (isSuccessful) {
       applicationPatch.status = STATUS.application.PROCESSING;
       applicationPatch.submitted_at = application.submitted_at || nowISO();
     }
 
-    await supabaseFetch(
-      supabaseUrl,
-      `/rest/v1/applications?id=eq.${encodeFilter(application.id)}`,
-      {
-        method: "PATCH",
-        headers: adminHeaders(serviceRoleKey, {
-          "Content-Type": "application/json",
-          Prefer: "return=minimal"
-        }),
-        body: JSON.stringify(applicationPatch)
-      }
-    );
+    await patchApplicationPayment(supabaseUrl, serviceRoleKey, application.id, applicationPatch);
 
-    if (eventType === "payment.succeeded") {
+    if (isSuccessful) {
       const carts = await supabaseFetch(
         supabaseUrl,
         `/rest/v1/carts?user_id=eq.${encodeFilter(application.user_id)}&select=id&limit=1`,
@@ -501,6 +658,19 @@ exports.handler = async (event) => {
         "warning"
       );
     }
+
+    await bestEffortWebhookEventLog(supabaseUrl, serviceRoleKey, {
+      event_id: eventId,
+      provider: "yoco",
+      event_type: eventType,
+      payment_id: paymentRow.id,
+      application_id: application.id,
+      gateway_checkout_id: checkoutId,
+      gateway_payment_id: paymentId,
+      processing_status: "processed",
+      payload: body,
+      processed_at: nowISO()
+    });
 
     return json(200, { ok: true }, origin);
   } catch (error) {

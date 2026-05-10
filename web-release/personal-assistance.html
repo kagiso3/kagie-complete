@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Personal Assistance</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="js/backend.js?v=20260405k"></script>
+  <script defer src="js/supabase-config.js?v=20260405k"></script>
+  <script defer src="js/personal-assistance-page.js?v=20260405k"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#f4f7fb;--text:#0f172a;--muted:#64748b;--line:rgba(15,23,42,.08);--card:rgba(255,255,255,.84);--red:#c90000;--blue:#2fa4ff;--green:#13a35d;--shadow:0 20px 44px rgba(15,23,42,.12);--soft:0 10px 22px rgba(15,23,42,.08)}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);background:radial-gradient(900px 520px at 15% 0%,rgba(47,164,255,.14),transparent 60%),radial-gradient(900px 560px at 85% 10%,rgba(201,0,0,.12),transparent 60%),var(--bg)}.shell{width:min(980px,100%);margin:0 auto;display:grid;gap:16px}.top,.hero,.card{background:var(--card);border:1px solid rgba(255,255,255,.65);border-radius:26px;box-shadow:var(--shadow);backdrop-filter:blur(14px)}.top{padding:18px 20px;background:linear-gradient(135deg,var(--red),#a70000);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.top h1{margin:0;font:800 22px "Poppins",sans-serif}.top p{margin:5px 0 0;font-size:13px;opacity:.92}.actions{display:flex;gap:10px;flex-wrap:wrap}.btn,.mini{border:none;border-radius:14px;font:700 14px inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;transition:.18s ease}.btn{height:44px;padding:0 16px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.18);box-shadow:var(--soft)}.mini{height:36px;padding:0 12px;background:linear-gradient(135deg,var(--blue),#67caff);color:#fff}.btn:hover,.mini:hover{transform:translateY(-2px)}
+    .hero{padding:20px;background:linear-gradient(135deg,rgba(47,164,255,.96),rgba(201,0,0,.88));color:#fff}.hero h2{margin:0;font:800 30px "Poppins",sans-serif}.hero p{margin:8px 0 0;font-size:14px;line-height:1.6;color:rgba(255,255,255,.92)}.hero .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.hero span{padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);font-size:12px;font-weight:800}
+    .layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(300px,.9fr);gap:16px}.card{padding:18px}.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}.head h3{margin:0;font:800 18px "Poppins",sans-serif}.head p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.55}.stack,.list{display:grid;gap:10px}
+    .chat-box{display:grid;gap:12px}.messages{display:grid;gap:10px;max-height:480px;overflow:auto;padding-right:4px}.msg{max-width:88%;padding:12px 14px;border-radius:18px;font-size:13px;line-height:1.55;box-shadow:0 8px 18px rgba(15,23,42,.04)}.agent{background:#f4f8fd;border:1px solid rgba(47,164,255,.12);color:#334155}.user{background:linear-gradient(135deg,var(--red),#ff6b6b);color:#fff;margin-left:auto}.msg small{display:block;font-size:11px;font-weight:800;opacity:.8;margin-bottom:4px}
+    .composer{display:grid;gap:10px}.composer textarea,.field{width:100%;border:1px solid var(--line);border-radius:16px;padding:14px;font:inherit;background:#fff;outline:none;box-shadow:0 8px 18px rgba(15,23,42,.04)}.composer textarea{min-height:110px;resize:vertical}.row{display:flex;gap:10px;flex-wrap:wrap}.row .field{flex:1}.panel,.item{background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.04)}.item strong{font-size:15px}.item p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.6}.status{padding:8px 12px;border-radius:999px;font-size:11px;font-weight:900;border:1px solid transparent;display:inline-flex}.pending{background:rgba(245,200,76,.18);color:#8c6b00;border-color:rgba(245,200,76,.25)}.review{background:rgba(47,164,255,.12);color:var(--blue);border-color:rgba(47,164,255,.18)}.success{background:rgba(19,163,93,.12);color:var(--green);border-color:rgba(19,163,93,.18)}.empty{text-align:center;color:var(--muted);padding:18px 12px;font-size:13px;font-weight:600}
+    @media (max-width:900px){.layout{grid-template-columns:1fr}}@media (max-width:640px){body{padding:12px}.btn{width:100%}.actions{width:100%}}
+    :root{--bg:#f5f8fc;--text:#10233d;--muted:#66788f;--line:#d8e4f0;--card:rgba(255,255,255,.92);--red:#c24848;--red-hero:#db0f16;--blue:#1f8aea;--blue2:#63b9ff;--green:#1a6b4a;--yellow:#f2cd67;--orange:#f39a38;--shadow:0 18px 34px rgba(16,35,61,.09);--soft:0 10px 22px rgba(16,35,61,.08)}
+    body{padding-bottom:110px;background:radial-gradient(circle at top left,rgba(31,138,234,.14),transparent 28%),radial-gradient(circle at bottom right,rgba(219,15,22,.1),transparent 28%),var(--bg)}
+    .top{background:linear-gradient(135deg,var(--red-hero),var(--red));border:1px solid var(--line);box-shadow:var(--shadow)}
+    .hero{background:linear-gradient(135deg,var(--blue),var(--red-hero))}
+    .mini{background:linear-gradient(135deg,var(--blue),var(--blue2))}
+    .bottom-nav{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(430px,calc(100% - 24px));background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;justify-content:space-between;gap:6px;padding:8px;z-index:50}
+    .bottom-nav-item{flex:1;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:18px;text-decoration:none;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+    .bottom-nav-item.active{background:linear-gradient(135deg,var(--red-hero),var(--orange));color:#fff;box-shadow:0 10px 20px rgba(219,15,22,.18)}
+    .bottom-nav-kicker{font-size:9px;opacity:.72;letter-spacing:.08em}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div><h1>Personal Assistance</h1><p>Chat with Kagie support and request a callback from the dashboard team.</p></div>
+      <div class="actions"><a class="btn" href="home.html">Home</a><a class="btn" href="home.html">Home Hub</a></div>
+    </header>
+    <section class="hero">
+      <h2 id="heroTitle">Support is ready</h2>
+      <p id="heroText">Use chat for questions about institutions, documents, payments, or pack selection.</p>
+      <div class="meta"><span id="messageMeta">0 chat messages</span><span id="callbackMeta">0 callback requests</span></div>
+    </section>
+    <section class="layout">
+      <section class="card">
+        <div class="head"><div><h3>Live Support Chat</h3><p>Messages are stored in your Kagie support thread so assistant admins can respond.</p></div><button class="mini" id="refreshBtn" type="button">Refresh</button></div>
+        <div class="chat-box">
+          <div class="messages" id="messages"></div>
+          <div class="composer">
+            <textarea id="messageInput" placeholder="Write your message to Kagie support..."></textarea>
+            <div class="row"><button class="mini" id="sendBtn" type="button">Send message</button></div>
+          </div>
+        </div>
+      </section>
+      <div class="stack">
+        <section class="card">
+          <div class="head"><div><h3>Request a Callback</h3><p>Ask Kagie support to call you when a live conversation is better.</p></div></div>
+          <div class="stack">
+            <input class="field" id="callbackPhone" type="text" placeholder="Phone number" />
+            <input class="field" id="callbackTime" type="text" placeholder="Preferred time, e.g. Weekdays after 4pm" />
+            <textarea class="field" id="callbackReason" style="min-height:100px;resize:vertical" placeholder="Reason for callback"></textarea>
+            <button class="mini" id="callbackBtn" type="button">Request callback</button>
+          </div>
+        </section>
+        <section class="card">
+          <div class="head"><div><h3>Your Callback Requests</h3><p>Track the status of your recent support requests.</p></div></div>
+          <div class="list" id="callbacks"></div>
+        </section>
+      </div>
+    </section>
+  </div>
+  <div class="bottom-nav">
+    <a class="bottom-nav-item active" href="home.html"><span class="bottom-nav-kicker">App</span><span>Home</span></a>
+    <a class="bottom-nav-item" href="career-guidance.html"><span class="bottom-nav-kicker">Plan</span><span>Career</span></a>
+    <a class="bottom-nav-item" href="recommendation.html"><span class="bottom-nav-kicker">Match</span><span>Courses</span></a>
+    <a class="bottom-nav-item" href="more-service/accommodation-assist.html"><span class="bottom-nav-kicker">Stay</span><span>Housing</span></a>
+    <a class="bottom-nav-item" href="more-service/transport-assist.html"><span class="bottom-nav-kicker">Move</span><span>Transport</span></a>
+  </div>
+</body>
+</html>

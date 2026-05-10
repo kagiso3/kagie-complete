@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Cart</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="js/backend.js?v=20260413b"></script>
+  <script defer src="js/supabase-config.js?v=20260413b"></script>
+  <script defer src="js/cart-page.js?v=20260414a"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f5f8fc;
+      --sheet:#ffffff;
+      --text:#10233d;
+      --muted:#66788f;
+      --line:rgba(16,35,61,.08);
+      --safe-bottom:env(safe-area-inset-bottom, 0px);
+      --shadow:0 24px 54px rgba(16,35,61,.12);
+      --soft:0 10px 24px rgba(16,35,61,.06);
+      --red:#c24848;
+      --red-strong:#db0f16;
+      --orange:#f39a38;
+      --blue:#1f8aea;
+      --blue-2:#63b9ff;
+      --ink:#10233d;
+      --green:#1a6b4a;
+      --gold:#f2cd67;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      padding:16px 16px calc(176px + var(--safe-bottom));
+      font-family:"Roboto",system-ui,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 520px at 0% 0%, rgba(31,138,234,.12), transparent 58%),
+        radial-gradient(920px 540px at 100% 4%, rgba(243,154,56,.12), transparent 56%),
+        linear-gradient(180deg,#f9fbff 0%,#eef4fb 100%);
+    }
+    .shell{width:min(460px,100%);margin:0 auto;display:grid;gap:14px}
+    .topbar,.sheet,.hero{background:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.8);box-shadow:var(--shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+    .topbar{
+      border-radius:28px;
+      padding:14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .topbar-title{display:grid;gap:3px}
+    .topbar-title strong{font:800 24px "Poppins",sans-serif}
+    .topbar-title span{font-size:13px;color:var(--muted)}
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:42px;
+      padding:0 16px;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:#f7f9fc;
+      color:var(--ink);
+      text-decoration:none;
+      font-weight:800;
+      box-shadow:var(--soft);
+    }
+    .hero{
+      border-radius:34px;
+      padding:18px;
+      background:
+        radial-gradient(circle at 18% 0%, rgba(31,138,234,.18), transparent 30%),
+        radial-gradient(circle at 85% 10%, rgba(243,154,56,.18), transparent 36%),
+        var(--sheet);
+    }
+    .hero-copy{display:grid;gap:6px;margin-bottom:14px}
+    .hero-copy strong{font:800 26px "Poppins",sans-serif;line-height:1.02}
+    .hero-copy p{margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+    .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+    .stats span{
+      display:grid;
+      gap:4px;
+      padding:12px;
+      border-radius:20px;
+      background:#fafafa;
+      border:1px solid var(--line);
+      font-size:12px;
+      font-weight:800;
+      color:var(--muted);
+      box-shadow:var(--soft);
+    }
+    .stats span b{font-size:15px;color:var(--text)}
+    .flow-strip{
+      display:grid;
+      grid-auto-flow:column;
+      grid-auto-columns:minmax(150px,1fr);
+      gap:10px;
+      overflow-x:auto;
+      padding-bottom:2px;
+      scroll-snap-type:x proximity;
+    }
+    .flow-card{
+      scroll-snap-align:start;
+      min-height:252px;
+      padding:14px;
+      border-radius:26px;
+      background:linear-gradient(180deg,#ffffff,#f6f7fb);
+      border:1px solid var(--line);
+      box-shadow:var(--soft);
+      display:grid;
+      gap:10px;
+      grid-template-rows:auto minmax(52px,1fr) auto;
+      align-content:stretch;
+    }
+    .flow-card strong{font:800 15px "Poppins",sans-serif}
+    .flow-card p{
+      margin:0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+      min-height:52px;
+    }
+    .card-preview{
+      min-height:112px;
+      display:grid;
+      align-items:end;
+      align-self:end;
+    }
+    .bank-card{
+      position:relative;
+      overflow:hidden;
+      min-height:112px;
+      border-radius:22px;
+      padding:14px;
+      display:grid;
+      gap:12px;
+      color:#fff;
+      box-shadow:0 16px 28px rgba(15,23,42,.18);
+    }
+    .bank-card::after{
+      content:"";
+      position:absolute;
+      inset:-10% auto auto 58%;
+      width:120px;
+      height:120px;
+      border-radius:50%;
+      background:rgba(255,255,255,.12);
+      pointer-events:none;
+    }
+    .bank-card::before{
+      content:"";
+      position:absolute;
+      inset:auto -10% -30% auto;
+      width:140px;
+      height:140px;
+      border-radius:50%;
+      background:rgba(255,255,255,.08);
+      pointer-events:none;
+    }
+    .bank-card.bag{
+      background:linear-gradient(135deg,#101827,#24314b);
+    }
+    .bank-card.pay{
+      background:linear-gradient(135deg,var(--blue),var(--blue-2));
+    }
+    .bank-card.done{
+      background:linear-gradient(135deg,var(--green),#2f8d66);
+    }
+    .bank-card-top,.bank-card-bottom{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      position:relative;
+      z-index:1;
+    }
+    .card-chip{
+      width:34px;
+      height:24px;
+      border-radius:8px;
+      background:linear-gradient(135deg,#f3d77a,#d7ab3d);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+    }
+    .card-brand{
+      font:800 12px "Poppins",sans-serif;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.9);
+    }
+    .card-number{
+      font:800 18px "Poppins",sans-serif;
+      letter-spacing:.12em;
+      position:relative;
+      z-index:1;
+    }
+    .card-label{
+      font-size:11px;
+      color:rgba(255,255,255,.76);
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+    .card-value{
+      font-size:13px;
+      font-weight:800;
+      color:#fff;
+    }
+    .card-stack{
+      display:grid;
+      gap:2px;
+    }
+    .card-status{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:68px;
+      height:28px;
+      padding:0 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+      background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.16);
+      color:#fff;
+    }
+    .sheet{
+      border-radius:30px;
+      padding:18px;
+      display:grid;
+      gap:14px;
+    }
+    .section-head{display:grid;gap:4px}
+    .section-head strong{font:800 20px "Poppins",sans-serif}
+    .section-head p{margin:0;color:var(--muted);font-size:13px;line-height:1.55}
+    .list,.summary-stack{display:grid;gap:12px}
+    .item,.summary-tile{
+      border-radius:24px;
+      background:#fff;
+      border:1px solid var(--line);
+      box-shadow:var(--soft);
+      padding:14px;
+      display:grid;
+      gap:12px;
+    }
+    .row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:28px;
+      padding:0 12px;
+      border-radius:999px;
+      background:rgba(31,138,234,.12);
+      color:var(--blue);
+      font-size:11px;
+      font-weight:900;
+      border:1px solid rgba(31,138,234,.14);
+    }
+    .badge.good{background:rgba(26,107,74,.12);color:var(--green);border-color:rgba(26,107,74,.16)}
+    .badge.warn{background:rgba(242,205,103,.2);color:#896300;border-color:rgba(242,205,103,.24)}
+    .bag-main{display:grid;gap:6px}
+    .bag-main strong,.summary-tile strong{font-size:16px}
+    .bag-meta,.summary-tile p,.promo-meta,.helper-note,.empty{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.55;
+    }
+    .bag-price{
+      font:800 16px "Poppins",sans-serif;
+      color:var(--ink);
+      white-space:nowrap;
+    }
+    .institution-pills{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .institution-pill{
+      padding:8px 12px;
+      border-radius:999px;
+      background:#f6f7fa;
+      border:1px solid var(--line);
+      font-size:12px;
+      font-weight:700;
+      color:var(--text);
+    }
+    .footer{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+    .footer.wide{grid-template-columns:1fr}
+    .mini,.promo-row button,.action-btn{
+      min-height:46px;
+      border:none;
+      border-radius:18px;
+      padding:0 14px;
+      font:800 14px "Roboto",sans-serif;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      transition:transform .18s ease;
+    }
+    .mini:hover,.promo-row button:hover,.action-btn:hover{transform:translateY(-2px)}
+    .mini{background:linear-gradient(135deg,var(--blue),#66c8ff);color:#fff}
+    .mini.red{background:linear-gradient(135deg,#ea5353,#ff8585)}
+    .mini.green{background:linear-gradient(135deg,var(--green),#42d68a);color:#fff}
+    .mini.gold{background:linear-gradient(135deg,var(--gold),#efd97a);color:#6d5200}
+    .mini.ink{background:linear-gradient(135deg,var(--ink),#243046);color:#fff}
+    .summary-accent{
+      background:linear-gradient(135deg,var(--ink),#242f46);
+      color:#fff;
+    }
+    .summary-accent p{color:rgba(255,255,255,.76)}
+    .promo-box{
+      display:grid;
+      gap:12px;
+      padding:14px;
+      border-radius:24px;
+      background:linear-gradient(180deg,#fff8ef,#fff);
+      border:1px solid rgba(242,127,51,.14);
+      box-shadow:var(--soft);
+    }
+    .promo-row{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:10px;
+    }
+    .promo-actions{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+    .promo-row input{
+      width:100%;
+      min-height:46px;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:#fff;
+      padding:0 14px;
+      font:inherit;
+      outline:none;
+    }
+    .promo-row input:focus{border-color:rgba(31,138,234,.45);box-shadow:0 0 0 4px rgba(31,138,234,.12)}
+    .action-stack{display:grid;gap:10px}
+    .transport-sheet{
+      background:
+        radial-gradient(circle at top left, rgba(31,138,234,.08), transparent 30%),
+        radial-gradient(circle at top right, rgba(219,15,22,.08), transparent 32%),
+        rgba(255,255,255,.92);
+    }
+    .transport-stack{display:grid;gap:12px}
+    .transport-summary-box,.transport-passenger-card{
+      border-radius:24px;
+      background:#fff;
+      border:1px solid var(--line);
+      box-shadow:var(--soft);
+      padding:14px;
+      display:grid;
+      gap:12px;
+    }
+    .transport-summary-head{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+    .transport-summary-head strong{font-size:18px}
+    .transport-code{
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
+    .transport-route{
+      display:grid;
+      grid-template-columns:1fr 56px 1fr;
+      gap:10px;
+      align-items:center;
+      text-align:center;
+    }
+    .transport-route small{color:var(--muted);font-size:11px;line-height:1.5}
+    .transport-route strong{font-size:16px}
+    .transport-arrow{
+      color:var(--red);
+      font:800 18px "Poppins",sans-serif;
+    }
+    .transport-arrow span{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin-top:4px;
+      font-family:"Roboto",system-ui,sans-serif;
+    }
+    .transport-mini{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      padding:12px;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:#fafafa;
+    }
+    .transport-mini-label{
+      font-size:12px;
+      font-weight:900;
+      color:#51627a;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
+    .transport-mini-value{
+      margin-top:4px;
+      font-size:14px;
+      font-weight:800;
+      color:var(--text);
+    }
+    .transport-price{
+      color:var(--red);
+      font:800 20px "Poppins",sans-serif;
+    }
+    .transport-form-list{display:grid;gap:12px}
+    .transport-passenger-head{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+    .transport-passenger-head strong{font-size:16px}
+    .transport-passenger-head span{color:var(--muted);font-size:12px}
+    .transport-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:30px;
+      padding:0 12px;
+      border-radius:999px;
+      background:rgba(31,138,234,.12);
+      color:var(--blue);
+      border:1px solid rgba(31,138,234,.12);
+      font-size:11px;
+      font-weight:900;
+    }
+    .transport-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    .transport-grid.three{grid-template-columns:1fr 1fr 1fr}
+    .transport-field{
+      display:grid;
+      gap:6px;
+    }
+    .transport-field.full{grid-column:1 / -1}
+    .transport-field label{
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      color:#51627a;
+    }
+    .transport-input,.transport-select{
+      width:100%;
+      min-height:44px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:0 13px;
+      background:#fff;
+      font:inherit;
+      color:var(--ink);
+      outline:none;
+      box-shadow:0 10px 18px rgba(15,23,42,.04);
+    }
+    .transport-input:focus,.transport-select:focus{
+      border-color:rgba(31,138,234,.34);
+      box-shadow:0 0 0 4px rgba(31,138,234,.08);
+    }
+    .transport-choice-row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .transport-choice{
+      min-height:36px;
+      padding:0 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--muted);
+      font:800 13px "Roboto",sans-serif;
+      cursor:pointer;
+    }
+    .transport-choice.active{
+      background:linear-gradient(135deg,var(--red),#ef4860);
+      border-color:transparent;
+      color:#fff;
+    }
+    .transport-switch{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      min-height:44px;
+      padding:10px 12px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:#fff;
+    }
+    .transport-switch-copy{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+    .transport-switch input{
+      width:18px;
+      height:18px;
+      accent-color:var(--red);
+      flex:0 0 auto;
+    }
+    .transport-hint{
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.5;
+    }
+    .transport-note{
+      min-height:18px;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:700;
+    }
+    .transport-note.ok{color:var(--green)}
+    .transport-note.err{color:var(--red)}
+    .cta-dock{
+      position:sticky;
+      bottom:calc(126px + var(--safe-bottom));
+      z-index:160;
+      margin-top:10px;
+      padding:12px;
+      border-radius:24px;
+      background:linear-gradient(180deg,rgba(245,248,252,0),rgba(245,248,252,.92) 24%,rgba(255,255,255,.98) 100%);
+      box-shadow:0 18px 28px rgba(16,35,61,.08);
+    }
+    .cta-dock .mini{
+      min-height:56px;
+    }
+    .bottom-nav{
+      position:fixed;
+      left:50%;
+      bottom:calc(14px + var(--safe-bottom));
+      transform:translateX(-50%);
+      width:min(430px,calc(100% - 24px));
+      background:rgba(255,255,255,.94);
+      border:1px solid #d8e4f0;
+      border-radius:24px;
+      box-shadow:0 18px 34px rgba(16,35,61,.09);
+      backdrop-filter:blur(20px);
+      -webkit-backdrop-filter:blur(20px);
+      display:flex;
+      justify-content:space-between;
+      gap:6px;
+      padding:8px;
+      z-index:120;
+    }
+    .bottom-nav-item{
+      flex:1;
+      min-width:0;
+      min-height:52px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      border-radius:18px;
+      text-decoration:none;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      transition:all .18s;
+      background:none;
+      border:none;
+      font-family:"Roboto",system-ui,sans-serif;
+    }
+    .bottom-nav-item:hover{
+      transform:translateY(-2px);
+      background:rgba(16,35,61,.04);
+      color:var(--text);
+    }
+    .bottom-nav-kicker{
+      font-size:9px;
+      opacity:.72;
+      letter-spacing:.08em;
+    }
+    .empty{
+      padding:18px 12px;
+      text-align:center;
+      font-weight:700;
+    }
+    @media (max-width:640px){
+      body{padding:12px 12px calc(186px + var(--safe-bottom))}
+      .topbar{padding:12px 14px}
+      .topbar-title strong{font-size:22px}
+      .stats,.transport-grid,.transport-grid.three,.transport-route{grid-template-columns:1fr}
+      .promo-row,.promo-actions,.footer{grid-template-columns:1fr}
+      .transport-mini,.transport-summary-head,.transport-passenger-head{flex-direction:column;align-items:stretch}
+      .bottom-nav{bottom:calc(10px + var(--safe-bottom))}
+      .cta-dock{bottom:calc(120px + var(--safe-bottom))}
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="topbar-title">
+        <strong>Cart</strong>
+        <span>Simple Kagie checkout flow</span>
+      </div>
+      <a class="pill" href="forms.html">Back to forms</a>
+    </header>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <strong id="heroTitle">Your Kagie cart</strong>
+        <p id="heroText">Review your bag, check the total, then continue to payment.</p>
+      </div>
+    </section>
+
+    <section class="sheet transport-sheet hidden" id="transportEditorSheet">
+      <div class="section-head">
+        <strong>Transport In Cart</strong>
+        <p>Fill or check passenger details here before you continue to payment.</p>
+      </div>
+      <div class="transport-stack">
+        <div class="transport-summary-box" id="transportTripSummary"></div>
+        <div class="transport-form-list" id="transportCartForms"></div>
+        <div class="transport-note" id="transportCartNotice"></div>
+        <div class="footer">
+          <button class="mini gold" id="transportSaveBtn" type="button">Save transport details</button>
+          <a class="mini" href="more-service/transport-assist.html">Back to transport</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="sheet">
+      <div class="section-head">
+        <strong>Shopping bag</strong>
+        <p>Only the things you are about to pay for should sit here.</p>
+      </div>
+      <div class="list" id="list"></div>
+    </section>
+
+    <section class="sheet">
+      <div class="section-head">
+        <strong>Promo and summary</strong>
+        <p>Apply a code, check the total, then continue with one clear payment step.</p>
+      </div>
+      <div class="summary-stack" id="billSnapshot"></div>
+      <div class="promo-box">
+        <div class="promo-row">
+          <input id="promoCodeInput" type="text" maxlength="9" placeholder="Enter 9-character code" />
+          <button class="mini" id="applyPromoBtn" type="button">Apply</button>
+        </div>
+        <div class="promo-actions">
+          <button class="mini red" id="clearPromoBtn" type="button">Remove code</button>
+        </div>
+        <div class="promo-meta" id="promoSummary">No promo code applied yet.</div>
+      </div>
+      <div class="helper-note" id="cartHint">Pay now. Kagie can collect any missing details afterwards.</div>
+      <div class="footer cta-dock">
+        <button class="mini red" id="clearCartBtn" type="button">Empty cart</button>
+        <button class="mini ink" id="checkoutBtn" type="button">Continue to payment</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="bottom-nav">
+    <a class="bottom-nav-item" href="/home.html">
+      <span class="bottom-nav-kicker">App</span>
+      <span>Home</span>
+    </a>
+    <a class="bottom-nav-item" href="/career-guidance.html">
+      <span class="bottom-nav-kicker">Plan</span>
+      <span>Career</span>
+    </a>
+    <a class="bottom-nav-item" href="/recommendation.html">
+      <span class="bottom-nav-kicker">Match</span>
+      <span>Courses</span>
+    </a>
+    <a class="bottom-nav-item" href="/more-service/accommodation-assist.html">
+      <span class="bottom-nav-kicker">Stay</span>
+      <span>Housing</span>
+    </a>
+    <a class="bottom-nav-item" href="/more-service/transport-assist.html">
+      <span class="bottom-nav-kicker">Move</span>
+      <span>Transport</span>
+    </a>
+  </div>
+</body>
+</html>

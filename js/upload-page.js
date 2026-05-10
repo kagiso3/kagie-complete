@@ -67,11 +67,16 @@
     const fileMeta = ensureStatusNode("uploadFileMeta", "empty", "Accepted: PDF, DOC, DOCX, JPG, JPEG, PNG. Max 8 MB.");
     let docsCache = [];
     let isUploading = false;
+    let uploadSlowTimer = 0;
 
-    const setUploadState = (message, tone, busy = false) => {
+    const setUploadState = (message, tone, busy = false, busyLabel = "Uploading document...") => {
+      const ux = window.KagieUX;
       if (uploadBtn) {
-        uploadBtn.disabled = busy;
-        uploadBtn.textContent = busy ? "Uploading document..." : "Save document";
+        if (ux?.setButtonLoading) ux.setButtonLoading(uploadBtn, busy, { busyText: busyLabel });
+        else {
+          uploadBtn.disabled = busy;
+          uploadBtn.textContent = busy ? busyLabel : "Save document";
+        }
       }
       if (!uploadStatus) return;
       uploadStatus.textContent = message || "";
@@ -158,6 +163,9 @@
       try {
         isUploading = true;
         setUploadState("Uploading document...", "info", true);
+        uploadSlowTimer = window.setTimeout(() => {
+          setUploadState("Still uploading, please wait...", "info", true);
+        }, 3200);
         if (api.saveDocumentsAsync) await api.saveDocumentsAsync({ file, name, type: file.type, size: file.size, category }, user.id);
         else api.saveDocuments({ name, type: file.type, size: file.size, category }, user.id);
         if (docName) docName.value = "";
@@ -168,6 +176,10 @@
       } catch (error) {
         setUploadState(error.message || "Upload failed.", "error");
       } finally {
+        if (uploadSlowTimer) {
+          window.clearTimeout(uploadSlowTimer);
+          uploadSlowTimer = 0;
+        }
         isUploading = false;
         if (uploadBtn) {
           uploadBtn.disabled = false;
@@ -176,7 +188,8 @@
       }
     });
 
-    setUploadState("Loading your details...", "info", true);
+    $("docs").innerHTML = window.KagieUX?.skeletonList?.({ rows: 3, lines: 2 }) || '<div class="empty">Loading your details...</div>';
+    setUploadState("Loading your details...", "info", true, "Loading...");
     await render();
     setUploadState("Choose a file, then save it to Kagie.", "info");
   }

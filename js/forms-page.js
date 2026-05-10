@@ -399,6 +399,28 @@
         n.textContent = "";
       }, 3600);
     };
+    const withActionLock = async (button, key, busyText, task) => {
+      const ux = window.KagieUX;
+      if (ux?.withButtonLock) {
+        return ux.withButtonLock(button, key, busyText, task, {
+          onSlow: () => showNotice("Still processing, please wait...", "info")
+        });
+      }
+      if (button?.dataset?.kagieBusy === "1") return null;
+      const originalText = button?.textContent || "";
+      button.disabled = true;
+      button.setAttribute("aria-busy", "true");
+      if (busyText) button.textContent = busyText;
+      try {
+        return await task();
+      } finally {
+        if (button?.isConnected) {
+          button.disabled = false;
+          button.removeAttribute("aria-busy");
+          if (busyText) button.textContent = originalText;
+        }
+      }
+    };
 
     const localProfile = api.getProfile ? (api.getProfile(user.id) || {}) : {};
     const localDraft = api.ensureDraft ? api.ensureDraft(user.id) : {};
@@ -775,9 +797,12 @@
     };
 
     const saveAll = async () => {
-      const results = [];
-      for (const step of steps) results.push(await saveStep(step.key));
-      return results.every(Boolean);
+      saveWork({ immediate: true });
+      const sectionResults = await Promise.all(
+        ["learner", "parent", "school", "marks"].map((key) => saveStep(key, { silent: true }))
+      );
+      const applicationSaved = await saveStep("apply", { silent: true });
+      return sectionResults.concat(applicationSaved).every(Boolean);
     };
 
     const refreshDraft = async () => {
@@ -1521,23 +1546,32 @@
     });
 
     const go = async (next) => {
-      const savedCurrent = await saveStep(state.current);
-      if (savedCurrent === false) return;
-      if (next === "school" || next === "apply") {
-        await ensureNationalCatalogLoaded();
-      }
+      const previous = state.current;
+      if (previous === next) return;
+      if (previous === "learner" && !validateDobSelection().ok) return;
+      saveWork({ immediate: true });
       state.current = next;
       renderAll();
       window.scrollTo({ top: 0, behavior: "smooth" });
+      if (next === "school" || next === "apply") {
+        ensureNationalCatalogLoaded().then((loaded) => {
+          if (loaded && state.current === next) renderAll();
+        });
+      }
+      saveStep(previous, { silent: true }).then((saved) => {
+        if (saved === false) {
+          showNotice("Your browser copy is saved. Kagie will retry live sync for the previous section.", "warn");
+        }
+      });
     };
 
     on("stepList", "click", async (e) => {
       const button = e.target.closest("[data-step]");
       if (!button) return;
-      await go(button.dataset.step);
+      await withActionLock(button, `step:${button.dataset.step}`, "Saving...", () => go(button.dataset.step));
     });
 
-    on("addSubjectBtn", "click", async () => {
+    on("addSubjectBtn", "click", async (event) => withActionLock(event.currentTarget, "add-subject", "Saving...", async () => {
       const subject = $("subjectSelect")?.value || "";
       const percent = Number($("subjectPercent")?.value);
       if (!subject || Number.isNaN(percent)) {
@@ -1568,7 +1602,7 @@
         console.error(error);
         showNotice(`The subject was added here, but Kagie could not sync it yet: ${error.message}`, "warn");
       }
-    });
+    }));
 
     on("marksList", "click", async (e) => {
       const subject = e.target.getAttribute("data-remove-mark");
@@ -1592,21 +1626,23 @@
     on("packGrid", "click", async (e) => {
       const button = e.target.closest("[data-pack-id]");
       if (!button) return;
-      state.selectedPackId = button.dataset.packId;
-      saveWork();
-      renderSummary();
-      renderPacks();
-      safeRenderRecommendations();
-      renderSteps();
-      safeSyncApply();
-      try {
-        if (api.updateApplicationAsync) await api.updateApplicationAsync(draft.id, { package: selectedPack() });
-        else api.updateApplication(draft.id, { package: selectedPack() });
-        showNotice("Package saved to your Kagie draft.", "success");
-      } catch (error) {
-        console.error(error);
-        showNotice(`Package selected, but the draft could not sync yet: ${error.message}`, "warn");
-      }
+      await withActionLock(button, `pack:${button.dataset.packId}`, "Saving...", async () => {
+        state.selectedPackId = button.dataset.packId;
+        saveWork();
+        renderSummary();
+        renderPacks();
+        safeRenderRecommendations();
+        renderSteps();
+        safeSyncApply();
+        try {
+          if (api.updateApplicationAsync) await api.updateApplicationAsync(draft.id, { package: selectedPack() });
+          else api.updateApplication(draft.id, { package: selectedPack() });
+          showNotice("Package saved to your Kagie draft.", "success");
+        } catch (error) {
+          console.error(error);
+          showNotice(`Package selected, but the draft could not sync yet: ${error.message}`, "warn");
+        }
+      });
     });
 
     const applyFieldMap = { applyYear: "year", applyProvince: "province", institutionType: "institutionType", institutionName: "institutionName", facultyName: "facultyName", choice1: "choice1", choice2: "choice2", choice3: "choice3" };
@@ -1727,7 +1763,7 @@
 
       const { chosen, item } = buildCurrentInstitutionItem();
       if (chosen && !chosen.canApply) {
-        showNotice("Applications for this institution are closed.", "warn");
+        showNotice("Applications for this institution are currently closed.", "warn");
         return { ok: false, blocked: true };
       }
       if (!item.institutionName || !item.faculty || !item.choice1 || !item.choice2 || !item.choice3) {
@@ -1781,7 +1817,7 @@
       }
     };
 
-    on("saveInstitutionFavoriteBtn", "click", async () => {
+    on("saveInstitutionFavoriteBtn", "click", async (event) => withActionLock(event.currentTarget, "save-institution-favorite", "Saving...", async () => {
       const chosen = chosenInstitution || applyMatches.find((item) => item.name === state.apply.institutionName) || null;
       const institutionName = String(state.apply.institutionName || chosen?.name || "").trim();
       if (!institutionName) {
@@ -1799,9 +1835,9 @@
         year: String(state.apply.year || chosen?.year || currentYear).trim(),
         status: String(chosen?.status || "").trim()
       }, `${institutionName} saved to your Kagie favorites.`);
-    });
+    }));
 
-    on("saveCourseFavoriteBtn", "click", async () => {
+    on("saveCourseFavoriteBtn", "click", async (event) => withActionLock(event.currentTarget, "save-course-favorite", "Saving...", async () => {
       const chosen = chosenInstitution || applyMatches.find((item) => item.name === state.apply.institutionName) || null;
       const institutionName = String(state.apply.institutionName || chosen?.name || "").trim();
       const course = String(state.apply.choice1 || "").trim();
@@ -1821,14 +1857,14 @@
         year: String(state.apply.year || chosen?.year || currentYear).trim(),
         status: String(chosen?.status || "").trim()
       }, `${course} at ${institutionName} saved to your Kagie favorites.`);
-    });
+    }));
 
     on("recommendationsList", "click", async (e) => {
       return;
     });
 
-    on("addInstitutionBtn", "click", async () => {
-      await addCurrentInstitutionToDraft();
+    on("addInstitutionBtn", "click", async (event) => {
+      await withActionLock(event.currentTarget, "add-institution", "Adding...", () => addCurrentInstitutionToDraft());
     });
 
     on("editPackageBtn", "click", async () => {
@@ -2001,8 +2037,8 @@
       }
     };
 
-    on("goCartBtn", "click", async () => {
-      await addPackageToCartAndRedirect();
+    on("goCartBtn", "click", async (event) => {
+      await withActionLock(event.currentTarget, "go-cart", "Preparing...", () => addPackageToCartAndRedirect());
     });
 
     on("institutionsList", "click", async (e) => {
@@ -2048,24 +2084,30 @@
       showNotice("Favorite removed from your saved list.", "info");
     });
 
-    on("saveBtn", "click", async () => {
-      const ok = await saveAll();
-      saveWork({ immediate: true });
-      showNotice(ok ? "Your Kagie draft is fully saved." : "Your browser copy is safe, but part of the draft still needs a final sync.", ok ? "success" : "warn");
+    on("saveBtn", "click", async (event) => {
+      await withActionLock(event.currentTarget, "save-all", "Saving...", async () => {
+        const ok = await saveAll();
+        saveWork({ immediate: true });
+        showNotice(ok ? "Your Kagie draft is fully saved." : "Your browser copy is safe, but part of the draft still needs a final sync.", ok ? "success" : "warn");
+      });
     });
 
-    on("prevBtn", "click", async () => {
-      const i = steps.findIndex((step) => step.key === state.current);
-      if (i > 0) await go(steps[i - 1].key);
-    });
-
-    on("nextBtn", "click", async () => {
-      if (state.current !== "apply") {
+    on("prevBtn", "click", async (event) => {
+      await withActionLock(event.currentTarget, "prev-step", "Saving...", async () => {
         const i = steps.findIndex((step) => step.key === state.current);
-        if (i < steps.length - 1) await go(steps[i + 1].key);
-        return;
-      }
-      await addPackageToCartAndRedirect();
+        if (i > 0) await go(steps[i - 1].key);
+      });
+    });
+
+    on("nextBtn", "click", async (event) => {
+      await withActionLock(event.currentTarget, state.current === "apply" ? "go-cart" : "next-step", state.current === "apply" ? "Preparing..." : "Saving...", async () => {
+        if (state.current !== "apply") {
+          const i = steps.findIndex((step) => step.key === state.current);
+          if (i < steps.length - 1) await go(steps[i + 1].key);
+          return;
+        }
+        await addPackageToCartAndRedirect();
+      });
     });
 
     renderAll();

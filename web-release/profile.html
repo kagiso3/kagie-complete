@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Profile</title>
+  <meta name="theme-color" content="#cf111d" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Kagie" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/images/logos/app-icon.png" />
+  <script defer src="/js/pwa-init.js?v=20260409a"></script>
+  <script defer src="/js/install-app.js?v=20260409a"></script>
+  <script src="js/backend.js?v=20260408w"></script>
+  <script src="js/data.js?v=20260408w"></script>
+  <script>
+    const normalizeRole = (role) => {
+      const value = String(role || "").trim().toLowerCase();
+      if (["user", "learner", "student", "authenticated"].includes(value)) return "user";
+      if (["assistant_admin", "assistant admin", "assistant-admin", "assistantadmin", "assistant", "admin", "staff"].includes(value)) return "assistant_admin";
+      if (["master_admin", "master admin", "master-admin", "masteradmin", "super_admin", "super-admin", "super admin"].includes(value)) return "master_admin";
+      return value || "user";
+    };
+    const currentUser = window.KagieAPI?.currentUser?.();
+    if (!currentUser || normalizeRole(currentUser.role) !== "user") { window.location.href = "login.html"; }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/profile-dashboard.css?v=20260408w" />
+  <style>
+    :root{
+      --kagie-bg:#f5f8fc;
+      --kagie-ink:#10233d;
+      --kagie-muted:#66788f;
+      --kagie-red:#c24848;
+      --kagie-red-hero:#db0f16;
+      --kagie-blue:#1f8aea;
+      --kagie-blue2:#63b9ff;
+      --kagie-gold:#f2cd67;
+      --kagie-orange:#f39a38;
+      --kagie-green:#1a6b4a;
+      --kagie-line:#d8e4f0;
+      --kagie-shadow:0 18px 34px rgba(16,35,61,.09);
+    }
+    body{
+      background:
+        radial-gradient(circle at top left, rgba(31,138,234,.14), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(219,15,22,.10), transparent 28%),
+        var(--kagie-bg) !important;
+      color:var(--kagie-ink);
+      padding-bottom:110px !important;
+    }
+    .top-strip,
+    .header-bar{
+      border-color:var(--kagie-line) !important;
+      box-shadow:var(--kagie-shadow) !important;
+    }
+    .top-strip{background:#ffffff !important;color:var(--kagie-muted) !important}
+    .header-bar{background:linear-gradient(135deg,var(--kagie-red-hero),var(--kagie-red)) !important}
+    .hero{
+      background:linear-gradient(135deg,var(--kagie-blue),var(--kagie-red-hero)) !important;
+      box-shadow:var(--kagie-shadow) !important;
+    }
+    .btn.blue,.mini.blue{background:linear-gradient(135deg,var(--kagie-blue),var(--kagie-blue2)) !important}
+    .mini.red{background:linear-gradient(135deg,var(--kagie-red-hero),var(--kagie-red)) !important}
+    .bottom-nav{
+      position:fixed;
+      left:50%;
+      bottom:14px;
+      transform:translateX(-50%);
+      width:min(430px, calc(100% - 24px));
+      background:rgba(255,255,255,.94);
+      border:1px solid var(--kagie-line);
+      border-radius:24px;
+      box-shadow:var(--kagie-shadow);
+      backdrop-filter:blur(20px);
+      -webkit-backdrop-filter:blur(20px);
+      display:flex;
+      justify-content:space-between;
+      gap:6px;
+      padding:8px;
+      z-index:50;
+    }
+    .bottom-nav-item{
+      flex:1;
+      min-height:52px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      border-radius:18px;
+      text-decoration:none;
+      color:var(--kagie-muted);
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      transition:all .18s ease;
+    }
+    .bottom-nav-item.active{
+      background:linear-gradient(135deg,var(--kagie-red-hero),var(--kagie-orange));
+      color:#fff;
+      box-shadow:0 10px 20px rgba(219,15,22,.18);
+    }
+    .bottom-nav-kicker{font-size:9px;opacity:.72;letter-spacing:.08em}
+  </style>
+</head>
+<body>
+  <div class="top-strip">
+    <div id="timeNow">--:--</div>
+    <span>Profile and account center</span>
+  </div>
+
+  <header class="header-bar">
+    <div class="brand">
+      <div class="brand-badge">K</div>
+      <div>
+        <h1>KAGIE</h1>
+        <p>Profile Dashboard</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a class="btn" href="home.html">Home</a>
+      <a class="btn" href="home.html">Home Hub</a>
+      <a class="btn blue" href="upload.html">Upload docs</a>
+    </div>
+  </header>
+
+  <main class="content">
+    <section class="hero">
+      <div>
+        <h2 class="welcome" id="heroTitle">Hello, Student</h2>
+        <p class="hero-sub" id="heroText">Keep your profile details clean so Kagie can reuse them across your forms, applications, and updates.</p>
+        <div class="meta">
+          <span id="docMeta">0 documents ready</span>
+          <span id="appMeta">0 applications linked</span>
+        </div>
+      </div>
+
+      <div class="hero-actions">
+        <a class="mini blue" href="forms.html">Continue forms</a>
+        <a class="mini red" href="personal-assistance.html">Open support</a>
+      </div>
+    </section>
+
+    <section class="profile-layout">
+      <aside class="panel profile-panel">
+        <div class="panel-head">
+          <h3>Your Profile</h3>
+          <p>Keep the basics clean so Kagie can move faster with your account.</p>
+        </div>
+        <div class="panel-body">
+          <div class="avatar-shell">
+            <div class="avatar-wrap">
+              <img id="avatar" class="avatar" alt="Profile photo" />
+              <div class="verified">OK</div>
+            </div>
+
+            <div class="profile-actions">
+              <label class="mini blue upload-btn" for="avatarFile">Upload picture</label>
+              <input id="avatarFile" class="upload-input" type="file" accept="image/*" />
+              <button class="mini gold" id="removePhotoBtn" type="button">Remove photo</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="profile-name" id="displayName">Student</div>
+            <div class="profile-email" id="displayEmail">No email added</div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-box">
+              <strong id="docCount">00</strong>
+              <span>Documents uploaded</span>
+            </div>
+            <div class="stat-box">
+              <strong id="appCount">00</strong>
+              <span>Applications saved</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="content-stack">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="section-row">
+              <div>
+                <h3>Personal Details</h3>
+                <p>Update the core learner information Kagie uses in your forms and support lane.</p>
+              </div>
+              <button class="mini blue" id="saveBtn" type="button">Save profile</button>
+            </div>
+            <div class="status-note" id="profileMsg"></div>
+          </div>
+          <div class="panel-body">
+            <div class="grid-2">
+              <div class="field">
+                <label for="fullName">Full name</label>
+                <input id="fullName" type="text" placeholder="Full name" />
+              </div>
+              <div class="field">
+                <label for="email">Email</label>
+                <input id="email" type="email" placeholder="Email" />
+              </div>
+              <div class="field">
+                <label for="phone">Phone</label>
+                <input id="phone" type="text" placeholder="Phone" />
+              </div>
+              <div class="field">
+                <label for="province">Province</label>
+                <select id="province"></select>
+              </div>
+              <div class="field">
+                <label for="idNumber">ID number</label>
+                <input id="idNumber" type="text" placeholder="ID number" />
+              </div>
+              <div class="field">
+                <label for="dob">Date of birth</label>
+                <input id="dob" type="date" />
+              </div>
+              <div class="field">
+                <label for="gender">Gender</label>
+                <select id="gender"></select>
+              </div>
+              <div class="field">
+                <label for="homeLanguage">Home language</label>
+                <select id="homeLanguage"></select>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label for="address">Home address</label>
+                <input id="address" type="text" placeholder="Home address" />
+              </div>
+              <div class="field">
+                <label for="schoolName">School name</label>
+                <input id="schoolName" type="text" placeholder="School name" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="split-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>General Settings</h3>
+              <p>Shortcuts for your account settings and documents.</p>
+            </div>
+            <div class="panel-body nav-list">
+              <a href="changepassword.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-blue">PW</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Change password</div>
+                    <div class="nav-subtitle">Update and secure your login details.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="language.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-pink">LG</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Language</div>
+                    <div class="nav-subtitle">Choose the language that feels easiest for you.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="upload.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-green">DOC</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Upload documents</div>
+                    <div class="nav-subtitle">Add the files Kagie may still need later.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Documents</h3>
+              <p>Your latest uploaded files and their current review state.</p>
+            </div>
+            <div class="panel-body doc-list" id="docs"></div>
+          </section>
+        </section>
+
+        <section class="section-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Information</h3>
+              <p>Important app pages and your share shortcut.</p>
+            </div>
+            <div class="panel-body nav-list">
+              <a href="about.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-red">INFO</div>
+                  <div class="nav-text">
+                    <div class="nav-title">About app</div>
+                    <div class="nav-subtitle">Know more about the Kagie platform.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="terms.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-gold">T&amp;C</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Terms and conditions</div>
+                    <div class="nav-subtitle">Read the rules behind the app and service.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="privacy.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-peach">PRI</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Privacy policy</div>
+                    <div class="nav-subtitle">See how your account data is protected.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="#" class="nav-card" id="shareAppBtn">
+                <div class="nav-left">
+                  <div class="icon-box icon-sky">SHR</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Share this app</div>
+                    <div class="nav-subtitle">Send Kagie to a friend or another learner.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Quick Actions</h3>
+              <p>The pages learners usually need first.</p>
+            </div>
+            <div class="panel-body nav-list">
+              <a href="home.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-blue">APP</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Home</div>
+                    <div class="nav-subtitle">Return to your main Kagie app home.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="notifications.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-pink">NTF</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Notifications</div>
+                    <div class="nav-subtitle">Check payment, support, and account alerts.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
+              <a href="personal-assistance.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-green">SUP</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Support</div>
+                    <div class="nav-subtitle">Open the Kagie help lane when you need support.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+            </div>
+          </section>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>&copy; <span id="yearNow">2026</span> Kagie. Student application platform.</div>
+      <nav class="footer-nav">
+        <a href="home.html">Home</a>
+        <a href="upload.html">Upload</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+      </nav>
+    </div>
+  </footer>
+
+  <div class="bottom-nav">
+    <a class="bottom-nav-item active" href="home.html">
+      <span class="bottom-nav-kicker">App</span>
+      <span>Home</span>
+    </a>
+    <a class="bottom-nav-item" href="career-guidance.html">
+      <span class="bottom-nav-kicker">Plan</span>
+      <span>Career</span>
+    </a>
+    <a class="bottom-nav-item" href="recommendation.html">
+      <span class="bottom-nav-kicker">Match</span>
+      <span>Courses</span>
+    </a>
+    <a class="bottom-nav-item" href="more-service/accommodation-assist.html">
+      <span class="bottom-nav-kicker">Stay</span>
+      <span>Housing</span>
+    </a>
+    <a class="bottom-nav-item" href="more-service/transport-assist.html">
+      <span class="bottom-nav-kicker">Move</span>
+      <span>Transport</span>
+    </a>
+  </div>
+
+  <script src="js/profile-page.js?v=20260408w"></script>
+</body>
+</html>

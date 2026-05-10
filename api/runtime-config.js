@@ -11,43 +11,6 @@ function toBoolean(value, fallback = false) {
   return fallback;
 }
 
-function normalizeSupabaseUrl(value) {
-  const raw = trim(value).replace(/\/+$/, "");
-  if (!raw) return "";
-  return raw.replace(/\/rest\/v1$/i, "").replace(/\/auth\/v1$/i, "");
-}
-
-function decodeJwtRef(token) {
-  const parts = trim(token).split(".");
-  if (parts.length < 2) return "";
-
-  try {
-    let payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    while (payload.length % 4) payload += "=";
-    return trim(JSON.parse(Buffer.from(payload, "base64").toString("utf8"))?.ref);
-  } catch (_error) {
-    return "";
-  }
-}
-
-function normalizeSupabaseProjectUrl(value, anonKey) {
-  const keyRef = decodeJwtRef(anonKey);
-  const raw = normalizeSupabaseUrl(value);
-  if (!raw) return keyRef ? `https://${keyRef}.supabase.co` : "";
-
-  try {
-    const parsed = new URL(raw);
-    const host = parsed.hostname.toLowerCase();
-    const hostRef = host.endsWith(".supabase.co") ? host.split(".")[0] : "";
-    if (keyRef && hostRef && hostRef !== keyRef) {
-      return `https://${keyRef}.supabase.co`;
-    }
-    return parsed.origin;
-  } catch (_error) {
-    return keyRef ? `https://${keyRef}.supabase.co` : raw;
-  }
-}
-
 module.exports = async function runtimeConfig(req, res) {
   if (req.method === "OPTIONS") {
     res.statusCode = 200;
@@ -65,9 +28,6 @@ module.exports = async function runtimeConfig(req, res) {
     return;
   }
 
-  const supabaseAnonKey = trim(process.env.SUPABASE_ANON_KEY);
-  const supabaseUrl = normalizeSupabaseProjectUrl(process.env.SUPABASE_URL, supabaseAnonKey);
-
   const payload = {
     data: {
       appName: trim(process.env.KAGIE_APP_NAME) || "Kagie",
@@ -81,17 +41,17 @@ module.exports = async function runtimeConfig(req, res) {
         accountType: trim(process.env.KAGIE_BANK_ACCOUNT_TYPE) || "Savings",
         branchCode: trim(process.env.KAGIE_BANK_BRANCH_CODE) || "470010",
         referencePrefix: trim(process.env.KAGIE_PAYMENT_REFERENCE_PREFIX) || "KAG",
-        verificationMessage: trim(process.env.KAGIE_PAYMENT_VERIFICATION_MESSAGE) || "Payments are verified manually after checkout.",
+        verificationMessage: trim(process.env.KAGIE_PAYMENT_VERIFICATION_MESSAGE) || "Payments are confirmed automatically by Yoco after checkout.",
         yocoEnabled: toBoolean(process.env.KAGIE_YOCO_ENABLED, true),
-        yocoPaymentLink: trim(process.env.KAGIE_YOCO_PAYMENT_LINK) || "https://pay.yoco.com/kagie-app",
+        yocoPaymentLink: trim(process.env.KAGIE_YOCO_PAYMENT_LINK),
         yocoProviderLabel: trim(process.env.KAGIE_YOCO_PROVIDER_LABEL) || "Yoco secure checkout",
         payfastEnabled: toBoolean(process.env.KAGIE_PAYFAST_ENABLED, false),
         payfastProviderLabel: trim(process.env.KAGIE_PAYFAST_PROVIDER_LABEL) || "PayFast secure checkout"
       },
       supabase: {
-        enabled: Boolean(supabaseUrl && supabaseAnonKey),
-        url: supabaseUrl,
-        anonKey: supabaseAnonKey
+        enabled: Boolean(trim(process.env.SUPABASE_URL) && trim(process.env.SUPABASE_ANON_KEY)),
+        url: trim(process.env.SUPABASE_URL),
+        anonKey: trim(process.env.SUPABASE_ANON_KEY)
       }
     }
   };

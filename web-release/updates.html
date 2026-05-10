@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Updates</title>
+  <script src="js/backend.js?v=20260405k"></script>
+  <script src="js/data.js"></script>
+  <script>
+    const normalizeRole = role => {
+      const value = String(role || "").trim().toLowerCase();
+      if (["user", "learner", "student", "authenticated"].includes(value)) return "user";
+      if (["assistant_admin", "assistant admin", "assistant-admin", "assistantadmin", "assistant", "admin", "staff"].includes(value)) return "assistant_admin";
+      if (["master_admin", "master admin", "master-admin", "masteradmin", "super_admin", "super-admin", "super admin"].includes(value)) return "master_admin";
+      return value || "user";
+    };
+    const currentUser=window.KagieAPI?.currentUser?.();
+    if(!currentUser||normalizeRole(currentUser.role)!=="user"){window.location.href="login.html";}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#f4f7fb;--text:#0f172a;--muted:#64748b;--line:rgba(15,23,42,.08);--card:rgba(255,255,255,.84);--red:#c90000;--blue:#2fa4ff;--yellow:#f5c84c;--green:#13a35d;--shadow:0 20px 44px rgba(15,23,42,.12);--soft:0 10px 22px rgba(15,23,42,.08)}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:18px;font-family:"Roboto",system-ui,sans-serif;color:var(--text);background:radial-gradient(900px 520px at 15% 0%,rgba(47,164,255,.14),transparent 60%),radial-gradient(900px 560px at 85% 10%,rgba(245,200,76,.16),transparent 60%),var(--bg)}.shell{width:min(960px,100%);margin:0 auto;display:grid;gap:16px}.top,.hero,.card{background:var(--card);border:1px solid rgba(255,255,255,.65);border-radius:26px;box-shadow:var(--shadow);backdrop-filter:blur(14px)}.top{padding:18px 20px;background:linear-gradient(135deg,var(--red),#a70000);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.top h1{margin:0;font:800 22px "Poppins",sans-serif}.top p{margin:5px 0 0;font-size:13px;opacity:.92}.actions,.filters{display:flex;gap:10px;flex-wrap:wrap}.btn,.mini,.filter{border:none;border-radius:14px;font:700 14px inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;transition:.18s ease}.btn{height:44px;padding:0 16px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.18);box-shadow:var(--soft)}.mini{height:36px;padding:0 12px;background:linear-gradient(135deg,var(--blue),#67caff);color:#fff}.filter{padding:10px 14px;background:#fff;border:1px solid var(--line);color:var(--text)}.filter.active{background:rgba(47,164,255,.1);color:var(--blue);border-color:rgba(47,164,255,.2)}.btn:hover,.mini:hover,.filter:hover{transform:translateY(-2px)}
+    .hero{padding:20px;background:linear-gradient(135deg,rgba(47,164,255,.96),rgba(201,0,0,.88));color:#fff}.hero h2{margin:0;font:800 30px "Poppins",sans-serif}.hero p{margin:8px 0 0;font-size:14px;line-height:1.6;color:rgba(255,255,255,.92)}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.meta span{padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);font-size:12px;font-weight:800}
+    .card{padding:18px}.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}.head h3{margin:0;font:800 18px "Poppins",sans-serif}.head p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.55}.list{display:grid;gap:12px}.item{background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.04)}.item strong{font-size:16px}.item p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.6}.row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}.badge{padding:8px 12px;border-radius:999px;font-size:11px;font-weight:900;border:1px solid transparent;white-space:nowrap}.announcement{background:rgba(47,164,255,.12);color:var(--blue);border-color:rgba(47,164,255,.18)}.recommendation{background:rgba(245,200,76,.18);color:#8c6b00;border-color:rgba(245,200,76,.25)}.deadline{background:rgba(201,0,0,.12);color:var(--red);border-color:rgba(201,0,0,.16)}.service{background:rgba(19,163,93,.12);color:var(--green);border-color:rgba(19,163,93,.18)}.empty{text-align:center;color:var(--muted);padding:18px 12px;font-size:13px;font-weight:600}
+    @media (max-width:640px){body{padding:12px}.btn{width:100%}}
+    :root{--bg:#f5f8fc;--text:#10233d;--muted:#66788f;--line:#d8e4f0;--card:rgba(255,255,255,.92);--red:#c24848;--red-hero:#db0f16;--blue:#1f8aea;--blue2:#63b9ff;--yellow:#f2cd67;--green:#1a6b4a;--orange:#f39a38;--shadow:0 18px 34px rgba(16,35,61,.09);--soft:0 10px 22px rgba(16,35,61,.08)}
+    body{padding-bottom:110px;background:radial-gradient(circle at top left,rgba(31,138,234,.14),transparent 28%),radial-gradient(circle at bottom right,rgba(219,15,22,.1),transparent 28%),var(--bg)}
+    .top{background:linear-gradient(135deg,var(--red-hero),var(--red));border:1px solid var(--line);box-shadow:var(--shadow)}
+    .hero{background:linear-gradient(135deg,var(--blue),var(--red-hero))}
+    .mini{background:linear-gradient(135deg,var(--blue),var(--blue2))}
+    .filter.active{background:rgba(31,138,234,.1);color:var(--blue);border-color:rgba(31,138,234,.2)}
+    .bottom-nav{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(430px,calc(100% - 24px));background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;justify-content:space-between;gap:6px;padding:8px;z-index:50}
+    .bottom-nav-item{flex:1;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:18px;text-decoration:none;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+    .bottom-nav-item.active{background:linear-gradient(135deg,var(--red-hero),var(--orange));color:#fff;box-shadow:0 10px 20px rgba(219,15,22,.18)}
+    .bottom-nav-kicker{font-size:9px;opacity:.72;letter-spacing:.08em}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div><h1>Updates</h1><p>Your Kagie feed for smart alerts, deadlines, recommendations, and platform news.</p></div>
+      <div class="actions"><a class="btn" href="home.html">Home</a><a class="btn" href="home.html">Home Hub</a></div>
+    </header>
+    <section class="hero">
+      <h2 id="heroTitle">Update center</h2>
+      <p id="heroText">We are loading your latest Kagie alerts and recommended next steps.</p>
+      <div class="meta"><span id="countMeta">0 updates</span><span id="unreadMeta">0 unread notifications</span></div>
+    </section>
+    <section class="card">
+      <div class="head"><div><h3>Feed</h3><p>Filter between all updates, deadlines, and recommendations.</p></div><div class="filters"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="deadline">Deadlines</button><button class="filter" data-filter="recommendation">Recommendations</button><button class="filter" data-filter="announcement">Announcements</button></div></div>
+      <div class="list" id="list"></div>
+    </section>
+  </div>
+  <script>
+    (()=>{const api=window.KagieAPI,user=api.requireRole("user"),updates=api.getUpdateFeed(user.id),notifications=api.getNotifications(user.id),$=id=>document.getElementById(id),filters=[...document.querySelectorAll("[data-filter]")];let active="all";const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));const dt=v=>{if(!v)return"No date";const d=new Date(v);return Number.isNaN(d.getTime())?"No date":d.toLocaleDateString("en-ZA",{year:"numeric",month:"short",day:"numeric"})};const link=u=>u.ctaHref||"home.html";
+      function render(){const visible=updates.filter(u=>active==="all"||String(u.category).toLowerCase()===active);$("heroTitle").textContent=`Hello, ${user.fullName||"Student"}`;$("heroText").textContent="Kagie combines platform updates with dynamic alerts based on your forms, documents, and notifications.";$("countMeta").textContent=`${visible.length} update${visible.length===1?"":"s"}`;$("unreadMeta").textContent=`${notifications.filter(n=>!n.read).length} unread notifications`;$("list").innerHTML=visible.length?visible.map(u=>`<div class="item"><div class="row"><span class="badge ${esc(String(u.category||"announcement").toLowerCase())}">${esc(u.category||"announcement")}</span><span style="color:#64748b;font-size:12px;font-weight:700">${esc(dt(u.createdAt))}</span></div><div style="margin-top:10px"><strong>${esc(u.title)}</strong><p>${esc(u.message||"")}</p></div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"><a class="mini" href="${esc(link(u))}">${esc(u.ctaLabel||"Open")}</a></div></div>`).join(""):`<div class="empty">No updates in this filter.</div>`}
+      filters.forEach(btn=>btn.addEventListener("click",()=>{filters.forEach(b=>b.classList.remove("active"));btn.classList.add("active");active=btn.dataset.filter;render()}));render()})();
+  </script>
+  <div class="bottom-nav">
+    <a class="bottom-nav-item active" href="home.html"><span class="bottom-nav-kicker">App</span><span>Home</span></a>
+    <a class="bottom-nav-item" href="career-guidance.html"><span class="bottom-nav-kicker">Plan</span><span>Career</span></a>
+    <a class="bottom-nav-item" href="recommendation.html"><span class="bottom-nav-kicker">Match</span><span>Courses</span></a>
+    <a class="bottom-nav-item" href="more-service/accommodation-assist.html"><span class="bottom-nav-kicker">Stay</span><span>Housing</span></a>
+    <a class="bottom-nav-item" href="more-service/transport-assist.html"><span class="bottom-nav-kicker">Move</span><span>Transport</span></a>
+  </div>
+</body>
+</html>
