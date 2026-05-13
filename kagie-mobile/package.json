@@ -9,6 +9,8 @@
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
     "verify:android-release": "node scripts/verify-release-config.js",
+    "build:android:debug": "node scripts/build-debug-apk.cjs",
+    "export:apk": "node ../scripts/copy-android-apk.cjs",
     "build:android": "eas build --platform android --profile production",
     "build:android:local-aab": "cd android && .\\gradlew.bat :app:bundleRelease",
     "build:android:play-aab": "node scripts/verify-release-config.js && cd android && .\\gradlew.bat :app:bundleRelease",

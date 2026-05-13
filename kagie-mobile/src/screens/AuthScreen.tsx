@@ -15,7 +15,7 @@ import { useSession } from "../session/SessionProvider";
 import { mobileConfig } from "../config";
 
 export function AuthScreen() {
-  const { login, register } = useSession();
+  const { login, register, continueOffline } = useSession();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -37,6 +37,20 @@ export function AuthScreen() {
       }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Could not continue with Kagie authentication.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function startOffline() {
+    if (submitting) return;
+    setError("");
+    setSubmitting(true);
+
+    try {
+      await continueOffline(fullName || "Kagie Student");
+    } catch (offlineError) {
+      setError(offlineError instanceof Error ? offlineError.message : "Could not start Kagie offline mode.");
     } finally {
       setSubmitting(false);
     }
@@ -79,13 +93,21 @@ export function AuthScreen() {
               <Text style={styles.submitText}>{submitting ? "Please wait..." : mode === "login" ? "Continue to Kagie" : "Create Kagie account"}</Text>
             </Pressable>
 
+            <Pressable onPress={startOffline} style={[styles.offlineButton, submitting && styles.submitDisabled]} disabled={submitting}>
+              <Text style={styles.offlineButtonText}>Continue in offline mode</Text>
+            </Pressable>
+
             {!mobileConfig.isDevRuntime && mobileConfig.usesLocalApiBaseUrl ? (
               <Text style={styles.warning}>
                 This build is still connected to a local Kagie API. Set a live EXPO_PUBLIC_API_BASE_URL before creating the Play Store bundle.
               </Text>
+            ) : !mobileConfig.apiBaseUrl ? (
+              <Text style={styles.warning}>
+                Online login needs a Kagie API URL. Offline mode still opens the native app and saves drafts on this phone.
+              </Text>
             ) : (
               <Text style={styles.helper}>
-                One profile, one dashboard, one guided path to your tertiary applications.
+                One profile, one dashboard, one guided path to your tertiary applications. Offline mode works without the website, but cloud sync needs internet.
               </Text>
             )}
           </View>
@@ -137,6 +159,15 @@ const styles = StyleSheet.create({
   submit: { backgroundColor: "#2fa4ff", borderRadius: 18, paddingVertical: 15, alignItems: "center", marginTop: 4 },
   submitDisabled: { opacity: 0.65 },
   submitText: { color: "#ffffff", fontSize: 15, fontWeight: "800" },
+  offlineButton: {
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    paddingVertical: 15,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#d8e4f0"
+  },
+  offlineButtonText: { color: "#0f172a", fontSize: 15, fontWeight: "800" },
   helper: { color: "#64748b", fontSize: 12, lineHeight: 18 }
   ,
   warning: { color: "#b45309", fontSize: 12, lineHeight: 18, fontWeight: "700" }

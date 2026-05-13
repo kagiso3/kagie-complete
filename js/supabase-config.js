@@ -21,9 +21,9 @@
       payfastProviderLabel: "PayFast secure checkout"
     },
     supabase: {
-      enabled: false,
-      url: "",
-      anonKey: ""
+      enabled: true,
+      url: "https://ztfcxnowjtvonltevrqe.supabase.co",
+      anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0ZmN4bm93anR2b25sdGV2cnFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTU1NDIsImV4cCI6MjA4ODkzMTU0Mn0.gNQNE1OpKr9Nkph6bd4JGZ_Yt3A9w1MtpZoGDYqnQxw"
     }
   };
 

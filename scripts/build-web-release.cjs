@@ -49,8 +49,44 @@ function copyFile(name) {
   fs.copyFileSync(sourcePath, path.join(target, name));
 }
 
+function copyWebsitePublic() {
+  const sourcePath = path.join(root, "website", "public");
+  if (!fs.existsSync(sourcePath)) return;
+  fs.cpSync(sourcePath, target, {
+    recursive: true,
+    force: true
+  });
+}
+
+function copyAndroidReleaseArtifact() {
+  const downloadDir = path.join(target, "downloads");
+  const targetApk = path.join(downloadDir, "kagie-android.apk");
+  if (fs.existsSync(targetApk)) return;
+
+  const candidates = [
+    path.join(root, "website", "public", "downloads", "kagie-android.apk"),
+    path.join(root, "Kagie-Android-Release.apk"),
+    path.join(root, "Kagie-Android.apk"),
+    path.join(root, "kagie-mobile", "Kagie-Android-Release.apk"),
+    path.join(root, "kagie-mobile", "Kagie-Android.apk"),
+    path.join(root, "kagie-mobile", "android", "app", "build", "outputs", "apk", "debug", "app-debug.apk")
+  ];
+
+  const sourceApk = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!sourceApk) {
+    console.warn("No Android APK found. Direct download will show an unavailable state until website/public/downloads/kagie-android.apk is uploaded.");
+    return;
+  }
+
+  fs.mkdirSync(downloadDir, { recursive: true });
+  fs.copyFileSync(sourceApk, targetApk);
+  console.log(`Android APK copied to ${targetApk}`);
+}
+
 ensureEmptyDir(target);
 folders.forEach(copyDir);
 topLevelFiles.forEach(copyFile);
+copyWebsitePublic();
+copyAndroidReleaseArtifact();
 
 console.log(`Kagie Vercel release synced to ${target}`);

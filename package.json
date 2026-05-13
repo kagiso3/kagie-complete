@@ -21,6 +21,8 @@
     "dev:mobile": "npm --workspace kagie-mobile run start",
     "dev:web": "npm --workspace kagie-web run dev",
     "build:web": "npm --workspace kagie-web run build",
+    "build:android:debug": "npm --workspace kagie-mobile run build:android:debug",
+    "copy:android-apk": "node ./scripts/copy-android-apk.cjs",
     "vercel-build": "node ./scripts/build-web-release.cjs"
   },
   "dependencies": {

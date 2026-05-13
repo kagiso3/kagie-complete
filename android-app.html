@@ -71,6 +71,47 @@
       margin-bottom: 18px;
     }
 
+    .download-btn.is-disabled {
+      pointer-events: none;
+      background: #d7dee8;
+      color: #5a6677;
+      box-shadow: none;
+    }
+
+    .secondary-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 52px;
+      border-radius: 16px;
+      background: #ffffff;
+      color: #10203a;
+      border: 1px solid #d8e1ed;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    .status {
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 16px;
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.5;
+      background: #eef6ff;
+      color: #224e77;
+      border: 1px solid #d5e8fb;
+    }
+
+    .status.error {
+      background: #fff1f2;
+      color: #9f1239;
+      border-color: #fecdd3;
+    }
+
     .help {
       background: #fff7e7;
       color: #6b5524;
@@ -93,11 +134,44 @@
     <div class="logo">kagie</div>
     <h1 class="title">Download Kagie for Android</h1>
     <p class="copy">Install the latest Kagie Android app directly on your phone and open the live platform in one place.</p>
-    <a class="download-btn" href="./Kagie-Android-Release.apk" download>Download Android App</a>
+    <div class="status" id="downloadStatus">Checking the latest Android download...</div>
+    <a class="download-btn" id="apkDownloadLink" href="/downloads/kagie-android.apk" download>Download Android App</a>
+    <a class="secondary-link" href="./login.html?app=1">Open Kagie Web App</a>
     <div class="help">
       <strong>If Android blocks the install:</strong>
       Open the downloaded APK, allow <em>Install unknown apps</em> for your browser or Files app, then tap <em>Install</em>.
     </div>
   </main>
+  <script>
+    (function () {
+      const downloadUrl = "/downloads/kagie-android.apk";
+      const status = document.getElementById("downloadStatus");
+      const link = document.getElementById("apkDownloadLink");
+
+      function setUnavailable() {
+        status.className = "status error";
+        status.textContent = "The Android APK is not uploaded on this deployment yet. You can still open Kagie in the browser, or build the APK and place it at website/public/downloads/kagie-android.apk to enable direct download.";
+        link.classList.add("is-disabled");
+        link.removeAttribute("href");
+        link.removeAttribute("download");
+        link.setAttribute("aria-disabled", "true");
+        link.textContent = "Android download not available yet";
+      }
+
+      fetch(downloadUrl, { method: "HEAD", cache: "no-store" })
+        .then((response) => {
+          if (!response.ok) {
+            setUnavailable();
+            return;
+          }
+          const size = Number(response.headers.get("content-length") || 0);
+          status.className = "status";
+          status.textContent = size
+            ? `Android APK is ready. File size: ${(size / (1024 * 1024)).toFixed(1)} MB.`
+            : "Android APK is ready.";
+        })
+        .catch(setUnavailable);
+    })();
+  </script>
 </body>
 </html>

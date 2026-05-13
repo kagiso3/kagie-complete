@@ -2,6 +2,13 @@ function trim(value) {
   return String(value || "").trim();
 }
 
+// Supabase anon keys are public browser credentials. Vercel env vars still win,
+// but this fallback keeps login alive if Production envs are accidentally empty.
+const PUBLIC_SUPABASE_FALLBACK = {
+  url: "https://ztfcxnowjtvonltevrqe.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0ZmN4bm93anR2b25sdGV2cnFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTU1NDIsImV4cCI6MjA4ODkzMTU0Mn0.gNQNE1OpKr9Nkph6bd4JGZ_Yt3A9w1MtpZoGDYqnQxw"
+};
+
 function toBoolean(value, fallback = false) {
   if (typeof value === "boolean") return value;
   const normalized = trim(value).toLowerCase();
@@ -9,6 +16,28 @@ function toBoolean(value, fallback = false) {
   if (["0", "false", "no", "off"].includes(normalized)) return false;
   if (["1", "true", "yes", "on"].includes(normalized)) return true;
   return fallback;
+}
+
+function decodeJwtPayload(token) {
+  const parts = String(token || "").split(".");
+  if (parts.length < 2) return null;
+  try {
+    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = payload.padEnd(payload.length + ((4 - (payload.length % 4)) % 4), "=");
+    return JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+  } catch (_error) {
+    return null;
+  }
+}
+
+function normalizeSupabaseUrl(url, anonKey) {
+  const direct = trim(url).replace(/\/+$/, "");
+  if (/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(direct)) return direct;
+
+  const ref = trim(decodeJwtPayload(anonKey)?.ref);
+  if (/^[a-z0-9-]+$/i.test(ref)) return `https://${ref}.supabase.co`;
+
+  return "";
 }
 
 module.exports = async function runtimeConfig(req, res) {
@@ -27,6 +56,16 @@ module.exports = async function runtimeConfig(req, res) {
     res.end(JSON.stringify({ message: "Method not allowed." }));
     return;
   }
+
+  const supabaseUrl = normalizeSupabaseUrl(
+    process.env.SUPABASE_URL || process.env.KAGIE_PUBLIC_SUPABASE_URL || PUBLIC_SUPABASE_FALLBACK.url,
+    process.env.SUPABASE_ANON_KEY || process.env.KAGIE_PUBLIC_SUPABASE_ANON_KEY || PUBLIC_SUPABASE_FALLBACK.anonKey
+  );
+  const supabaseAnonKey = trim(
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.KAGIE_PUBLIC_SUPABASE_ANON_KEY ||
+    PUBLIC_SUPABASE_FALLBACK.anonKey
+  );
 
   const payload = {
     data: {
@@ -49,9 +88,9 @@ module.exports = async function runtimeConfig(req, res) {
         payfastProviderLabel: trim(process.env.KAGIE_PAYFAST_PROVIDER_LABEL) || "PayFast secure checkout"
       },
       supabase: {
-        enabled: Boolean(trim(process.env.SUPABASE_URL) && trim(process.env.SUPABASE_ANON_KEY)),
-        url: trim(process.env.SUPABASE_URL),
-        anonKey: trim(process.env.SUPABASE_ANON_KEY)
+        enabled: Boolean(supabaseUrl && supabaseAnonKey),
+        url: supabaseUrl,
+        anonKey: supabaseAnonKey
       }
     }
   };

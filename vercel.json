@@ -100,6 +100,16 @@
       "source": "/forms",
       "destination": "/forms.html",
       "permanent": true
+    },
+    {
+      "source": "/download",
+      "destination": "/android-app.html",
+      "permanent": true
+    },
+    {
+      "source": "/android",
+      "destination": "/android-app.html",
+      "permanent": true
     }
   ]
 }

@@ -1,8 +1,9 @@
-const KAGIE_CACHE = "kagie-shell-v20260508b";
+const KAGIE_CACHE = "kagie-shell-v20260513a";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
   "/login.html",
+  "/android-app.html",
   "/home.html",
   "/Dashboard.html",
   "/forms.html",

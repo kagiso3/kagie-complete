@@ -1,15 +1,18 @@
 import type { LoginInput, RegisterStudentInput, UserRecord } from "@kagie/shared";
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { apiClient } from "../lib/api";
-import { clearCachedUser, clearStoredTokens, getStoredTokens, saveCachedUser, saveTokens } from "../lib/storage";
+import { clearCachedUser, clearStoredTokens, getCachedUser, getStoredTokens, saveCachedUser, saveTokens } from "../lib/storage";
+import { createOfflineGuest, isOfflineGuest } from "./offlineGuest";
 
 type SessionContextValue = {
   user: UserRecord | null;
   loading: boolean;
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterStudentInput) => Promise<void>;
+  continueOffline: (fullName?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  isGuest: boolean;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -21,11 +24,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   async function hydrateFromStorage() {
     try {
       const nextUser = await apiClient.restoreSession();
-      setUser(nextUser);
+      if (nextUser) {
+        setUser(nextUser);
+      } else {
+        const cachedUser = await getCachedUser();
+        setUser(isOfflineGuest(cachedUser) ? cachedUser : null);
+      }
       setLoading(false);
     } catch (error) {
       console.warn("Kagie mobile session restore failed:", error);
-      setUser(null);
+      const cachedUser = await getCachedUser();
+      setUser(isOfflineGuest(cachedUser) ? cachedUser : null);
       setLoading(false);
     }
   }
@@ -46,6 +55,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     await saveTokens(session.tokens.accessToken, session.tokens.refreshToken);
     await saveCachedUser(session.user);
     setUser(session.user);
+  }
+
+  async function continueOffline(fullName?: string) {
+    const guest = createOfflineGuest(fullName);
+    await clearStoredTokens();
+    await saveCachedUser(guest);
+    setUser(guest);
   }
 
   async function logout() {
@@ -73,8 +89,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     loading,
     login,
     register,
+    continueOffline,
     logout,
-    refreshProfile
+    refreshProfile,
+    isGuest: isOfflineGuest(user)
   }), [user, loading]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

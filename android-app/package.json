@@ -1,0 +1,10 @@
+{
+  "name": "kagie-android-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "npm --prefix ../kagie-mobile run typecheck",
+    "assembleDebug": "npm --prefix ../kagie-mobile run build:android:debug",
+    "copy-apk": "node ../scripts/copy-android-apk.cjs"
+  }
+}

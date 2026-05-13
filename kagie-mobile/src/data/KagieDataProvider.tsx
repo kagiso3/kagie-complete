@@ -9,7 +9,9 @@ import type {
 } from "@kagie/shared";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, type AppStateStatus } from "react-native";
+import { mobileConfig } from "../config";
 import { apiClient, isNetworkUnavailableError } from "../lib/api";
+import { createOfflineSnapshot } from "../lib/offlineSeed";
 import {
   clearPendingMobileActions,
   getPendingMobileActions,
@@ -39,6 +41,7 @@ import type {
   SupportSnapshot
 } from "../types/mobile";
 import { useSession } from "../session/SessionProvider";
+import { isOfflineGuest } from "../session/offlineGuest";
 
 type KagieDataContextValue = {
   catalog: MobileCatalog | null;
@@ -112,6 +115,18 @@ const createConnectionState = (): MobileConnectionState => ({
   lastSuccessfulSyncAt: "",
   cacheSavedAt: "",
   pendingSyncCount: 0
+});
+
+const noLoadingSections = (): DashboardSectionLoading => ({
+  summary: false,
+  applications: false,
+  deadlines: false,
+  notifications: false,
+  accommodation: false,
+  recommendations: false,
+  support: false,
+  profile: false,
+  documents: false
 });
 
 function nowIso() {
@@ -456,6 +471,58 @@ export function KagieDataProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       setSectionLoading(createSectionLoading());
       setConnection(createConnectionState());
+      return;
+    }
+
+    const offlineOnlyMode = isOfflineGuest(user)
+      || !mobileConfig.apiBaseUrl
+      || (!mobileConfig.isDevRuntime && (mobileConfig.usesLocalApiBaseUrl || mobileConfig.usesRetiredHostApiBaseUrl));
+
+    if (offlineOnlyMode) {
+      const cached = await loadCachedState(user.id);
+      const snapshot = createOfflineSnapshot(user, cached?.draft || draft);
+      const nextCatalog = cached?.catalog || snapshot.catalog;
+      const nextDraft = cached?.draft || snapshot.draft;
+      const nextDashboard = cached?.dashboard || snapshot.dashboard;
+      const nextCart = cached?.cart || snapshot.cart;
+      const nextNotifications = cached?.notifications?.length ? cached.notifications : snapshot.notifications;
+      const nextSupport = cached?.support || snapshot.support;
+      const nextProfile = cached?.profile || snapshot.profile;
+      const nextDocuments = cached?.documents || snapshot.documents;
+
+      setCatalog(nextCatalog);
+      setDraft(nextDraft);
+      setDashboard(nextDashboard);
+      setCart(nextCart);
+      setNotifications(nextNotifications);
+      setSupport(nextSupport);
+      setProfile(nextProfile);
+      setDocuments(nextDocuments);
+      setOffline(true);
+      setSyncing(false);
+      setLoading(false);
+      setSectionLoading(noLoadingSections());
+      setLastSyncError(isOfflineGuest(user)
+        ? "Offline guest mode is active. Cloud login, payments, uploads, and sync need internet."
+        : "Online Kagie API is not configured for this build. Offline app screens and local draft storage are available.");
+      updateConnection({
+        status: "offline",
+        lastCheckedAt: nowIso(),
+        cacheSavedAt: cached?.savedAt || nowIso()
+      });
+      if (!cached) {
+        await saveMobileDataCache(user.id, {
+          catalog: nextCatalog,
+          draft: nextDraft,
+          dashboard: nextDashboard,
+          cart: nextCart,
+          notifications: nextNotifications,
+          support: nextSupport,
+          profile: nextProfile,
+          documents: nextDocuments
+        });
+      }
+      await refreshPendingCounts(user.id);
       return;
     }
 

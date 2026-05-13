@@ -24,7 +24,7 @@ type ApiEnvelope<T> = {
   data: T;
 };
 
-const NETWORK_ERROR_PATTERN = /network request failed|failed to fetch|internet|offline|timed out|abort|load failed|could not connect|connection/i;
+const NETWORK_ERROR_PATTERN = /network request failed|failed to fetch|internet|offline|timed out|abort|load failed|could not connect|connection|not connected|not configured/i;
 const REQUEST_TIMEOUT_MS = 30000;
 
 export function isNetworkUnavailableError(error: unknown) {
