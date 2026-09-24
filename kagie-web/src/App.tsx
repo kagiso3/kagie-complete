@@ -1,4 +1,5 @@
 import { startTransition, useEffect, useState } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { AppShell } from "./components/app-shell";
 import { LoadingPanel } from "./components/ui";
 import { ensureLegacyRuntime } from "./lib/runtime";
@@ -87,23 +88,36 @@ export default function App() {
   }
 
   if (loading) {
-    return <LoadingPanel label="Starting Kagie React..." />;
+    return (
+      <>
+        <LoadingPanel label="Starting Kagie React..." />
+        <SpeedInsights />
+      </>
+    );
   }
 
   if (error || !api) {
     return (
-      <div className="kg-launch-error">
-        <strong>Kagie could not boot the React app.</strong>
-        <p>{error || "The runtime did not load."}</p>
-      </div>
+      <>
+        <div className="kg-launch-error">
+          <strong>Kagie could not boot the React app.</strong>
+          <p>{error || "The runtime did not load."}</p>
+        </div>
+        <SpeedInsights />
+      </>
     );
   }
 
   if (!user || route === "login" || route === "signup") {
-    return route === "signup" ? (
-      <SignupPage api={api} onNavigate={handleNavigate} onAuthSuccess={setUser} />
-    ) : (
-      <LoginPage api={api} onNavigate={handleNavigate} onAuthSuccess={setUser} />
+    return (
+      <>
+        {route === "signup" ? (
+          <SignupPage api={api} onNavigate={handleNavigate} onAuthSuccess={setUser} />
+        ) : (
+          <LoginPage api={api} onNavigate={handleNavigate} onAuthSuccess={setUser} />
+        )}
+        <SpeedInsights />
+      </>
     );
   }
 
@@ -124,8 +138,11 @@ export default function App() {
   }
 
   return (
-    <AppShell user={user} currentRoute={route as ProtectedRouteKey} onNavigate={handleNavigate as (route: ProtectedRouteKey) => void} onLogout={handleLogout}>
-      {page}
-    </AppShell>
+    <>
+      <AppShell user={user} currentRoute={route as ProtectedRouteKey} onNavigate={handleNavigate as (route: ProtectedRouteKey) => void} onLogout={handleLogout}>
+        {page}
+      </AppShell>
+      <SpeedInsights />
+    </>
   );
 }

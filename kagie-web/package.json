@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@kagie/shared": "file:../packages/shared",
+    "@vercel/speed-insights": "^2.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
