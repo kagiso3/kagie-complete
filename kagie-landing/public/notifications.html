@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Notifications</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="js/backend.js?v=20261015-backend-audit"></script>
+  <script defer src="js/supabase-config.js?v=20261014-palette-blue"></script>
+  <script defer src="js/notifications-page.js?v=20261014-palette-blue"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/bottom-nav.css?v=20261014-palette-blue" />
+  <script defer src="js/bottom-nav.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/student-workspace.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
+</head>
+<body class="kagie-student-workspace" data-kagie-page="notifications">
+  <div class="shell">
+    <header class="top">
+      <div class="brand"><span class="kagie-eyebrow">Kagie · Student workspace</span><h1>Notifications</h1><p>Your Kagie inbox for application, payment, document, and support updates.</p></div>
+      <div class="actions"><a class="btn" href="home.html">Home</a><a class="btn" href="Dashboard.html">Dashboard</a></div>
+    </header>
+    <section class="hero">
+      <h2 id="heroTitle">Stay updated</h2>
+      <p id="heroText">We are loading your latest Kagie notifications.</p>
+      <div class="meta"><span id="unreadMeta">0 unread</span><span id="totalMeta">0 total notifications</span></div>
+    </section>
+    <section class="card">
+      <div class="head">
+        <div><h3>Inbox</h3><p>Use filters to focus on unread or completed updates.</p></div>
+        <div class="filters"><button class="pill active" data-filter="all">All</button><button class="pill" data-filter="unread">Unread</button><button class="pill" data-filter="read">Read</button><button class="pill" id="markAllBtn" type="button">Mark all read</button></div>
+      </div>
+      <div class="list" id="list"></div>
+    </section>
+  </div>
+  <div class="bottom-nav">
+    <a class="bottom-nav-item active" href="home.html"><span class="bottom-nav-kicker">App</span><span>Home</span></a>
+    <a class="bottom-nav-item" href="career-guidance.html"><span class="bottom-nav-kicker">Plan</span><span>Career</span></a>
+    <a class="bottom-nav-item" href="recommendation.html"><span class="bottom-nav-kicker">Match</span><span>Courses</span></a>
+    <a class="bottom-nav-item" href="more-service/accommodation-assist.html"><span class="bottom-nav-kicker">Stay</span><span>Housing</span></a>
+    <a class="bottom-nav-item" href="more-service/transport-assist.html"><span class="bottom-nav-kicker">Move</span><span>Transport</span></a>
+  </div>
+</body>
+</html>

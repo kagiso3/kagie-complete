@@ -207,6 +207,11 @@ begin
 end;
 $$;
 
+-- Account repair is an administrative SQL/server operation. Browser sessions
+-- must use the authenticated, authorized account-management server endpoint.
+revoke execute on function public.kagie_upsert_auth_staff(text, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.kagie_upsert_auth_staff(text, text, text, text, text) to service_role;
+
 comment on function public.kagie_upsert_auth_staff(text, text, text, text, text)
 is 'Creates or repairs a Kagie auth user plus profile scaffold for master_admin, assistant_admin, or user.';
 

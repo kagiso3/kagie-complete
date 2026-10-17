@@ -1,0 +1,25 @@
+const assert = require('node:assert/strict');
+const model = require('../js/recommendation-model.js');
+const data = require('../js/recommendation-data.js');
+let checks = 0;
+function check(value, label) { assert.ok(value, label); checks++; }
+const sample = [{name:'English Home Language',mark:72},{name:'Mathematics',mark:64},{name:'Life Sciences',mark:58},{name:'Geography',mark:61},{name:'Business Studies',mark:67},{name:'Life Orientation',mark:80}];
+check(model.academic(sample).aps===25, 'Reference marks calculate APS 25 excluding Life Orientation');
+check(model.academic(sample).average===67, 'Reference average rounds to 67%');
+check(model.academic([...sample,{name:'Accounting',mark:90},{name:'Economics',mark:95}]).aps===35, 'Only the six best non-LO subjects contribute to APS');
+check(model.recommend([],[]).length===0, 'Missing marks never generate fictional matches');
+check(model.recommend([{name:'English',mark:''}],[]).length===0, 'Unentered percentages do not become zero marks');
+check(!!model.validate([{name:'Mathematics',mark:60},{name:' mathematics ',mark:90}]), 'Duplicate subjects are rejected');
+for (const mark of [-1,101,NaN,Infinity,'']) check(!!model.validate([{name:'English',mark}]), 'Invalid mark rejected: '+mark);
+check(model.validate([{name:'English',mark:0}])==='', 'A genuine zero percentage remains valid');
+check(model.readMarks({marks:[{subject:'Maths',percent:62},{subject:'maths',percent:90},{subject:'English',percent:101}]}).length===1, 'Profile marks deduplicate names and reject invalid percentages');
+check(model.readMarks({marks:[null,'invalid',{subject:'English',percent:' '}]}).length===1, 'Malformed profile rows are skipped without breaking the page');
+check(model.readMarks({marks:[{subject:'English',percent:' '} ]})[0].mark==='', 'Whitespace percentages remain unentered');
+check(!model.findSubject([{name:'Mathematical Literacy',mark:95}], 'Mathematics'), 'Mathematical Literacy never satisfies Mathematics');
+check(model.findSubject([{name:'English Home Language',mark:45},{name:'English First Additional Language',mark:80}], 'English').mark===80, 'Language matching uses the strongest entered English result');
+const boosted = model.recommend(sample,['Education']).find(course=>course.id==='c3');
+const baseline = model.recommend(sample,[]).find(course=>course.id==='c3');
+check(boosted.score===baseline.score+12, 'Preferred fields personalise the ranking');
+check(model.recommend(data.subjects.map(name=>({name,mark:100})),data.fields).every(course=>course.score<=100), 'Scores stay within 0–100');
+check(model.recommend(sample,['Education']).every(course=>course.match!=='High match' || course.eligible), 'A high match always satisfies the existing guide checks');
+console.log('PASS '+checks+' recommendation model checks.');

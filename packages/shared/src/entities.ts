@@ -80,13 +80,20 @@ export interface InstitutionChoice {
   closingDate?: string;
 }
 
+export type ApplicationType = "undergraduate" | "late" | "transfer" | "bridging" | "postgraduate";
+
 export interface ApplicationPack {
   id: string;
+  code?: string;
   name: string;
   price: number;
   institutionLimit: number | "unlimited";
   description: string;
   highlight: string;
+  applicationType?: ApplicationType;
+  level?: "BASIC" | "STANDARD" | "PREMIUM" | string;
+  features?: string[];
+  badge?: string;
 }
 
 export interface ApplicationFormsSnapshot {
@@ -100,6 +107,13 @@ export interface ApplicationFormsSnapshot {
   marks: {
     subjects: ApplicationMark[];
   };
+  applicationType?: {
+    type?: ApplicationType;
+    label?: string;
+  };
+  packageSelection?: Record<string, unknown>;
+  specialisedApplication?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export interface PaymentRecord extends BaseEntity {
@@ -117,6 +131,17 @@ export interface ApplicationRecord extends BaseEntity {
   userId: string;
   assistantId?: string | null;
   packageId?: string | null;
+  applicationType?: ApplicationType;
+  applicationTypeLabel?: string;
+  selectedPackage?: ApplicationPack | null;
+  selectedAddons?: Array<Record<string, unknown>>;
+  packagePrice?: number;
+  addonsTotal?: number;
+  finalTotal?: number;
+  applicationReference?: string;
+  institutionChoice1?: string;
+  institutionChoice2?: string;
+  programmeChoice?: string;
   status: ApplicationStatus;
   paymentStatus: PaymentStatus;
   submittedAt?: string | null;

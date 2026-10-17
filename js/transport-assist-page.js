@@ -514,12 +514,14 @@
       $("dashboardLink").textContent = "Master Dashboard";
       $("homeLink").href = "../master-admin/dashboard.html";
       $("homeLink").textContent = "Control";
+      $("homeLink").hidden = true;
       $("accessBackLink").href = "../master-admin/dashboard.html";
     } else if (actor.role === "assistant_admin") {
       $("dashboardLink").href = "../assistant/dashboard.html";
       $("dashboardLink").textContent = "Assistant Dashboard";
       $("homeLink").href = "../assistant/dashboard.html";
       $("homeLink").textContent = "Back";
+      $("homeLink").hidden = true;
       $("accessBackLink").href = "../assistant/dashboard.html";
     }
   }
@@ -621,7 +623,7 @@
     const cheapest = list.reduce((low, route) => !low || totalFare(route) < totalFare(low) ? route : low, null);
     const fastest = list.reduce((fast, route) => !fast || durationMins(route) < durationMins(fast) ? route : fast, null);
     node.innerHTML = [
-      cheapest ? `<article class="recommendation-card"><div class="recommendation-icon green">$</div><div><div class="recommendation-title">Best Price</div><div class="recommendation-copy">Lowest total fare for this learner trip.</div></div><div class="recommendation-meta">${safe(cheapest.company)}<br>${safe(cheapest.departureTime)} - ${safe(cheapest.arrivalTime)}</div><div><div class="recommendation-price">${safe(money(totalFare(cheapest)))}</div><button class="primary-btn" type="button" data-recommend-route="${safe(cheapest.id)}">Choose</button></div></article>` : "",
+      cheapest ? `<article class="recommendation-card"><div class="recommendation-icon green">$</div><div><div class="recommendation-title">Best Price</div><div class="recommendation-copy">Lowest total fare for this trip.</div></div><div class="recommendation-meta">${safe(cheapest.company)}<br>${safe(cheapest.departureTime)} - ${safe(cheapest.arrivalTime)}</div><div><div class="recommendation-price">${safe(money(totalFare(cheapest)))}</div><button class="primary-btn" type="button" data-recommend-route="${safe(cheapest.id)}">Choose</button></div></article>` : "",
       fastest ? `<article class="recommendation-card"><div class="recommendation-icon gold">!</div><div><div class="recommendation-title">Fastest Journey</div><div class="recommendation-copy">Shortest travel time on the current route search.</div></div><div class="recommendation-meta">${safe(fastest.company)}<br>${safe(fastest.departureTime)} - ${safe(fastest.arrivalTime)}</div><div><div class="recommendation-price">${safe(money(totalFare(fastest)))}</div><button class="primary-btn" type="button" data-recommend-route="${safe(fastest.id)}">Choose</button></div></article>` : ""
     ].join("");
   }
@@ -749,10 +751,10 @@
   function showStaff() {
     const isMaster = actor?.role === "master_admin";
     $("modeEyebrow").textContent = isMaster ? "Master admin transport desk" : "Assistant admin transport desk";
-    $("pageTitle").textContent = "Find Your Perfect Bus";
+    $("pageTitle").textContent = "Find your bus";
     $("pageCopy").textContent = isMaster
-      ? "Search buses in Kagie colors, choose the best route, and send the learner ticket directly into their account."
-      : "Search buses in Kagie colors, choose the best route, and help Kagie send the learner ticket directly into their account.";
+      ? "Search routes, choose a bus and send the ticket to the learner’s Kagie account."
+      : "Help learners find a route and manage their transport tickets.";
     $("adminBookingSection").classList.remove("hidden");
     document.body.dataset.transportRole = actor?.role || "staff";
     $("searchTripsBtn").textContent = "Search Bus Tickets";
@@ -763,12 +765,15 @@
   }
   function showUser() {
     $("modeEyebrow").textContent = "Kagie transport";
-    $("pageTitle").textContent = "Find Your Perfect Bus";
+    $("pageTitle").textContent = "Find your bus";
     $("pageCopy").textContent = "Browse South African bus routes in Kagie, choose your ticket, complete passenger details, then continue to cart for payment.";
     $("adminBookingSection").classList.remove("hidden");
     document.body.dataset.transportRole = "user";
     $("searchTripsBtn").textContent = "Search South Africa Routes";
     document.querySelector(".learner-strip")?.classList.add("hidden");
+    document.querySelector(".booking-head .section-kicker").textContent = "Plan your trip";
+    document.querySelector(".booking-head h2").textContent = "Choose your route";
+    document.querySelector(".booking-head p").textContent = "Choose where and when you want to travel. You can compare buses before adding passenger details.";
     document.querySelector(".notes-field")?.classList.add("hidden");
     document.querySelector(".selected-actions")?.classList.add("hidden");
     $("ticketsHeading").textContent = "My Tickets";

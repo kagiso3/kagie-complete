@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "node -e \"console.log('Skipping dependency install for Kagie static Vercel build')\"",
-  "buildCommand": "node ./scripts/build-web-release.cjs",
+  "installCommand": "npm install",
+  "buildCommand": "npm run vercel-build",
   "outputDirectory": "web-release",
   "cleanUrls": false,
   "headers": [
@@ -58,7 +58,11 @@
     },
     {
       "source": "/v1/auth/admin/master-admin/bootstrap",
-      "destination": "/api/auth/admin/master-admin/bootstrap"
+      "destination": "/api/admin/config/status?__kagie_admin_action=bootstrap"
+    },
+    {
+      "source": "/api/auth/admin/master-admin/bootstrap",
+      "destination": "/api/admin/config/status?__kagie_admin_action=bootstrap"
     },
     {
       "source": "/v1/auth/role",
@@ -73,6 +77,10 @@
       "destination": "/api/payments/yoco/webhook"
     },
     {
+      "source": "/v1/payments/yoco/status",
+      "destination": "/api/payments/yoco/status"
+    },
+    {
       "source": "/v1/payments/payfast/checkout",
       "destination": "/api/payments/payfast/checkout"
     },
@@ -81,11 +89,60 @@
       "destination": "/api/payments/payfast/itn"
     },
     {
+      "source": "/v1/:path*",
+      "destination": "/api/kagie?path=/v1/:path*"
+    },
+    {
       "source": "/admin/users",
       "destination": "/admin/users/index.html"
     }
   ],
   "redirects": [
+    {
+      "source": "/login",
+      "destination": "/login.html",
+      "permanent": true
+    },
+    {
+      "source": "/signup",
+      "destination": "/signup.html",
+      "permanent": true
+    },
+    {
+      "source": "/forgot-password",
+      "destination": "/forgot-password.html",
+      "permanent": true
+    },
+    {
+      "source": "/change-password",
+      "destination": "/changepassword.html",
+      "permanent": true
+    },
+    {
+      "source": "/reset-password",
+      "destination": "/changepassword.html",
+      "permanent": true
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/home.html",
+      "permanent": true
+    },
+    {
+      "source": "/app",
+      "destination": "/home.html",
+      "permanent": true
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html",
+      "permanent": true
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html",
+      "permanent": true
+    },
     {
       "source": "/notification",
       "destination": "/notifications.html",
@@ -103,6 +160,11 @@
     },
     {
       "source": "/download",
+      "destination": "/android-app.html",
+      "permanent": true
+    },
+    {
+      "source": "/android-app",
       "destination": "/android-app.html",
       "permanent": true
     },

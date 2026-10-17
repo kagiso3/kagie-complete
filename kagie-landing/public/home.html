@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Home</title>
+  <meta name="theme-color" content="#fd0505" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Kagie" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/images/logos/app-icon.png" />
+  <script defer src="/js/pwa-init.js?v=20261014-palette-blue"></script>
+  <script defer src="/js/install-app.js?v=20261014-palette-blue"></script>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="js/backend.js?v=20261015-backend-audit"></script>
+<script defer src="js/supabase-config.js?v=20261014-palette-blue"></script>
+<script defer src="js/home-page.js?v=20261014-palette-blue"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="css/bottom-nav.css?v=20261014-palette-blue" />
+  <script defer src="js/bottom-nav.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/student-workspace.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/student-home.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
+</head>
+
+<body class="kagie-student-workspace" data-kagie-page="home">
+  <div class="app">
+    <div class="content">
+
+      <div class="hero-header">
+        <div class="hero-left">
+          <a class="profile-upload-wrap" href="profile.html" title="Open profile">
+            <img id="profilePhoto" class="profile-photo" alt="Profile photo" />
+            <div id="profilePlaceholder" class="profile-placeholder">
+              <span class="material-icons-outlined">&#xe7fd;</span>
+            </div>
+          </a>
+
+          <div class="hero-text">
+            <span class="kagie-eyebrow">Kagie · Your next chapter</span>
+            <h1 class="hero-title" id="heroTitle">Hello User</h1>
+            <p class="hero-subtitle">One application. Endless opportunities</p>
+          </div>
+        </div>
+
+        <div class="hero-actions">
+          <button class="hero-logout-btn" id="headerLogoutBtn" type="button" aria-label="Log out">
+            <span class="material-icons-outlined" aria-hidden="true">&#xe9ba;</span>
+            <span class="logout-label">Log out</span>
+          </button>
+
+          <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="menuSheet" aria-label="Open menu">
+            <span class="material-icons-outlined">&#xe5d2;</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="dashboard-wrap">
+        <div class="dashboard-bar">
+          <a href="notifications.html" class="dash-pill notifications">
+            <span class="material-icons-outlined">&#xe7f4;</span>
+            <span>Notifications</span>
+          </a>
+
+          <a href="Dashboard.html" class="dash-pill dashboard">
+            <span class="material-icons-outlined">&#xe85d;</span>
+            <span>Dashboard</span>
+          </a>
+
+          <a href="personal-assistance.html" class="dash-pill assistance">
+            <span class="material-icons-outlined">&#xf0e2;</span>
+            <span>Help</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="grid">
+        <a href="forms.html?step=type&fresh=1" class="tile t-yellow">
+          <div class="tile-content">
+            <span class="material-icons-outlined tile-icon">&#xe85d;</span>
+            <div class="tile-title">Apply to study</div>
+          </div>
+        </a>
+
+        <a href="more-service/index.html" class="tile t-orange">
+          <div class="tile-content">
+            <span class="material-icons-outlined tile-icon">&#xe5c3;</span>
+            <div class="tile-title">Student services</div>
+          </div>
+        </a>
+
+        <a href="updates.html" class="tile t-blue">
+          <div class="tile-content">
+            <span class="material-icons-outlined tile-icon">&#xef49;</span>
+            <div class="tile-title">Latest updates</div>
+          </div>
+        </a>
+
+        <a href="career-guidance.html" class="tile t-red">
+          <div class="tile-content">
+            <span class="material-icons-outlined tile-icon">&#xe80c;</span>
+            <div class="tile-title">Career hub</div>
+            <div class="tile-subtitle">Jobs &amp; Internships</div>
+          </div>
+        </a>
+
+        <a href="recommendation.html" class="tile t-orange">
+          <div class="tile-content">
+            <span class="material-icons-outlined tile-icon">&#xe65f;</span>
+            <div class="tile-title">Course matches</div>
+          </div>
+        </a>
+
+        <a href="prospectus.html" class="tile t-blue">
+          <div class="tile-content">
+            <span class="material-icons-outlined tile-icon">&#xea19;</span>
+            <div class="tile-title">Institution guides</div>
+          </div>
+        </a>
+
+        <a href="more-service/accommodation-assist.html" class="tile t-yellow">
+          <div class="tile-content">
+            <span class="material-icons-outlined tile-icon">&#xea40;</span>
+            <div class="tile-title">Accommodation</div>
+          </div>
+        </a>
+
+        <a href="more-service/transport-assist.html" class="tile t-orange">
+          <div class="tile-content">
+            <span class="material-icons-outlined tile-icon">&#xe530;</span>
+            <div class="tile-title">Transport</div>
+          </div>
+        </a>
+      </div>
+
+      <div class="quick-strip" id="homeQuickStrip" aria-label="Quick summary">
+        <a class="quick-link" href="forms.html?step=type&fresh=1">
+          <div class="quick-label">Application</div>
+          <div class="quick-value">Open application</div>
+          <div class="quick-copy">Manage your shortlist, forms, and next Kagie steps in one place.</div>
+        </a>
+        <a class="quick-link" href="cart.html">
+          <div class="quick-label">Cart</div>
+          <div class="quick-value">Continue checkout</div>
+          <div class="quick-copy">Review your package and services before you pay.</div>
+        </a>
+        <a class="quick-link" href="more-service/index.html">
+          <div class="quick-label">Services</div>
+          <div class="quick-value">Open services</div>
+          <div class="quick-copy">Funding, corrections, accommodation, and transport support.</div>
+        </a>
+        <a class="quick-link" href="recommendation.html">
+          <div class="quick-label">Recommendations</div>
+          <div class="quick-value">View matches</div>
+          <div class="quick-copy">Check suggestions and safer options based on your profile.</div>
+        </a>
+      </div>
+    </div>
+
+    <div class="footer-zone">
+      <div class="institution-heading"><h2>Explore institutions</h2><p>Find the right place for your next chapter.</p></div>
+      <div class="carousel-wrap">
+        <div class="carousel-stage">
+          <div class="carousel" id="carousel"></div>
+        </div>
+        <div class="carousel-hint">Drag logos</div>
+      </div>
+    </div>
+
+    <div class="bottom-nav" aria-label="Primary">
+      <a class="bottom-nav-item active" href="home.html" aria-current="page" aria-label="App Home">
+        <span class="material-icons-outlined bottom-nav-icon" aria-hidden="true">home</span>
+        <span class="bottom-nav-label">App Home</span>
+      </a>
+      <a class="bottom-nav-item" href="career-guidance.html">
+        <span class="material-icons-outlined bottom-nav-icon" aria-hidden="true">business_center</span>
+        <span class="bottom-nav-label">Plan Career</span>
+      </a>
+      <a class="bottom-nav-item" href="recommendation.html">
+        <span class="material-icons-outlined bottom-nav-icon" aria-hidden="true">school</span>
+        <span class="bottom-nav-label">Match Courses</span>
+      </a>
+      <a class="bottom-nav-item" href="more-service/accommodation-assist.html">
+        <span class="material-icons-outlined bottom-nav-icon" aria-hidden="true">apartment</span>
+        <span class="bottom-nav-label">Housing</span>
+      </a>
+      <a class="bottom-nav-item" href="more-service/transport-assist.html">
+        <span class="material-icons-outlined bottom-nav-icon" aria-hidden="true">directions_bus</span>
+        <span class="bottom-nav-label">Transport</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="menu-sheet" id="menuSheet" role="dialog" aria-modal="true" aria-label="Kagie menu" aria-hidden="true">
+    <div class="menu-card">
+        <div class="menu-head">
+          <div class="ttl">Menu</div>
+          <button class="close-btn" id="closeMenu" aria-label="Close menu">
+            <span class="material-icons-outlined" style="font-size:20px;">&#xe5cd;</span>
+          </button>
+        </div>
+
+        <div class="menu-list">
+          <a class="menu-item" data-menu-link href="profile.html">
+            <span class="material-icons-outlined mi-ic">&#xe7fd;</span>
+            <div class="mi-txt">Profile</div>
+          </a>
+
+          <a class="menu-item" data-menu-link href="Dashboard.html">
+            <span class="material-icons-outlined mi-ic">&#xe871;</span>
+            <div class="mi-txt">Dashboard</div>
+          </a>
+
+          <a class="menu-item" data-menu-link href="forms.html?step=type&fresh=1">
+            <span class="material-icons-outlined mi-ic">&#xe85d;</span>
+            <div class="mi-txt">Apply</div>
+          </a>
+
+          <a class="menu-item" data-menu-link href="recommendation.html">
+            <span class="material-icons-outlined mi-ic">&#xe65f;</span>
+            <div class="mi-txt">Recommendations</div>
+          </a>
+
+          <a class="menu-item" data-menu-link href="updates.html">
+            <span class="material-icons-outlined mi-ic">&#xef49;</span>
+            <div class="mi-txt">Updates</div>
+          </a>
+
+          <a class="menu-item" data-menu-link href="prospectus.html">
+            <span class="material-icons-outlined mi-ic">&#xea19;</span>
+            <div class="mi-txt">Prospectus</div>
+          </a>
+
+          <a class="menu-item" data-menu-link href="cart.html">
+            <span class="material-icons-outlined mi-ic">&#xe8cc;</span>
+            <div class="mi-txt">Cart</div>
+          </a>
+
+          <a class="menu-item" data-menu-link href="more-service/index.html">
+            <span class="material-icons-outlined mi-ic">&#xe5c3;</span>
+            <div class="mi-txt">More Service</div>
+          </a>
+
+          <a class="menu-item" data-menu-link href="more-service/accommodation-assist.html">
+            <span class="material-icons-outlined mi-ic">&#xea40;</span>
+            <div class="mi-txt">Accommodation</div>
+          </a>
+
+          <a class="menu-item" data-menu-link href="more-service/transport-assist.html">
+            <span class="material-icons-outlined mi-ic">&#xe530;</span>
+            <div class="mi-txt">Transport</div>
+          </a>
+
+          <a class="menu-item" data-menu-link href="notifications.html">
+            <span class="material-icons-outlined mi-ic">&#xe7f4;</span>
+            <div class="mi-txt">Notifications</div>
+          </a>
+
+          <a class="menu-item" data-menu-link href="personal-assistance.html">
+            <span class="material-icons-outlined mi-ic">&#xf0e2;</span>
+            <div class="mi-txt">Assistance</div>
+          </a>
+
+        </div>
+
+        <div class="menu-actions">
+          <div class="menu-actions-note">Need to leave this account? Tap the button below.</div>
+          <button class="menu-logout-btn" type="button" id="logoutBtn">
+            <span class="material-icons-outlined" aria-hidden="true">&#xe9ba;</span>
+            <span>Log out</span>
+          </button>
+        </div>
+    </div>
+  </div>
+
+    <!-- Legacy inline fallback removed. Home logic now runs from js/home-page.js -->
+</body>
+</html>

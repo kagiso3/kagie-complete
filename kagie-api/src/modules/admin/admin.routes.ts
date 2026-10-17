@@ -16,7 +16,7 @@ const createAssistantSchema = z.object({
   fullName: z.string().min(2),
   email: z.string().email(),
   phone: z.string().trim().optional().default(""),
-  password: z.string().min(6)
+  password: z.string().min(8)
 });
 
 const facultiesSchema = z.array(z.object({

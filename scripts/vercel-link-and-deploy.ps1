@@ -37,7 +37,7 @@ if ($LASTEXITCODE -ne 0) {
 
 'BUILD_OK' | Set-Content -LiteralPath $status -Encoding utf8
 
-npx.cmd vercel@latest deploy --prebuilt --prod --yes 2>&1 | Tee-Object -FilePath $log -Append
+npx.cmd vercel@latest deploy --prod --yes 2>&1 | Tee-Object -FilePath $log -Append
 if ($LASTEXITCODE -ne 0) {
   'DEPLOY_FAILED' | Set-Content -LiteralPath $status -Encoding utf8
   Write-Host 'Vercel production deploy failed.' -ForegroundColor Red

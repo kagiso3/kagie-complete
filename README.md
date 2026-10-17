@@ -1,4 +1,4 @@
-# Kagie.app
+# Kagie
 
 Kagie is a South African student application and support platform. This project already includes the working student flow, dashboard tracking, support tools, and admin surfaces. It is designed to be extended carefully, not rebuilt from scratch.
 
@@ -79,7 +79,7 @@ Add these server-side environment variables in Vercel before using live PayFast 
 
 Then register this notify URL in PayFast:
 
-- `https://your-domain/v1/payments/payfast/itn`
+- `https://kagie.co.za/v1/payments/payfast/itn`
 
 Main files:
 - [checkout.html](./checkout.html)
@@ -154,9 +154,10 @@ Kagie is configured for Vercel. The root `vercel.json` builds the static release
 
 1. Open Vercel.
 2. Import the Kagie repository or upload the project.
-3. Use `npm run build` as the build command.
+3. Use `npm run vercel-build` as the build command.
 4. Use `web-release` as the output directory.
 5. Add the required environment variables in Project Settings.
+6. Assign `kagie.co.za` and `www.kagie.co.za` to the same Vercel project after DNS is corrected.
 
 Vercel Functions are exposed from the `/api` folder, and `vercel.json` rewrites the public `/v1/...` API routes to those functions. Do not configure this project as a different static host unless you also replace the Vercel API routing.
 

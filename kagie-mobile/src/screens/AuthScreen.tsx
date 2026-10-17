@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,6 +14,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useSession } from "../session/SessionProvider";
 import { mobileConfig } from "../config";
+import { colors, shadows } from "../theme";
 
 export function AuthScreen() {
   const { login, register, continueOffline } = useSession();
@@ -21,93 +23,188 @@ export function AuthScreen() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [activeAction, setActiveAction] = useState<"auth" | "offline" | null>(null);
+  const actionLockedRef = useRef(false);
+  const submitting = activeAction !== null;
+  const authLoading = activeAction === "auth";
+  const offlineLoading = activeAction === "offline";
 
   async function submit() {
-    if (submitting) return;
+    if (submitting || actionLockedRef.current) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Enter a valid email address so we can find your account.");
+      return;
+    }
+    if (!password) {
+      setError("Enter your password to continue.");
+      return;
+    }
+    if (mode === "register" && (fullName.trim().length < 2 || phone.trim().length < 6 || password.length < 8)) {
+      setError("Add your full name, a valid phone number and a password with at least 8 characters.");
+      return;
+    }
+    actionLockedRef.current = true;
     setError("");
-    setSubmitting(true);
+    setActiveAction("auth");
 
     try {
       if (mode === "login") {
-        await login({ email, password });
+        await login({ email: email.trim(), password });
       } else {
-        await register({ fullName, phone, email, password });
+        await register({ fullName: fullName.trim(), phone: phone.trim(), email: email.trim(), password });
       }
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Could not continue with Kagie authentication.");
+      const message = submitError instanceof Error ? submitError.message : "";
+      setError(/network|fetch|offline|connection|timeout/i.test(message)
+        ? "We could not connect to Kagie. Check your connection and try again."
+        : /incorrect|invalid.*password|credentials/i.test(message)
+          ? "Your email or password does not match. Check your details and try again."
+          : /already.*registered|already.*exists/i.test(message)
+            ? "An account may already use these details. Try signing in."
+            : /email.*confirm/i.test(message)
+              ? "Check your email for your account confirmation link, then sign in."
+              : "We could not continue right now. Please try again.");
     } finally {
-      setSubmitting(false);
+      actionLockedRef.current = false;
+      setActiveAction(null);
     }
   }
 
   async function startOffline() {
-    if (submitting) return;
+    if (submitting || actionLockedRef.current) return;
+    actionLockedRef.current = true;
     setError("");
-    setSubmitting(true);
+    setActiveAction("offline");
 
     try {
       await continueOffline(fullName || "Kagie Student");
     } catch (offlineError) {
       setError(offlineError instanceof Error ? offlineError.message : "Could not start Kagie offline mode.");
     } finally {
-      setSubmitting(false);
+      actionLockedRef.current = false;
+      setActiveAction(null);
     }
   }
 
   return (
     <SafeAreaView style={styles.screen}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>
-            <Text style={styles.brand}>Kagie</Text>
-            <Text style={styles.title}>South African tertiary applications, now in your pocket.</Text>
-            <Text style={styles.copy}>Sign in to continue your application journey or create a student account and start a fresh draft.</Text>
+            <View style={styles.brandRow}>
+              <View style={styles.brandBadge}>
+                <Text style={styles.brandBadgeText}>K</Text>
+                <View style={styles.brandBadgeAccent} />
+              </View>
+              <Text style={styles.brand}>Kagie</Text>
+            </View>
+            <Text style={styles.title}>Apply once. Reach multiple institutions.</Text>
+            <Text style={styles.copy}>Your applications, documents and student support together in one place.</Text>
           </View>
 
           <View style={styles.card}>
             <View style={styles.toggleRow}>
-              <Pressable onPress={() => setMode("login")} style={[styles.toggle, mode === "login" && styles.toggleActive]}>
-                <Text style={[styles.toggleText, mode === "login" && styles.toggleTextActive]}>Login</Text>
+              <Pressable
+                onPress={() => {
+                  if (!submitting) { setMode("login"); setError(""); setPasswordVisible(false); }
+                }}
+                style={[styles.toggle, mode === "login" && styles.toggleActive, submitting && styles.toggleDisabled]}
+                disabled={submitting}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: submitting, selected: mode === "login" }}
+              >
+                <Text style={[styles.toggleText, mode === "login" && styles.toggleTextActive]}>Sign in</Text>
               </Pressable>
-              <Pressable onPress={() => setMode("register")} style={[styles.toggle, mode === "register" && styles.toggleActive]}>
-                <Text style={[styles.toggleText, mode === "register" && styles.toggleTextActive]}>Register</Text>
+              <Pressable
+                onPress={() => {
+                  if (!submitting) { setMode("register"); setError(""); setPasswordVisible(false); }
+                }}
+                style={[styles.toggle, mode === "register" && styles.toggleActive, submitting && styles.toggleDisabled]}
+                disabled={submitting}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: submitting, selected: mode === "register" }}
+              >
+                <Text style={[styles.toggleText, mode === "register" && styles.toggleTextActive]}>Create account</Text>
               </Pressable>
+            </View>
+
+            <View style={styles.formHeader}>
+              <Text style={styles.formTitle} accessibilityRole="header">{mode === "login" ? "Welcome back" : "Create your account"}</Text>
+              <Text style={styles.copy}>{mode === "login" ? "Sign in to pick up where you left off." : "Start with your details. You can complete your profile from your dashboard."}</Text>
             </View>
 
             {mode === "register" ? (
               <>
-                <TextInput style={styles.input} placeholder="Full name" placeholderTextColor="#6b7280" value={fullName} onChangeText={setFullName} />
-                <TextInput style={styles.input} placeholder="Phone number" placeholderTextColor="#6b7280" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Full name</Text>
+                  <TextInput accessibilityLabel="Full name" style={[styles.input, submitting && styles.inputDisabled]} placeholder="Your first and last name" placeholderTextColor={colors.textMuted} value={fullName} onChangeText={setFullName} autoComplete="name" textContentType="name" editable={!submitting} />
+                </View>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Phone number</Text>
+                  <TextInput accessibilityLabel="Phone number" style={[styles.input, submitting && styles.inputDisabled]} placeholder="e.g. 071 234 5678" placeholderTextColor={colors.textMuted} value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" editable={!submitting} />
+                </View>
               </>
             ) : null}
 
-            <TextInput style={styles.input} placeholder="Email address" placeholderTextColor="#6b7280" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-            <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#6b7280" value={password} onChangeText={setPassword} secureTextEntry />
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Email</Text>
+              <TextInput accessibilityLabel="Email" style={[styles.input, submitting && styles.inputDisabled]} placeholder="you@example.com" placeholderTextColor={colors.textMuted} value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" textContentType="emailAddress" editable={!submitting} />
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Password</Text>
+              <View style={styles.passwordWrap}>
+                <TextInput accessibilityLabel="Password" style={[styles.input, styles.passwordInput, submitting && styles.inputDisabled]} placeholder={mode === "login" ? "Enter your password" : "Create a password"} placeholderTextColor={colors.textMuted} value={password} onChangeText={setPassword} autoCapitalize="none" autoCorrect={false} autoComplete={mode === "login" ? "current-password" : "new-password"} textContentType={mode === "login" ? "password" : "newPassword"} secureTextEntry={!passwordVisible} editable={!submitting} />
+                <Pressable style={styles.passwordToggle} accessibilityRole="button" accessibilityLabel={passwordVisible ? "Hide password" : "Show password"} accessibilityState={{ disabled: submitting, selected: passwordVisible }} disabled={submitting} onPress={() => setPasswordVisible((current) => !current)}>
+                  <Text style={styles.passwordToggleText}>{passwordVisible ? "Hide" : "Show"}</Text>
+                </Pressable>
+              </View>
+              {mode === "register" ? <Text style={styles.helper}>Use at least 8 characters. Choose a unique password for your account.</Text> : null}
+            </View>
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="polite">{error}</Text> : null}
 
-            <Pressable onPress={submit} style={[styles.submit, submitting && styles.submitDisabled]} disabled={submitting}>
-              <Text style={styles.submitText}>{submitting ? "Please wait..." : mode === "login" ? "Continue to Kagie" : "Create Kagie account"}</Text>
+            <Pressable
+              onPress={submit}
+              style={[styles.submit, submitting && styles.submitDisabled]}
+              disabled={submitting}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: submitting, busy: authLoading }}
+            >
+              <View style={styles.buttonContent}>
+                {authLoading ? <ActivityIndicator color="#ffffff" size="small" /> : null}
+                <Text style={styles.submitText}>
+                  {authLoading ? (mode === "login" ? "Signing in..." : "Creating account...") : mode === "login" ? "Sign in" : "Create account"}
+                </Text>
+              </View>
             </Pressable>
 
-            <Pressable onPress={startOffline} style={[styles.offlineButton, submitting && styles.submitDisabled]} disabled={submitting}>
-              <Text style={styles.offlineButtonText}>Continue in offline mode</Text>
+            <Pressable
+              onPress={startOffline}
+              style={[styles.offlineButton, submitting && styles.submitDisabled]}
+              disabled={submitting}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: submitting, busy: offlineLoading }}
+            >
+              <View style={styles.buttonContent}>
+                {offlineLoading ? <ActivityIndicator color="#0f172a" size="small" /> : null}
+                <Text style={styles.offlineButtonText}>{offlineLoading ? "Opening offline mode..." : "Continue in offline mode"}</Text>
+              </View>
             </Pressable>
 
             {!mobileConfig.isDevRuntime && mobileConfig.usesLocalApiBaseUrl ? (
               <Text style={styles.warning}>
-                This build is still connected to a local Kagie API. Set a live EXPO_PUBLIC_API_BASE_URL before creating the Play Store bundle.
+                Online sign-in is unavailable in this build. You can still use offline mode to save drafts on this phone.
               </Text>
             ) : !mobileConfig.apiBaseUrl ? (
               <Text style={styles.warning}>
-                Online login needs a Kagie API URL. Offline mode still opens the native app and saves drafts on this phone.
+                Online sign-in is unavailable in this build. You can still use offline mode to save drafts on this phone.
               </Text>
             ) : (
               <Text style={styles.helper}>
-                One profile, one dashboard, one guided path to your tertiary applications. Offline mode works without the website, but cloud sync needs internet.
+                Offline mode saves drafts on this phone. Sign in with internet access to sync your account.
               </Text>
             )}
           </View>
@@ -119,56 +216,101 @@ export function AuthScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  screen: { flex: 1, backgroundColor: "#f5f7fb" },
-  content: { padding: 20, gap: 16 },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: 16, paddingBottom: 32, gap: 16, alignItems: "center" },
   hero: {
-    padding: 22,
-    borderRadius: 30,
-    backgroundColor: "#c90000",
+    padding: 23,
+    borderRadius: 16,
+    backgroundColor: colors.surfaceGlass,
+    gap: 11,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    width: "100%",
+    maxWidth: 540,
+    ...shadows.lift
+  },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10
   },
-  brand: { color: "#ffd66f", fontSize: 16, fontWeight: "800", textTransform: "uppercase", letterSpacing: 1.4 },
-  title: { color: "#ffffff", fontSize: 28, fontWeight: "900", lineHeight: 34 },
-  copy: { color: "rgba(255,255,255,0.9)", fontSize: 14, lineHeight: 21 },
+  brandBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: colors.brand,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden"
+  },
+  brandBadgeAccent: {
+    position: "absolute",
+    right: -6,
+    bottom: -6,
+    width: 18,
+    height: 18,
+    borderRadius: 7,
+    backgroundColor: colors.sky
+  },
+  brandBadgeText: {
+    color: "#ffffff",
+    fontSize: 22,
+    fontWeight: "900"
+  },
+  brand: { color: colors.brand, fontSize: 15, fontWeight: "900", textTransform: "uppercase", letterSpacing: 1 },
+  title: { color: colors.text, fontSize: 25, fontWeight: "800", lineHeight: 31 },
+  copy: { color: colors.textMuted, fontSize: 14, lineHeight: 21 },
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 26,
-    padding: 18,
+    backgroundColor: colors.surfaceGlass,
+    borderRadius: 16,
+    padding: 19,
     gap: 12,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 16 },
-    shadowRadius: 24,
-    elevation: 4
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    width: "100%",
+    maxWidth: 540,
+    ...shadows.card
   },
   toggleRow: { flexDirection: "row", gap: 10, marginBottom: 6 },
-  toggle: { flex: 1, paddingVertical: 12, borderRadius: 16, backgroundColor: "#f4f7fb", alignItems: "center" },
-  toggleActive: { backgroundColor: "#e6f4ff" },
+  toggle: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: colors.surfaceMuted, alignItems: "center" },
+  toggleActive: { backgroundColor: colors.brand },
+  toggleDisabled: { opacity: 0.62 },
   toggleText: { color: "#64748b", fontWeight: "700" },
-  toggleTextActive: { color: "#1273c9" },
+  toggleTextActive: { color: "#ffffff" },
+  formHeader: { gap: 6, marginBottom: 6 },
+  formTitle: { color: colors.text, fontSize: 25, fontWeight: "800", lineHeight: 31 },
+  field: { gap: 6 },
+  fieldLabel: { color: colors.text, fontSize: 13, fontWeight: "600" },
+  passwordWrap: { position: "relative" },
+  passwordInput: { paddingRight: 74 },
+  passwordToggle: { position: "absolute", right: 5, top: 5, bottom: 5, minWidth: 58, alignItems: "center", justifyContent: "center", borderRadius: 6 },
+  passwordToggleText: { color: colors.brand, fontSize: 12, fontWeight: "700" },
   input: {
-    backgroundColor: "#f8fafc",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    backgroundColor: "#ffffff",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 15,
     color: "#0f172a",
     borderWidth: 1,
-    borderColor: "#e2e8f0"
+    fontSize: 16,
+    borderColor: colors.border
   },
-  error: { color: "#b91c1c", fontSize: 13, lineHeight: 18 },
-  submit: { backgroundColor: "#2fa4ff", borderRadius: 18, paddingVertical: 15, alignItems: "center", marginTop: 4 },
+  inputDisabled: { opacity: 0.62 },
+  error: { color: colors.brandDark, backgroundColor: colors.dangerSoft, padding: 12, borderRadius: 10, fontSize: 13, lineHeight: 19 },
+  submit: { backgroundColor: colors.brand, borderRadius: 10, paddingVertical: 16, alignItems: "center", marginTop: 4 },
   submitDisabled: { opacity: 0.65 },
   submitText: { color: "#ffffff", fontSize: 15, fontWeight: "800" },
+  buttonContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
   offlineButton: {
     backgroundColor: "#ffffff",
-    borderRadius: 18,
+    borderRadius: 10,
     paddingVertical: 15,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#d8e4f0"
+    borderColor: colors.border
   },
   offlineButtonText: { color: "#0f172a", fontSize: 15, fontWeight: "800" },
   helper: { color: "#64748b", fontSize: 12, lineHeight: 18 }
   ,
-  warning: { color: "#b45309", fontSize: 12, lineHeight: 18, fontWeight: "700" }
+  warning: { color: "#fd0505", fontSize: 12, lineHeight: 18, fontWeight: "700" }
 });

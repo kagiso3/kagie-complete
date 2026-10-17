@@ -1,3 +1,4 @@
+const { getBearerToken, assertActiveActor, actorRole } = require("./_admin-auth");
 function json(statusCode, payload, origin = "*") {
   return {
     statusCode,
@@ -5,7 +6,8 @@ function json(statusCode, payload, origin = "*") {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      "Access-Control-Allow-Methods": "POST, OPTIONS"
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Cache-Control": "private, no-store"
     },
     body: JSON.stringify(payload)
   };
@@ -29,11 +31,6 @@ function normalizeSiteEnvUrl(value) {
   const normalized = String(value || "").trim();
   if (!normalized) return "";
   return /^https?:\/\//i.test(normalized) ? normalized : `https://${normalized}`;
-}
-
-function getBearerToken(headers) {
-  const value = headers.authorization || headers.Authorization || "";
-  return value.startsWith("Bearer ") ? value.slice(7).trim() : "";
 }
 
 function validationError(message, origin) {
@@ -109,16 +106,25 @@ function uniqueRecipientsBy(users, selector) {
 function toAbsoluteUrl(candidate, siteUrl) {
   const value = String(candidate || "").trim();
   if (!value) return "";
-  if (/^https?:\/\//i.test(value)) return value;
-  if (!siteUrl) return value;
-  return `${siteUrl.replace(/\/+$/, "")}/${value.replace(/^\/+/, "")}`;
+  if (value.startsWith("//") || value.includes("\\")) return "";
+  try {
+    const url = new URL(value, siteUrl || "https://kagie.app");
+    if (url.protocol !== "https:" || url.username || url.password) return "";
+    return url.href;
+  } catch (_error) { return ""; }
+}
+
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[character]);
 }
 
 function buildEmailHtml(title, message, ctaLabel, ctaHref) {
-  const safeTitle = String(title || "").trim();
-  const safeMessage = String(message || "").trim().replace(/\n/g, "<br>");
+  const safeTitle = escapeHtml(String(title || "").trim());
+  const safeMessage = escapeHtml(String(message || "").trim()).replace(/\n/g, "<br>");
   const button = ctaLabel && ctaHref
-    ? `<p style="margin:24px 0 0"><a href="${ctaHref}" style="display:inline-block;padding:12px 18px;border-radius:14px;background:#2fa4ff;color:#ffffff;text-decoration:none;font-weight:700">${ctaLabel}</a></p>`
+    ? `<p style="margin:24px 0 0"><a href="${escapeHtml(ctaHref)}" style="display:inline-block;padding:12px 18px;border-radius:14px;background:#2d9df9;color:#ffffff;text-decoration:none;font-weight:700">${escapeHtml(ctaLabel)}</a></p>`
     : "";
   return `<!doctype html><html><body style="margin:0;padding:24px;background:#f4f7fb;font-family:Roboto,Arial,sans-serif;color:#10203a"><div style="max-width:620px;margin:0 auto;background:#ffffff;border-radius:24px;padding:28px;box-shadow:0 18px 42px rgba(15,23,42,.10)"><div style="display:inline-block;padding:8px 12px;border-radius:999px;background:#e8f4ff;color:#2fa4ff;font-weight:700;font-size:12px">Kagie Update</div><h1 style="margin:18px 0 12px;font-size:28px;line-height:1.15">${safeTitle}</h1><p style="margin:0;font-size:16px;line-height:1.8;color:#42526b">${safeMessage}</p>${button}<p style="margin:28px 0 0;font-size:12px;line-height:1.7;color:#6b7c95">You received this update because you have a Kagie account.</p></div></body></html>`;
 }
@@ -232,7 +238,7 @@ async function sendSms(recipients, payload, siteUrl) {
 }
 
 exports.handler = async (event) => {
-  const origin = event.headers.origin || "*";
+  const origin = event.headers?.origin || "*";
 
   if (event.httpMethod === "OPTIONS") {
     return json(200, { ok: true }, origin);
@@ -256,6 +262,7 @@ exports.handler = async (event) => {
   let body;
   try {
     body = JSON.parse(event.body || "{}");
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Invalid body");
   } catch (_error) {
     return validationError("Request body must be valid JSON.", origin);
   }
@@ -271,6 +278,12 @@ exports.handler = async (event) => {
 
   if (!title) return validationError("Broadcast title is required.", origin);
   if (!message) return validationError("Broadcast message is required.", origin);
+  if (title.length > 240 || message.length > 10000 || ctaLabel.length > 160) return validationError("Broadcast content is too long.", origin);
+  const siteUrl = normalizeSiteEnvUrl(process.env.URL)
+    || normalizeSiteEnvUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL)
+    || "https://kagie.app";
+  const safeCtaHref = toAbsoluteUrl(ctaHref, siteUrl);
+  if (ctaHref && !safeCtaHref) return validationError("The broadcast link must be a valid HTTPS URL or a Kagie page path.", origin);
   if (!channels.inApp && !channels.email && !channels.sms) {
     return validationError("Choose at least one delivery channel.", origin);
   }
@@ -286,7 +299,7 @@ exports.handler = async (event) => {
 
     const actorRows = await supabaseFetch(
       supabaseUrl,
-      `/rest/v1/profiles?id=eq.${encodeFilter(actor.id)}&select=id,role,full_name,email&limit=1`,
+      `/rest/v1/profiles?id=eq.${encodeFilter(actor.id)}&select=*&limit=1`,
       {
         method: "GET",
         headers: adminHeaders(serviceRoleKey)
@@ -294,20 +307,25 @@ exports.handler = async (event) => {
     );
 
     const actorProfile = Array.isArray(actorRows) ? actorRows[0] || null : null;
-    if (!actorProfile || actorProfile.role !== "master_admin") {
+    assertActiveActor(actor, actorProfile);
+    if (actorRole(actor) !== "master_admin") {
       return json(403, { message: "Only a Kagie master admin can send marketing broadcasts." }, origin);
     }
 
     const filters = audience === "all_accounts" ? "is_active=eq.true" : "role=eq.user&is_active=eq.true";
-    const recipientsRaw = await supabaseFetch(
-      supabaseUrl,
-      `/rest/v1/profiles?${filters}&select=id,full_name,email,phone,role`,
-      {
+    const recipients = [];
+    const pageSize = 1000;
+    for (let page = 0; page < 200; page += 1) {
+      const recipientsRaw = await supabaseFetch(supabaseUrl,
+      `/rest/v1/profiles?${filters}&select=id,full_name,email,phone,role&order=id&limit=${pageSize}&offset=${page * pageSize}`, {
         method: "GET",
         headers: adminHeaders(serviceRoleKey)
-      }
-    );
-    const recipients = Array.isArray(recipientsRaw) ? recipientsRaw : [];
+      });
+      if (!Array.isArray(recipientsRaw)) throw new Error("Could not load broadcast recipients.");
+      recipients.push(...recipientsRaw);
+      if (recipientsRaw.length < pageSize) break;
+      if (page === 199) throw new Error("The broadcast recipient limit was reached. Use a background delivery job.");
+    }
 
     let inAppDelivered = 0;
     if (channels.inApp && recipients.length) {
@@ -331,17 +349,11 @@ exports.handler = async (event) => {
 
     const emailRecipients = uniqueRecipientsBy(recipients.filter((recipient) => normalizeEmail(recipient.email)), (recipient) => normalizeEmail(recipient.email));
     const smsRecipients = uniqueRecipientsBy(recipients.filter((recipient) => normalizePhone(recipient.phone)), (recipient) => normalizePhone(recipient.phone));
-    const forwardedHost = String(event.headers["x-forwarded-host"] || "").trim();
-    const siteUrl = normalizeSiteEnvUrl(process.env.URL)
-      || normalizeSiteEnvUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL)
-      || normalizeSiteEnvUrl(process.env.VERCEL_URL)
-      || (forwardedHost ? `https://${forwardedHost}` : origin);
-
     const emailResult = channels.email
-      ? await sendEmails(emailRecipients, { title, message, ctaLabel, ctaHref }, siteUrl)
+      ? await sendEmails(emailRecipients, { title, message, ctaLabel, ctaHref: safeCtaHref }, siteUrl)
       : { eligible: emailRecipients.length, sent: 0, warnings: [] };
     const smsResult = channels.sms
-      ? await sendSms(smsRecipients, { title, message, ctaLabel, ctaHref }, siteUrl)
+      ? await sendSms(smsRecipients, { title, message, ctaLabel, ctaHref: safeCtaHref }, siteUrl)
       : { eligible: smsRecipients.length, sent: 0, warnings: [] };
 
     const warnings = []
@@ -365,7 +377,7 @@ exports.handler = async (event) => {
     }, origin);
   } catch (error) {
     const statusCode = typeof error?.status === "number" ? error.status : 500;
-    const message = error instanceof Error ? error.message : "Marketing broadcast failed.";
+    const message = statusCode >= 500 ? "Marketing broadcast could not be completed. Please try again." : error instanceof Error ? error.message : "Marketing broadcast failed.";
     return json(statusCode, { message }, origin);
   }
 };

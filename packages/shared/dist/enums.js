@@ -8,20 +8,40 @@ exports.ROLES = {
 };
 exports.APPLICATION_STATUSES = {
     DRAFT: "Draft",
+    PACKAGE_SELECTED: "Package Selected",
+    AWAITING_PAYMENT: "Awaiting Payment",
+    PAID: "Paid",
+    PENDING_DETAILS: "Pending Details",
+    INCOMPLETE: "Incomplete",
     SUBMITTED: "Submitted",
     UNDER_REVIEW: "Under Review",
+    DOCUMENTS_REQUIRED: "Documents Required",
+    DOCUMENTS_MISSING: "Documents Missing",
     MISSING_DOCUMENTS: "Missing Documents",
+    INSTITUTION_SUBMITTED: "Institution Submitted",
+    AWAITING_INSTITUTION_FEEDBACK: "Awaiting Institution Feedback",
+    AWAITING_INSTITUTION_FEE: "Awaiting Institution Fee",
+    SUBMITTED_TO_INSTITUTION: "Submitted to Institution",
     READY_TO_APPLY: "Ready to Apply",
     APPLIED: "Applied",
     PENDING_FEEDBACK: "Pending Feedback",
     ACCEPTED: "Accepted",
     REJECTED: "Rejected",
+    COMPLETED: "Completed",
+    CANCELLED: "Cancelled",
     PROCESSING: "Application being processed"
 };
 exports.PAYMENT_STATUSES = {
+    UNPAID: "Unpaid",
+    PENDING: "Pending",
+    PAID: "Paid",
     PAYMENT_PENDING: "Payment Pending",
     PENDING_VERIFICATION: "Pending Verification",
-    VERIFIED: "Verified"
+    VERIFIED: "Verified",
+    REJECTED: "Rejected",
+    FAILED: "Failed",
+    CANCELLED: "Cancelled",
+    REFUNDED: "Refunded"
 };
 exports.DOCUMENT_STATUSES = {
     PENDING_REVIEW: "Pending Review",

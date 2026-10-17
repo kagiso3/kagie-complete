@@ -5,542 +5,63 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kagie | Login</title>
-  <meta name="theme-color" content="#cf111d" />
+  <script src="js/native-auth-return.js?v=20261014-google-login"></script>
+  <meta name="theme-color" content="#fd0505" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Kagie" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/images/logos/app-icon.png" />
-  <script>
-    (function () {
-      const params = new URLSearchParams(window.location.search || "");
-      const authPayloadPattern = /(access_token|refresh_token|token_hash|type|code)=/i;
-      const hasAuthPayload = authPayloadPattern.test(window.location.search || "") || authPayloadPattern.test(window.location.hash || "");
-      const explicitlyOpeningApp = params.get("app") === "1" || params.get("direct") === "1" || params.get("switch") === "1" || hasAuthPayload;
-      let cameFromAppPage = false;
-      try {
-        const ref = document.referrer ? new URL(document.referrer) : null;
-        cameFromAppPage = Boolean(ref && ref.origin === window.location.origin && !/^\/(?:index\.html)?$/.test(ref.pathname));
-      } catch (error) {
-        cameFromAppPage = false;
-      }
-      if (!explicitlyOpeningApp && !cameFromAppPage) {
-        window.location.replace("./");
-      }
-    })();
-  </script>
-  <script defer src="/js/pwa-init.js?v=20260409a"></script>
-  <script defer src="/js/install-app.js?v=20260409a"></script>
+
+  <script defer src="/js/pwa-init.js?v=20261014-palette-blue"></script>
+  <script defer src="/js/install-app.js?v=20261014-palette-blue"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet">
-  <style>
-    :root {
-      --bg-left: #ebe4e6;
-      --bg-right: #e5e7eb;
-      --card: rgba(248, 248, 249, .84);
-      --text: #090909;
-      --muted: #72809a;
-      --line: #2e2e2e;
-      --red1: #ff4d4d;
-      --red2: #df0000;
-      --shadow: 0 28px 60px rgba(0, 0, 0, .10);
-      --button-shadow: 0 18px 32px rgba(223, 0, 0, .22);
-      --radius: 38px;
-    }
-
-    * {
-      box-sizing: border-box
-    }
-
-    html,
-    body {
-      min-height: 100%
-    }
-
-    body {
-      margin: 0;
-      font-family: "Poppins", sans-serif;
-      background:
-        radial-gradient(circle at left top, rgba(255, 255, 255, .55), transparent 32%),
-        linear-gradient(90deg, var(--bg-left) 0%, var(--bg-right) 100%);
-      color: var(--text);
-    }
-
-    .bg-blur {
-      position: fixed;
-      inset: -10%;
-      pointer-events: none;
-      filter: blur(55px);
-      opacity: .58;
-      z-index: 0;
-    }
-
-    .blob {
-      position: absolute;
-      border-radius: 50%;
-      animation: float 10s ease-in-out infinite;
-    }
-
-    .blob.one {
-      width: 320px;
-      height: 320px;
-      left: 4%;
-      top: 6%;
-      background: rgba(255, 255, 255, .58);
-    }
-
-    .blob.two {
-      width: 260px;
-      height: 260px;
-      right: 6%;
-      bottom: 10%;
-      background: rgba(255, 0, 0, .08);
-      animation-delay: -4s;
-    }
-
-    .blob.three {
-      width: 240px;
-      height: 240px;
-      right: 18%;
-      top: 12%;
-      background: rgba(54, 196, 238, .08);
-      animation-delay: -2s;
-    }
-
-    @keyframes float {
-
-      0%,
-      100% {
-        transform: translateY(0) translateX(0)
-      }
-
-      50% {
-        transform: translateY(-18px) translateX(12px)
-      }
-    }
-
-    .page {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      position: relative;
-      z-index: 2;
-    }
-
-    .auth-card {
-      width: 100%;
-      max-width: 640px;
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 56px 46px 42px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, .65);
-      opacity: 1;
-      transform: none;
-    }
-
-    h1 {
-      margin: 0;
-      text-align: center;
-      font-size: 56px;
-      line-height: 1;
-      font-weight: 900;
-      letter-spacing: -.03em;
-    }
-
-    .sub {
-      margin: 24px 0 36px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 18px;
-      font-weight: 500;
-    }
-
-    .provider-row {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .provider-btn,
-    .mode-btn,
-    .secondary-btn {
-      font-family: inherit;
-      cursor: pointer;
-      transition: .2s ease;
-    }
-
-    .provider-btn {
-      min-height: 62px;
-      border: 2px solid rgba(17, 24, 39, .1);
-      border-radius: 12px;
-      background: rgba(255, 255, 255, .72);
-      color: #111827;
-      font-size: 15px;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 0 14px;
-    }
-
-    .provider-btn:hover,
-    .mode-btn:hover,
-    .secondary-btn:hover {
-      transform: translateY(-1px);
-    }
-
-    .provider-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      display: grid;
-      place-items: center;
-      font-size: 14px;
-      font-weight: 900;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-
-    .provider-google .provider-icon {
-      background: #e5efff;
-      color: #0f5bd8;
-    }
-
-    .provider-apple .provider-icon {
-      background: #111827;
-      color: #fff;
-    }
-
-    .provider-icon img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .mode-switch {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-      margin: 0 0 20px;
-      padding: 7px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, .42);
-      border: 1px solid rgba(17, 24, 39, .08);
-    }
-
-    .mode-btn {
-      min-height: 52px;
-      border: none;
-      border-radius: 12px;
-      background: transparent;
-      color: #6b7280;
-      font-size: 15px;
-      font-weight: 800;
-    }
-
-    .mode-btn.active {
-      background: #fff;
-      color: #111827;
-      box-shadow: 0 8px 20px rgba(15, 23, 42, .08);
-    }
-
-    .field {
-      margin-bottom: 28px
-    }
-
-    .remember-row{
-      display:flex;
-      align-items:flex-start;
-      gap:12px;
-      margin:-4px 0 22px;
-      padding:16px 18px;
-      border-radius:16px;
-      background:rgba(255,255,255,.48);
-      border:1px solid rgba(17,24,39,.08);
-    }
-
-    .remember-row input{
-      width:20px;
-      height:20px;
-      margin-top:2px;
-      accent-color:#d00000;
-      flex:0 0 auto;
-    }
-
-    .remember-copy{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      min-width:0;
-    }
-
-    .remember-title{
-      font-size:15px;
-      font-weight:800;
-      color:#111827;
-    }
-
-    .remember-note{
-      font-size:12px;
-      line-height:1.45;
-      color:#6b7280;
-    }
-
-    .input-wrap {
-      position: relative
-    }
-
-    .input {
-      width: 100%;
-      height: 88px;
-      border: 3px solid var(--line);
-      border-radius: 12px;
-      background: rgba(255, 255, 255, .26);
-      padding: 0 28px;
-      font-size: 19px;
-      font-weight: 700;
-      color: #111827;
-      outline: none;
-      transition: .25s ease;
-      font-family: inherit;
-    }
-
-    .input::placeholder {
-      color: #747784;
-      text-transform: uppercase;
-      letter-spacing: .16em;
-      font-weight: 700;
-    }
-
-    .input:focus {
-      border-color: #d00000;
-      box-shadow: 0 0 0 5px rgba(224, 0, 0, .08);
-      transform: translateY(-1px);
-    }
-
-    .toggle-pass {
-      position: absolute;
-      right: 18px;
-      top: 50%;
-      transform: translateY(-50%);
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      font-weight: 700;
-      color: #6b7280;
-      font-family: inherit;
-      font-size: 15px;
-      padding: 6px 8px;
-    }
-
-    .btn {
-      width: 100%;
-      height: 86px;
-      border: none;
-      border-radius: 12px;
-      background: linear-gradient(180deg, var(--red1), var(--red2));
-      color: #fff;
-      font-size: 28px;
-      font-weight: 800;
-      cursor: pointer;
-      box-shadow: var(--button-shadow);
-      transition: .25s ease;
-      margin: 14px 0 24px;
-      font-family: inherit;
-    }
-
-    .btn:hover {
-      transform: translateY(-2px)
-    }
-
-    .btn:disabled {
-      opacity: .7;
-      cursor: not-allowed;
-      transform: none
-    }
-
-    .secondary-btn {
-      width: 100%;
-      height: 70px;
-      border-radius: 12px;
-      border: 2px solid rgba(17, 24, 39, .12);
-      background: #fff;
-      color: #111827;
-      font-size: 16px;
-      font-weight: 800;
-    }
-
-    .links {
-      text-align: center;
-      display: grid;
-      gap: 10px;
-    }
-
-    .links a {
-      color: #1d2233;
-      font-size: 20px;
-      font-weight: 700;
-      text-decoration: none;
-      transition: .2s ease;
-    }
-
-    .links a:hover {
-      color: #d00000
-    }
-
-    .message {
-      min-height: 24px;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 600;
-      margin-top: 4px;
-    }
-
-    .message.error {
-      color: #b00020
-    }
-
-    .message.success {
-      color: #0f8a43
-    }
-
-    .auth-panel {
-      display: none;
-    }
-
-    .auth-panel.active {
-      display: block;
-    }
-
-    .helper {
-      margin: -6px 0 18px;
-      text-align: center;
-      color: #6b7280;
-      font-size: 13px;
-      line-height: 1.65;
-      font-weight: 600;
-    }
-
-    .hint {
-      margin-top: 14px;
-      text-align: center;
-      color: #6b7280;
-      font-size: 13px;
-    }
-
-    @media (max-width:700px) {
-      .auth-card {
-        max-width: 100%;
-        padding: 42px 24px 30px;
-        border-radius: 30px;
-      }
-
-      h1 {
-        font-size: 44px
-      }
-
-      .sub {
-        font-size: 16px;
-        margin: 18px 0 28px
-      }
-
-      .input {
-        height: 74px;
-        font-size: 17px
-      }
-
-      .btn {
-        height: 74px;
-        font-size: 22px
-      }
-
-      .links a {
-        font-size: 16px
-      }
-
-      .provider-row {
-        grid-template-columns: 1fr
-      }
-
-      .secondary-btn {
-        height: 64px
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/auth-pages.css?v=20261014-google-login">
+  <link rel="stylesheet" href="css/kagie-splash.css?v=20261014-palette-blue">
+  <script defer src="js/kagie-splash.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/login-reference.css?v=20261017-login-reference">
+  <script src="js/auth-experience.js?v=20261014-google-login"></script>
 </head>
 
-<body>
-  <div class="bg-blur" aria-hidden="true">
-    <div class="blob one"></div>
-    <div class="blob two"></div>
-    <div class="blob three"></div>
-  </div>
+<body class="kagie-account-page auth-reference" data-kagie-page="login">
+  <a class="kagie-skip-link" href="#authCard">Skip to account form</a>
+  <div class="auth-page-shell"><header class="auth-site-header"><a class="auth-brand" href="index.html" aria-label="Kagie homepage"><span class="auth-brand-mark" aria-hidden="true">K</span>Kagie</a><span class="auth-header-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 8 10-6 10 6-10 6Z"/><path d="M5 11v7l7 4 7-4v-7M22 8v9"/></svg>Apply once. Go further.</span></header><div class="auth-frame"><aside class="auth-story" aria-labelledby="authStoryTitle"><div><span class="auth-eyebrow">Your next chapter</span><h2 id="authStoryTitle">One application.<br/>More possibilities.</h2><p>Take your next step with Kagie. Find your courses, prepare your documents and reach multiple institutions in one place.</p></div><div class="auth-story-art"><a class="auth-story-row" href="/institutions.html"><span class="auth-story-icon"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="m2 12 14-7 14 7-14 7Z" fill="currentColor"></path><path d="M7 17v7l9 4 9-4v-7l-9 4Z" fill="currentColor"></path><path d="M29 13v10" stroke="currentColor" stroke-width="2"></path><circle cx="29" cy="24" r="2" fill="currentColor"></circle></svg></span><div><strong>Find your path</strong><small>Explore courses and institutions</small></div><span class="auth-story-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 4 7 8-7 8"></path></svg></span></a><a class="auth-story-row" href="/apply.html"><span class="auth-story-icon"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="5" y="2" width="23" height="28" rx="3" fill="currentColor"></rect><path d="M10 8h12v17H10Z M13 12h6m-6 4h6m-6 4h6" stroke="white" stroke-width="1.8"></path><path d="M3 7v22a2 2 0 0 0 2 2" stroke="currentColor" stroke-width="2"></path></svg></span><div><strong>Apply with confidence</strong><small>Keep your details and documents together</small></div><span class="auth-story-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 4 7 8-7 8"></path></svg></span></a><a class="auth-story-row" href="/home.html"><span class="auth-story-icon"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="currentColor"></circle><path d="m9 16 5 5 10-11" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><strong>Stay on track</strong><small>Follow your applications and next steps</small></div><span class="auth-story-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 4 7 8-7 8"></path></svg></span></a></div><div class="auth-story-bottom"><div class="auth-story-foot"><svg viewBox="0 0 24 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7v7c0 6 10 12 10 12s10-6 10-12V7Z"></path><path d="m7 14 4 4 6-8"></path></svg><span>Built for your tertiary journey</span></div><div class="auth-story-dots" aria-hidden="true"><span></span><span></span><span></span></div></div></aside><main class="auth-card" id="authCard" tabindex="-1" aria-labelledby="authTitle"><div class="auth-step-kicker">Your Kagie account</div><h1 id="authTitle">Welcome back</h1><p class="sub">Log in to manage your applications and your next steps.</p><form id="loginForm" class="auth-panel active" novalidate><button class="auth-google-button" id="googleLoginBtn" type="button"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M43.61 20.46H24v8.09h11.3c-.49 2.59-1.97 4.78-4.2 6.25v5.2h6.8c3.99-3.67 6.29-9.08 6.29-15.5 0-1.43-.13-2.8-.38-4.04Z"/><path fill="#34A853" d="M24 44c5.4 0 9.93-1.79 13.24-4.84l-6.8-5.2c-1.87 1.26-4.26 2.01-6.44 2.01-5.2 0-9.61-3.51-11.19-8.25H5.79v5.36C9.09 39.55 16 44 24 44Z"/><path fill="#FBBC05" d="M12.81 27.72a12 12 0 0 1 0-7.44v-5.36H5.79a20 20 0 0 0 0 18.16Z"/><path fill="#EA4335" d="M24 12.03c2.94 0 5.58 1.02 7.66 3.03l5.75-5.75A19.96 19.96 0 0 0 24 4C16 4 9.09 8.45 5.79 14.92l7.02 5.36c1.58-4.74 5.99-8.25 11.19-8.25Z"/></svg><span class="auth-button-label">Continue with Google</span></button><div class="auth-signin-divider"><span>or sign in with email</span></div><div class="field"><label class="auth-field-label" for="email">Email address</label><input class="input" id="email" type="email" placeholder="you@example.com" autocomplete="email" aria-describedby="emailError" required><span class="auth-field-error" id="emailError" hidden></span></div><div class="field"><div class="auth-label-row"><label class="auth-field-label" for="password">Password</label><a class="auth-text-link" href="forgot-password.html" id="forgotPasswordLink">Forgot password?</a></div><div class="input-wrap"><input class="input" id="password" type="password" placeholder="Enter your password" autocomplete="current-password" aria-describedby="passwordError" required><button class="toggle-pass" type="button" id="togglePassword" aria-label="Show password" aria-pressed="false">Show</button></div><span class="auth-field-error" id="passwordError" hidden></span></div><label class="remember-row" for="rememberSession"><input id="rememberSession" type="checkbox"><span class="remember-copy"><span class="remember-title">Keep me logged in</span><span class="remember-note">Use this on your personal device.</span></span></label><div class="message" id="message" role="status" aria-live="polite"></div><button class="btn" id="loginBtn" type="submit"><span class="auth-button-label">Log in</span> <svg class="auth-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></button></form><div class="links"><span>New to Kagie?</span><a href="signup.html" id="signupLink">Create an account</a></div></main></div><footer class="auth-page-footer"><span>Your future. Our priority.</span><nav aria-label="Account information"><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav></footer></div>
 
-  <div class="page">
-    <main class="auth-card" id="authCard">
-      <h1>Login</h1>
-      <p class="sub">Use your Kagie email and password</p>
-
-      <form id="loginForm" class="auth-panel active" novalidate>
-        <div class="field">
-          <div class="input-wrap">
-            <input class="input" id="email" type="email" placeholder="Email" autocomplete="email" required>
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="input-wrap">
-            <input class="input" id="password" type="password" placeholder="Password" autocomplete="current-password"
-              required>
-            <button class="toggle-pass" type="button" id="togglePassword" aria-label="Show password">Show</button>
-          </div>
-        </div>
-
-        <button class="btn" id="loginBtn" type="submit">log in</button>
-      </form>
-
-      <label class="remember-row" for="rememberSession">
-        <input id="rememberSession" type="checkbox">
-        <span class="remember-copy">
-          <span class="remember-title">Stay logged in</span>
-          <span class="remember-note">Only keep me signed in on this device if I choose it.</span>
-        </span>
-      </label>
-
-      <div class="message" id="message" aria-live="polite"></div>
-
-      <div class="links">
-        <a href="signup.html">Create new Account</a>
-        <a href="forgot-password.html">Forgot Password?</a>
-      </div>
-
-      <div class="hint">Email login only</div>
-    </main>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/backend.js?v=20260507g"></script>
-<script src="js/supabase-config.js?v=20260507g"></script>
   <script>
+    if (!window.KagieNativeOAuthReturning) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script><script src="js/backend.js?v=20261015-backend-audit"><\/script><script src="js/supabase-config.js?v=20261014-palette-blue"><\/script>');
+    }
+  </script>
+  <script>
+    if (!window.KagieNativeOAuthReturning) {
     const form = document.getElementById("loginForm");
     const emailInput = document.getElementById("email");
     const passwordInput = document.getElementById("password");
     const message = document.getElementById("message");
     const loginBtn = document.getElementById("loginBtn");
+    const googleLoginBtn = document.getElementById("googleLoginBtn");
     const togglePassword = document.getElementById("togglePassword");
     const rememberSession = document.getElementById("rememberSession");
-    const switchAccount = new URLSearchParams(window.location.search).get("switch") === "1";
+    const loginParams = new URLSearchParams(window.location.search);
+    const switchAccount = loginParams.get("switch") === "1";
+    const signupLink = document.getElementById("signupLink");
+    const accountUI = window.KagieAccountUI;
     let loginInFlight = false;
+    let googleAttemptId = 0;
+    accountUI.bindFieldFeedback(form);
+    const safeLearnerRoute = accountUI.safeNext;
+
+    const nextLearnerRoute = safeLearnerRoute(loginParams.get("next"));
+    const forgotPasswordLink = document.getElementById("forgotPasswordLink");
+    if (forgotPasswordLink && nextLearnerRoute) forgotPasswordLink.href = `forgot-password.html?next=${encodeURIComponent(nextLearnerRoute)}`;
+    if (signupLink && nextLearnerRoute) {
+      signupLink.href = `signup.html?next=${encodeURIComponent(nextLearnerRoute)}`;
+    }
 
     function ensureApiReady() {
       if (window.KagieAPI) return window.KagieAPI;
@@ -551,43 +72,61 @@
     function formatAuthMessage(raw, fallback = "Kagie could not complete that sign-in step right now.") {
       const text = String(raw || "").trim();
       if (!text) return fallback;
+      if (/update.{0,40}Kagie app|updated Kagie app/i.test(text)) return "Update the Kagie app to use Google sign-in, or sign in with your email.";
       if (/supabase admin configuration is missing/i.test(text)) {
-        return "Kagie live admin setup is still being completed on this site. Try again after the latest deploy finishes.";
+        return "Sign-in is temporarily unavailable. Please try again later or contact Kagie support.";
       }
       if (/old Kagie MVP storage|only in this browser|only on this device/i.test(text)) {
         return text;
       }
       if (/supabase authentication is not configured/i.test(text)) {
-        return "Kagie live login is missing Supabase configuration on Vercel. Check the Production environment variables, then redeploy.";
+        return "Sign-in is temporarily unavailable. Please try again later or contact Kagie support.";
       }
       if (/could not reach Supabase Auth|failed to fetch|network/i.test(text)) {
-        return "Kagie cannot reach Supabase Auth from this domain. Use the Vercel URL for now and check the custom domain/DNS.";
+        return "Could not connect to Kagie. Check your internet connection and try again.";
       }
       if (/rejected this site configuration|invalid api key|anon key|jwt/i.test(text)) {
-        return "Supabase rejected this site configuration. Make sure SUPABASE_URL and SUPABASE_ANON_KEY belong to the same Supabase project.";
+        return "Sign-in is temporarily unavailable. Please try again later or contact Kagie support.";
       }
       if (/email.*confirm|email_not_confirmed/i.test(text)) {
-        return "Check your email and confirm your Kagie account before logging in.";
+        return "Please check your email and password, then try again. If you just created an account, check your email for a confirmation link.";
       }
-      if (/invalid login credentials/i.test(text)) {
-        return "Invalid email or password.";
+      if (/invalid login credentials|invalid email or password|incorrect email or password|wrong password/i.test(text)) {
+        return "Please check your email and password, then try again. If you just created an account, check your email for a confirmation link.";
       }
-      return text;
+      return fallback;
     }
 
     function setMessage(text, type = "") {
-      message.textContent = text;
-      message.className = type ? `message ${type}` : "message";
+      accountUI.showMessage(message, text, type);
     }
 
-    function setLoading(isLoading) {
+    let loadingMethod = "password";
+    function setLoading(isLoading, method = loadingMethod) {
+      if (isLoading) loadingMethod = method;
+      const activeButton = method === "google" ? googleLoginBtn : loginBtn;
+      const busyText = method === "google" ? "Opening Google..." : "Logging in...";
       const ux = window.KagieUX;
-      if (ux?.setButtonLoading) {
-        ux.setButtonLoading(loginBtn, isLoading, { busyText: "Logging in..." });
+      if (ux?.setFormLoading) {
+        ux.setFormLoading(form, isLoading, { button: activeButton, busyText });
+      } else if (ux?.setButtonLoading) {
+        ux.setButtonLoading(activeButton, isLoading, { busyText });
+        emailInput.disabled = isLoading;
+        passwordInput.disabled = isLoading;
+        rememberSession.disabled = isLoading;
+        togglePassword.disabled = isLoading;
+        form.setAttribute("aria-busy", isLoading ? "true" : "false");
       } else {
         loginBtn.disabled = isLoading;
-        loginBtn.textContent = isLoading ? "Logging in..." : "log in";
+        accountUI.buttonLabel(activeButton, isLoading ? busyText : method === "google" ? "Continue with Google" : "Log in");
+        emailInput.disabled = isLoading;
+        passwordInput.disabled = isLoading;
+        rememberSession.disabled = isLoading;
+        togglePassword.disabled = isLoading;
+        form.setAttribute("aria-busy", isLoading ? "true" : "false");
       }
+      googleLoginBtn.disabled = isLoading;
+      loginBtn.disabled = isLoading;
     }
 
     function normalizeRole(role) {
@@ -597,7 +136,9 @@
       return "user";
     }
 
-    function redirectByRole(user) {
+    async function redirectByRole(user, splash) {
+      const transition = splash || window.KagieSplash?.show({ label: "Opening Kagie" });
+      await transition?.finish();
       const role = normalizeRole(user?.role);
 
       if (role === "master_admin") {
@@ -610,7 +151,7 @@
         return;
       }
 
-      window.location.href = "home.html";
+      window.location.href = nextLearnerRoute || "home.html";
     }
 
     window.addEventListener("load", async () => {
@@ -631,14 +172,26 @@
         return;
       }
 
+      const callbackError = accountUI.oauthErrorMessage();
+      const isGoogleReturn = loginParams.get("oauth") === "google" || loginParams.has("code");
       try {
         const restored = await api.restoreSession();
-        if (restored) {
-          redirectByRole(restored);
+        if (callbackError) {
+          accountUI.clearOAuthCallbackParams();
+          setMessage(callbackError, "error");
           return;
         }
+        if (isGoogleReturn) accountUI.clearOAuthCallbackParams();
+        if (restored) {
+          await redirectByRole(restored);
+          return;
+        }
+        if (isGoogleReturn) setMessage("Google sign-in did not finish. Try again or sign in with your email.", "error");
       } catch (error) {
-        console.warn("Session restore failed", error);
+        if (isGoogleReturn || callbackError) {
+          accountUI.clearOAuthCallbackParams();
+          setMessage(callbackError || "Google sign-in could not be completed. Try again or sign in with your email.", "error");
+        } else console.warn("Session restore failed.");
       }
     });
 
@@ -646,12 +199,65 @@
       const show = passwordInput.type === "password";
       passwordInput.type = show ? "text" : "password";
       togglePassword.textContent = show ? "Hide" : "Show";
+      togglePassword.setAttribute("aria-label", show ? "Hide password" : "Show password");
+      togglePassword.setAttribute("aria-pressed", String(show));
+    });
+
+
+    googleLoginBtn.addEventListener("click", async () => {
+      if (loginInFlight) return;
+      const api = ensureApiReady();
+      if (!api) return;
+      if (typeof api.signInWithGoogle !== "function") {
+        setMessage("Google sign-in is unavailable right now. Try again or sign in with your email.", "error");
+        return;
+      }
+      const attemptId = ++googleAttemptId;
+      loginInFlight = true;
+      setMessage("");
+      setLoading(true, "google");
+      try {
+        await api.signInWithGoogle({
+          persist: rememberSession.checked,
+          redirectTo: accountUI.googleRedirectUrl(nextLearnerRoute)
+        });
+        if (attemptId !== googleAttemptId) return;
+        setMessage("Opening Google to choose your account...", "success");
+      } catch (error) {
+        if (attemptId !== googleAttemptId) return;
+        loginInFlight = false;
+        setLoading(false);
+        accountUI.buttonLabel(googleLoginBtn, "Continue with Google");
+        setMessage(formatAuthMessage(error.message, "Google sign-in could not start. Try again or sign in with your email."), "error");
+      }
+    });
+
+
+    function recoverNativeGoogle(event, failed) {
+      if (event.detail?.version !== 1 || !loginInFlight || loadingMethod !== "google") return;
+      googleAttemptId += 1;
+      loginInFlight = false;
+      setLoading(false, "google");
+      accountUI.buttonLabel(googleLoginBtn, "Continue with Google");
+      setMessage(failed ? "Kagie could not open your browser. Try again or sign in with your email." : "You can try Google again or sign in with your email.", failed ? "error" : "");
+    }
+    window.addEventListener("kagie:native-oauth-error", event => recoverNativeGoogle(event, true));
+    window.addEventListener("kagie:native-oauth-resume", event => recoverNativeGoogle(event, false));
+
+    // Returning from an external provider through browser history must allow retry.
+    window.addEventListener("pageshow", event => {
+      if (!event.persisted) return;
+      googleAttemptId += 1;
+      loginInFlight = false;
+      setLoading(false);
+      accountUI.buttonLabel(googleLoginBtn, "Continue with Google");
     });
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (loginInFlight) return;
       setMessage("");
+      accountUI.clearErrors(form);
       const api = ensureApiReady();
       if (!api) return;
 
@@ -659,30 +265,51 @@
       const userPassword = passwordInput.value;
 
       if (!userEmail || !userPassword) {
+        const firstMissing = !userEmail ? emailInput : passwordInput;
+        accountUI.fieldError(firstMissing, !userEmail ? "Enter your email address." : "Enter your password.");
         setMessage("Enter your email and password.", "error");
+        firstMissing.focus();
         return;
       }
 
+      if (!emailInput.validity.valid) {
+        accountUI.fieldError(emailInput, "Enter a valid email address.");
+        setMessage("Enter a valid email address.", "error");
+        emailInput.focus();
+        return;
+      }
+
+      googleAttemptId += 1;
       loginInFlight = true;
-      setLoading(true);
+      setLoading(true, "password");
+      const signInSplash = window.KagieSplash?.show({ label: "Signing in to Kagie" });
 
       let slowTimer = 0;
+      let redirecting = false;
       try {
         slowTimer = window.setTimeout(() => {
           setMessage("Still signing you in, please wait...", "success");
         }, 3200);
         const user = await api.login(userEmail, userPassword, { persist: rememberSession.checked });
-        setMessage("Login successful. Redirecting...", "success");
-        setTimeout(() => redirectByRole(user), 500);
+        if (slowTimer) window.clearTimeout(slowTimer);
+        setMessage("You’re logged in. Opening Kagie...", "success");
+        redirecting = true;
+        await redirectByRole(user, signInSplash);
       } catch (err) {
-        console.error(err);
-        setMessage(formatAuthMessage(err.message, "Login failed."), "error");
-        loginInFlight = false;
-        setLoading(false);
+        signInSplash?.cancel();
+        console.warn("Login failed.");
+        const authMessage = formatAuthMessage(err.message, "Login failed.");
+        const migratedPendingConfirmation = /created your live account from this device/i.test(authMessage);
+        setMessage(authMessage, migratedPendingConfirmation ? "success" : "error");
       } finally {
         if (slowTimer) window.clearTimeout(slowTimer);
+        if (!redirecting) {
+          loginInFlight = false;
+          setLoading(false);
+        }
       }
     });
+    }
   </script>
 </body>
 

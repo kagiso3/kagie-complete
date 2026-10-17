@@ -1,10 +1,12 @@
-import type { ApplicationMark, ApplicationPack, InstitutionChoice } from "@kagie/shared";
+import type { ApplicationMark, ApplicationPack, ApplicationType, InstitutionChoice } from "@kagie/shared";
 
 export type RouteKey =
   | "login"
   | "signup"
   | "home"
   | "apply"
+  | "application-packages"
+  | "application-form"
   | "cart"
   | "checkout"
   | "dashboard"
@@ -126,14 +128,26 @@ export interface KagiePayment {
 export interface KagieApplication {
   id: string;
   userId?: string;
+  applicationType?: ApplicationType;
+  applicationTypeLabel?: string;
   status?: string;
   paymentStatus?: string;
+  applicationReference?: string;
+  selectedPackage?: ApplicationPack | Record<string, unknown> | null;
   package?: ApplicationPack | null;
   forms?: {
     learner?: Record<string, unknown>;
     parent?: Record<string, unknown>;
     school?: Record<string, unknown>;
     marks?: { subjects?: ApplicationMark[] };
+    applicationProgress?: {
+      percentage?: number;
+      currentStep?: string;
+      currentStepNumber?: number;
+      totalSteps?: number;
+      missingDocuments?: string[];
+      status?: string;
+    };
     [key: string]: unknown;
   };
   institutions?: InstitutionChoice[];
@@ -239,17 +253,21 @@ export interface TransportOption {
 }
 
 export interface LegacyApi {
+  startYocoCheckoutAsync: (payload: Record<string, unknown>) => Promise<{paymentId:string;redirectUrl:string}>;
+  getYocoPaymentStatusAsync: (paymentId:string) => Promise<Record<string, unknown>>;
   currentUser: () => KagieUser | null;
   restoreSession: () => Promise<KagieUser | null>;
   requireRole: (role: string | string[]) => KagieUser;
-  login: (email: string, password: string) => Promise<KagieUser>;
+  login: (email: string, password: string, options?: { persist?: boolean }) => Promise<KagieUser>;
+  shouldRememberLogin?: () => boolean;
   registerUser: (payload: Record<string, unknown>) => Promise<KagieUser>;
   logout: () => Promise<void>;
-  signInWithGoogle?: () => Promise<unknown>;
+  signInWithGoogle?: (options?: { persist?: boolean; redirectTo?: string }) => Promise<unknown>;
   signInWithApple?: () => Promise<unknown>;
   requestPasswordReset?: (email: string) => Promise<unknown>;
   getSettings?: () => KagieSettings;
   getPackCatalog: () => ApplicationPack[];
+  getPackCatalogAsync?: (force?: boolean) => Promise<ApplicationPack[]>;
   getInstitutionYears: () => string[];
   getInstitutionCatalog: (filters?: Record<string, unknown>) => KagieInstitution[];
   getSubjectCatalog: (board?: string) => string[];
@@ -269,6 +287,8 @@ export interface LegacyApi {
   saveProfileAsync?: (userId: string, patch: Record<string, unknown>) => Promise<KagieProfile>;
   ensureDraft: (userId?: string) => KagieApplication;
   ensureDraftAsync?: (userId?: string) => Promise<KagieApplication>;
+  ensureApplicationDraft?: (applicationType: ApplicationType, userId?: string) => KagieApplication;
+  ensureApplicationDraftAsync?: (applicationType: ApplicationType, userId?: string) => Promise<KagieApplication>;
   updateApplication?: (appId: string, patch: Record<string, unknown>) => KagieApplication;
   updateApplicationAsync?: (appId: string, patch: Record<string, unknown>) => Promise<KagieApplication>;
   saveFormSection: (sectionName: string, data: Record<string, unknown>, appId?: string) => KagieApplication;
@@ -281,6 +301,7 @@ export interface LegacyApi {
   getCartAsync?: (userId?: string) => Promise<KagieCartItem[]>;
   addCartItem: (item: Record<string, unknown>, userId?: string) => KagieCartItem;
   addCartItemAsync?: (item: Record<string, unknown>, userId?: string) => Promise<KagieCartItem>;
+  replaceApplicationPackCartItemAsync?: (item: Record<string, unknown>, userId?: string) => Promise<KagieCartItem>;
   removeCartItem: (itemId: string, userId?: string) => KagieCartItem[];
   removeCartItemAsync?: (itemId: string, userId?: string) => Promise<KagieCartItem[]>;
   clearCart: (userId?: string) => boolean;
@@ -290,8 +311,8 @@ export interface LegacyApi {
   submitPayment?: (payment: Record<string, unknown>) => KagieApplication;
   submitApplicationFromCart?: (payment: Record<string, unknown>) => KagieApplication;
   submitApplicationFromCartAsync?: (payment: Record<string, unknown>) => Promise<KagieApplication>;
-  saveDocuments?: (filesMeta: Record<string, unknown>, userId?: string) => unknown;
-  saveDocumentsAsync?: (filesMeta: Record<string, unknown>, userId?: string) => Promise<unknown>;
+  saveDocuments?: (filesMeta: Record<string, unknown> | Array<Record<string, unknown>>, userId?: string) => unknown;
+  saveDocumentsAsync?: (filesMeta: Record<string, unknown> | Array<Record<string, unknown>>, userId?: string) => Promise<unknown>;
   getDashboardSummary: (userId?: string) => KagieDashboardSummary;
   getDashboardSummaryAsync?: (userId?: string) => Promise<KagieDashboardSummary>;
   getAccommodationListings?: () => AccommodationListing[];

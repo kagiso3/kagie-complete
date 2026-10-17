@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Dashboard</title>
+  <meta name="theme-color" content="#fd0505" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Kagie" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/images/logos/app-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+  <link rel="stylesheet" href="css/learner-dashboard.css?v=20261014-palette-blue" />
+  <link rel="stylesheet" href="css/bottom-nav.css?v=20261014-palette-blue" />
+  <script defer src="/js/pwa-init.js?v=20261014-palette-blue"></script>
+  <script defer src="/js/install-app.js?v=20261014-palette-blue"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="js/ui.js?v=20261014-palette-blue"></script>
+  <script defer src="js/backend.js?v=20261015-backend-audit"></script>
+  <script defer src="js/supabase-config.js?v=20261014-palette-blue"></script>
+  <script defer src="js/dashboard-page.js?v=20261014-palette-blue"></script>
+  <script defer src="js/bottom-nav.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/student-workspace.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
+</head>
+<body class="kagie-student-workspace" data-kagie-page="Dashboard">
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="topbar-back" href="home.html" aria-label="Back to home">
+        <span class="material-icons-outlined" aria-hidden="true">chevron_left</span>
+      </a>
+      <div class="topbar-title"><span class="kagie-eyebrow">Kagie · Student workspace</span>Dashboard</div>
+      <a class="topbar-icon" href="notifications.html" aria-label="Notifications">
+        <span class="material-icons-outlined" aria-hidden="true">notifications</span>
+      </a>
+    </header>
+
+    <main class="scroll-content">
+      <section class="section-card" aria-labelledby="overviewTitle">
+        <div class="section-title" id="overviewTitle">Application Overview</div>
+        <div class="stat-grid">
+          <div class="stat-item">
+            <div class="stat-icon red-soft">
+              <span class="material-icons-outlined" aria-hidden="true">assignment</span>
+            </div>
+            <div class="stat-num" id="applicationsStat">0</div>
+            <div class="stat-lbl">Applications</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon blue-soft">
+              <span class="material-icons-outlined" aria-hidden="true">schedule</span>
+            </div>
+            <div class="stat-num" id="inProgressStat">0</div>
+            <div class="stat-lbl">In Progress</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon green-soft">
+              <span class="material-icons-outlined" aria-hidden="true">workspace_premium</span>
+            </div>
+            <div class="stat-num" id="offersStat">0</div>
+            <div class="stat-lbl">Offers</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon orange-soft">
+              <span class="material-icons-outlined" aria-hidden="true">warning</span>
+            </div>
+            <div class="stat-num" id="requiredActionStat">0</div>
+            <div class="stat-lbl">Required Action</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-card" id="applicationsSection" aria-labelledby="applicationsTitle">
+        <div class="section-row-title">
+          <div class="section-title" id="applicationsTitle">Your Applications</div>
+          <a class="section-link" href="forms.html">Manage</a>
+        </div>
+        <div id="appList">
+          <div class="empty-card">Loading applications...</div>
+        </div>
+      </section>
+
+      <section class="section-card" aria-labelledby="statusTitle">
+        <div class="section-title" id="statusTitle">Application Status</div>
+        <div class="steps-row" id="statusSteps">
+          <div class="empty-card">Loading application status...</div>
+        </div>
+      </section>
+
+      <section class="section-card" aria-labelledby="updatesTitle">
+        <div class="section-row-title">
+          <div class="section-title" id="updatesTitle">Kagie Updates</div>
+          <a class="section-link" href="updates.html">View all</a>
+        </div>
+        <div class="compact-list" id="applicationUpdatesList">
+          <div class="empty-card">Loading Kagie updates...</div>
+        </div>
+      </section>
+
+      <section class="section-card" aria-labelledby="documentsTitle">
+        <div class="section-title" id="documentsTitle">Documents</div>
+        <div class="docs-row">
+          <div class="doc-stat">
+            <div class="doc-stat-num" id="requiredDocsStat">2</div>
+            <div class="doc-stat-lbl">Required</div>
+          </div>
+          <div class="doc-stat">
+            <div class="doc-stat-num" id="uploadedDocsStat">0</div>
+            <div class="doc-stat-lbl">Uploaded</div>
+          </div>
+          <div class="doc-stat">
+            <div class="doc-stat-num" id="verifiedDocsStat">0</div>
+            <div class="doc-stat-lbl">Verified</div>
+          </div>
+          <div class="doc-stat">
+            <div class="doc-stat-num red" id="missingDocsStat">0</div>
+            <div class="doc-stat-lbl danger">Missing</div>
+          </div>
+        </div>
+        <a class="btn-red" href="upload.html">Manage Documents</a>
+      </section>
+
+      <section class="next-card" aria-labelledby="nextStepTitle">
+        <div>
+          <div class="next-label" id="nextStepTitle">Next step</div>
+          <p id="nextStepCopy">Loading your next Kagie action...</p>
+        </div>
+        <a id="nextStepLink" class="next-link" href="forms.html">Open</a>
+      </section>
+
+      <section class="section-card" aria-labelledby="portalTitle">
+        <div class="section-row-title">
+          <div class="section-title" id="portalTitle">Portal Access</div>
+          <a class="section-link" href="forms.html">Details</a>
+        </div>
+        <div class="compact-list" id="portalAccessList">
+          <div class="empty-card">Loading portal access...</div>
+        </div>
+      </section>
+
+      <section class="section-card" aria-label="Payments"><a class="section-link" href="payment-history.html">Payment history and receipts</a></section>
+      <section class="section-card" aria-labelledby="supportTitle">
+        <div class="section-row-title">
+          <div class="section-title" id="supportTitle">Support</div>
+          <a class="section-link" href="personal-assistance.html">Chat</a>
+        </div>
+        <div class="compact-list" id="supportList">
+          <div class="empty-card">Loading support messages...</div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

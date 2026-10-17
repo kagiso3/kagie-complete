@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Button, Card, Field, Notice, SectionTitle, ScreenScroll } from "../components/ui";
+import { Button, Card, Field, HeroPanel, Notice, SectionTitle, ScreenScroll } from "../components/ui";
 import { useKagieData } from "../data/KagieDataProvider";
 import { colors } from "../theme";
 
@@ -42,10 +42,11 @@ export function InboxScreen() {
 
   return (
     <ScreenScroll>
-      <View style={styles.hero}>
-        <Text style={styles.heroTitle}>Inbox and assistance</Text>
-        <Text style={styles.heroText}>Read Kagie alerts, message the support team, and request a callback from one place.</Text>
-      </View>
+      <HeroPanel
+        eyebrow="Personal assistance"
+        title="Inbox and support"
+        copy="Read Kagie notices, message the team, and ask for a callback when the next step feels unclear."
+      />
 
       {notice ? <Notice tone={notice.tone} message={notice.text} /> : null}
 
@@ -59,9 +60,14 @@ export function InboxScreen() {
                 <Text style={styles.notificationText}>{item.message}</Text>
               </View>
               {!item.read ? (
-                <Button label={syncing ? "Saving..." : "Mark read"} disabled={syncing} onPress={() => {
-                  markNotificationRead(item.id).catch((error) => setNotice({ tone: "error", text: error instanceof Error ? error.message : "Could not mark this notification as read." }));
-                }} tone="ghost" />
+                <Button
+                  label="Mark read"
+                  loadingLabel="Saving..."
+                  loading={syncing}
+                  disabled={syncing}
+                  onPress={() => markNotificationRead(item.id).catch((error) => setNotice({ tone: "error", text: error instanceof Error ? error.message : "Could not mark this notification as read." }))}
+                  tone="ghost"
+                />
               ) : null}
             </View>
           ))
@@ -78,41 +84,26 @@ export function InboxScreen() {
             <Text style={styles.messageText}>{item.message}</Text>
           </View>
         ))}
-        <Field label="Message" value={message} onChangeText={setMessage} multiline />
-        <Button label={syncing ? "Sending..." : "Send support message"} onPress={handleSend} disabled={syncing} />
+        <Field label="Message" value={message} onChangeText={setMessage} multiline editable={!syncing} />
+        <Button label="Send support message" loadingLabel="Sending..." onPress={handleSend} loading={syncing} disabled={syncing} />
       </Card>
 
       <Card>
         <SectionTitle title="Request a callback" hint="Kagie can call you back to guide you through your next step." />
-        <Field label="Phone number" value={callback.phone} onChangeText={(value) => setCallback((current) => ({ ...current, phone: value }))} keyboardType="phone-pad" />
-        <Field label="Preferred time" value={callback.preferredTime} onChangeText={(value) => setCallback((current) => ({ ...current, preferredTime: value }))} placeholder="After 3pm or Weekend morning" />
-        <Field label="What should Kagie prepare?" value={callback.note} onChangeText={(value) => setCallback((current) => ({ ...current, note: value }))} multiline />
-        <Button label={syncing ? "Sending..." : "Request callback"} onPress={handleCallback} tone="secondary" disabled={syncing} />
+        <Field label="Phone number" value={callback.phone} onChangeText={(value) => setCallback((current) => ({ ...current, phone: value }))} keyboardType="phone-pad" editable={!syncing} />
+        <Field label="Preferred time" value={callback.preferredTime} onChangeText={(value) => setCallback((current) => ({ ...current, preferredTime: value }))} placeholder="After 3pm or Weekend morning" editable={!syncing} />
+        <Field label="What should Kagie prepare?" value={callback.note} onChangeText={(value) => setCallback((current) => ({ ...current, note: value }))} multiline editable={!syncing} />
+        <Button label="Request callback" loadingLabel="Sending..." onPress={handleCallback} tone="secondary" loading={syncing} disabled={syncing} />
       </Card>
     </ScreenScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    backgroundColor: "#102a56",
-    borderRadius: 28,
-    padding: 22,
-    gap: 8
-  },
-  heroTitle: {
-    color: "#ffffff",
-    fontSize: 26,
-    fontWeight: "900"
-  },
-  heroText: {
-    color: "rgba(255,255,255,0.88)",
-    lineHeight: 20
-  },
   notificationRow: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 10
   },
@@ -131,15 +122,15 @@ const styles = StyleSheet.create({
     lineHeight: 19
   },
   messageBubble: {
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 4
   },
   messageUser: {
-    backgroundColor: "#e7f3ff"
+    backgroundColor: "#e7f4fe"
   },
   messageAssistant: {
-    backgroundColor: "#fff3dc"
+    backgroundColor: "#fff4db"
   },
   messageRole: {
     fontSize: 12,

@@ -13,7 +13,7 @@
       accountType: "Savings",
       branchCode: "470010",
       referencePrefix: "KAG",
-      verificationMessage: "Payments are confirmed automatically by Yoco after checkout.",
+      verificationMessage: "After you transfer, Kagie verifies your payment manually. Use your Kagie reference and upload proof of payment.",
       yocoEnabled: true,
       yocoPaymentLink: "",
       yocoProviderLabel: "Yoco secure checkout",

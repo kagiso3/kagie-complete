@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Kagie • Launch</title>
+
+<style>
+*{box-sizing:border-box}[hidden]{display:none!important}html,body{height:100%}body{margin:0;background:#fff;font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;overflow:hidden}.wrap{height:100%;display:grid;place-items:center;padding:24px}.splash{display:grid;place-items:center;gap:24px;max-width:100%}.center{display:grid;justify-items:center;gap:24px}.logoRow{display:flex;align-items:center;max-width:100%}.wordmark{position:relative;display:block;width:207px;height:82px;overflow:hidden;background:#fff}.wordmark img{position:absolute;width:500px;height:500px;max-width:none;left:-125px;top:-199px}.wordmark::after{content:'';position:absolute;right:0;top:0;width:32px;height:25px;background:#fff}.wordmark::before{content:'';position:absolute;z-index:1;right:0;top:66px;width:32px;height:16px;background:#fff}.mark{width:82px;height:82px;margin-left:-24px;margin-top:-6px;transform-origin:center;animation:kagie-arrow-spin 1.2s linear infinite}.mark img{display:block;width:100%;height:100%}.sub{color:#72809a;font-size:13px;line-height:1.5;text-align:center}.fadeOut{animation:kagie-out .3s ease forwards}@keyframes kagie-arrow-spin{to{transform:rotate(360deg)}}@keyframes kagie-out{to{opacity:0}}@media(max-width:340px){.logoRow{transform:scale(.9)}}@media(prefers-reduced-motion:reduce){.mark,.fadeOut{animation:none}}
+</style>
+</head>
+
+<body>
+<div class="wrap"><div class="splash" id="splash"><div class="center">
+  <div class="logoRow" aria-label="Kagie loading"><span class="wordmark" aria-hidden="true"><img src="images/logos/app-logo.jpg" alt=""></span><span class="mark" aria-hidden="true"><img src="images/logos/kagie-loading-arrow.svg" alt=""></span></div>
+  <div class="sub" role="status">Loading Kagie</div>
+  <a id="continueLink" href="index.html" hidden style="color:#fd0505;font-size:14px;text-decoration:none">Continue to Kagie</a>
+</div></div></div>
+
+<script>
+  (function () {
+    'use strict';
+    const params = new URLSearchParams(location.search);
+    const embedded = params.get('embedded') === '1' && window.parent !== window;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const splash = document.getElementById('splash');
+    const label = params.get('label');
+    if (label) document.querySelector('.sub').firstChild.textContent = label.slice(0, 80) + ' ';
+    let finished = false;
+    function finish() {
+      if (finished) return;
+      finished = true;
+      splash.classList.add('fadeOut');
+      setTimeout(() => {
+        if (embedded) {
+          window.parent.postMessage({ type: 'kagie:splash:complete' }, location.origin);
+          // A launch iframe can dismiss itself if the host script did not load.
+          if (params.get('auto') === '1') {
+            const host = window.frameElement?.closest('[data-kagie-splash-launch]');
+            if (host && host.dataset.kagieSplashManaged !== 'true') host.remove();
+          }
+        } else {
+          document.getElementById('continueLink').hidden = false;
+          splash.classList.remove('fadeOut');
+        }
+      }, reducedMotion ? 0 : 300);
+    }
+    window.addEventListener('message', event => {
+      if (embedded && event.source === window.parent && event.origin === location.origin && event.data?.type === 'kagie:splash:finish') finish();
+    });
+    setTimeout(() => {
+      if (embedded) window.parent.postMessage({ type: 'kagie:splash:ready' }, location.origin);
+      if (params.get('auto') === '1' || !embedded) finish();
+    }, reducedMotion ? 120 : 2400);
+  })();
+</script>
+</body>
+</html>

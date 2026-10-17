@@ -50,10 +50,10 @@ router.get("/me", authenticateSupabase, async (req: SupabaseAuthenticatedRequest
   if (!user) {
     return res.status(404).json({ message: "Kagie session user not found." });
   }
-  return ok(res, user);
+  return ok(res, { ...user, role: req.supabaseAuth!.role });
 });
 
-router.post("/admin/master-admin/bootstrap", async (req, res) => {
+router.post("/admin/master-admin/bootstrap", requireSupabaseMasterAdmin(), async (req, res) => {
   const input = registerSchema.parse(req.body);
   return ok(res, await bootstrapMasterAdmin(input), 201);
 });

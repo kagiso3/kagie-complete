@@ -18,8 +18,9 @@ export function authenticate(req: AuthenticatedRequest, res: Response, next: Nex
     return res.status(401).json({ message: "Missing access token." });
   }
 
+  if (!env.jwtAccessSecret) return res.status(503).json({ message: "Authentication is unavailable." });
   try {
-    const payload = jwt.verify(token, env.jwtAccessSecret) as AuthTokenPayload;
+    const payload = jwt.verify(token, env.jwtAccessSecret, { algorithms: ["HS256"] }) as AuthTokenPayload;
     if (payload.type !== "access") {
       return res.status(401).json({ message: "Invalid token type." });
     }

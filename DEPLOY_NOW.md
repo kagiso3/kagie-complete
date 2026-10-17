@@ -23,7 +23,7 @@ In Vercel:
 
 1. Create a new project
 2. Import the Kagie repository
-3. Use build command `npm run build`
+3. Use build command `npm run vercel-build`
 4. Use output directory `web-release`
 
 ## 3. Add Vercel environment variables
@@ -47,7 +47,15 @@ In Vercel Project Settings -> Environment Variables, add:
 
 Do not place the service role key in frontend files.
 
-## 4. Deploy and test
+## 4. Register the Yoco webhook
+
+After the Vercel production domain is live, register this endpoint in Yoco:
+
+- `https://YOUR-VERCEL-DOMAIN/v1/payments/yoco/webhook`
+
+Save the webhook secret returned by Yoco as `YOCO_WEBHOOK_SECRET` in Vercel. This is separate from `YOCO_SECRET_KEY`.
+
+## 5. Deploy and test
 
 After saving the environment variables, trigger a production deployment and test:
 

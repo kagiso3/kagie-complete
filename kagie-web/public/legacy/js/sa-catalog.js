@@ -142242,6 +142242,141 @@
     return JSON.parse(JSON.stringify(value));
   }
 
+  function buildFaculty(name, courses) {
+    return {
+      name: String(name || "").trim(),
+      courses: Array.isArray(courses) ? courses.map((course) => String(course || "").trim()).filter(Boolean) : []
+    };
+  }
+
+  const institutionStudyProfilesById = {
+    wits: {
+      faculties: [
+        buildFaculty("Commerce, Law and Management", ["Accounting", "Actuarial Science", "Economics", "Corporate Law"]),
+        buildFaculty("Engineering and the Built Environment", ["Civil Engineering", "Electrical Engineering", "Architecture", "Construction Management"]),
+        buildFaculty("Health Sciences", ["Medicine", "Physiotherapy", "Occupational Therapy", "Nursing"]),
+        buildFaculty("Humanities", ["Psychology", "Political Studies", "Media Studies", "International Relations"]),
+        buildFaculty("Science", ["Computer Science", "Mathematics", "Biochemistry", "Geographical Science"])
+      ]
+    },
+    ru: {
+      faculties: [
+        buildFaculty("Humanities", ["Journalism and Media Studies", "Psychology", "English", "History"]),
+        buildFaculty("Commerce", ["Accounting", "Economics", "Management", "Information Systems"]),
+        buildFaculty("Education", ["BEd Foundation Phase", "BEd Senior Phase", "Educational Leadership"]),
+        buildFaculty("Law", ["LLB", "Private Law", "Public Law", "Human Rights"]),
+        buildFaculty("Science", ["Computer Science", "Biochemistry", "Mathematics", "Environmental Science"])
+      ]
+    },
+    smu: {
+      faculties: [
+        buildFaculty("Medicine", ["MBChB", "Radiography", "Emergency Medical Care", "Clinical Associate"]),
+        buildFaculty("Oral Health Sciences", ["Dentistry", "Oral Hygiene", "Dental Therapy", "Dental Assisting"]),
+        buildFaculty("Health Care Sciences", ["Nursing", "Physiotherapy", "Dietetics", "Occupational Therapy"]),
+        buildFaculty("Pharmacy and Biomedical Sciences", ["Pharmacy", "Biomedical Sciences", "Pharmacology", "Public Health"])
+      ]
+    },
+    spu: {
+      faculties: [
+        buildFaculty("Economic and Management Sciences", ["Accounting", "Economics", "Business Management", "Public Administration"]),
+        buildFaculty("Education", ["BEd Foundation Phase", "BEd Intermediate Phase", "Educational Studies", "Mathematics Education"]),
+        buildFaculty("Humanities", ["English", "Xitsonga", "Heritage Studies", "Psychology"]),
+        buildFaculty("Natural and Applied Sciences", ["Computer Science", "Data Science", "Mathematics", "Agricultural Science"])
+      ]
+    },
+    ufh: {
+      faculties: [
+        buildFaculty("Education", ["BEd Foundation Phase", "BEd Senior Phase", "Educational Management", "Mathematics Education"]),
+        buildFaculty("Science and Agriculture", ["Agriculture", "Computer Science", "Biochemistry", "Environmental Science"]),
+        buildFaculty("Management and Commerce", ["Accounting", "Economics", "Public Administration", "Marketing"]),
+        buildFaculty("Social Sciences and Humanities", ["Psychology", "Sociology", "History", "Political Studies"])
+      ]
+    },
+    ul: {
+      faculties: [
+        buildFaculty("Health Sciences", ["Medicine", "Nursing", "Dietetics", "Physiotherapy"]),
+        buildFaculty("Humanities", ["Psychology", "Media Studies", "Criminology", "History"]),
+        buildFaculty("Science and Agriculture", ["Computer Science", "Biology", "Agriculture", "Mathematics"]),
+        buildFaculty("Management and Law", ["Accounting", "Economics", "LLB", "Public Administration"])
+      ]
+    },
+    ump: {
+      faculties: [
+        buildFaculty("Agriculture and Natural Sciences", ["Agriculture", "Biodiversity", "Geography", "Mathematics"]),
+        buildFaculty("Education", ["BEd Foundation Phase", "BEd Senior Phase", "Mathematics Education", "Science Education"]),
+        buildFaculty("Economics, Development and Business Sciences", ["Accounting", "Economics", "Supply Chain Management", "Hospitality Management"]),
+        buildFaculty("Computing and Information Systems", ["ICT", "Computer Science", "Information Systems", "Data Analytics"])
+      ]
+    },
+    univen: {
+      faculties: [
+        buildFaculty("Management, Commerce and Law", ["Accounting", "Economics", "Business Management", "LLB"]),
+        buildFaculty("Humanities, Social Sciences and Education", ["Psychology", "Sociology", "BEd Foundation Phase", "Social Work"]),
+        buildFaculty("Science, Engineering and Agriculture", ["Computer Science", "Agriculture", "Environmental Science", "Biochemistry"]),
+        buildFaculty("Health Sciences", ["Nursing", "Public Health", "Nutrition", "Physiotherapy"])
+      ]
+    },
+    vut: {
+      faculties: [
+        buildFaculty("Applied and Computer Sciences", ["Information Technology", "Analytical Chemistry", "Mathematics", "Physics"]),
+        buildFaculty("Engineering and Technology", ["Electrical Engineering", "Mechanical Engineering", "Chemical Engineering", "Civil Engineering"]),
+        buildFaculty("Human Sciences", ["Communication", "Safety Management", "Tourism Management", "Graphic Design"]),
+        buildFaculty("Management Sciences", ["Accounting", "Human Resource Management", "Marketing", "Public Relations"])
+      ]
+    }
+  };
+
+  function buildGenericTvetStudyProfile(institution) {
+    const lowerName = String(institution?.name || "").toLowerCase();
+    const hasTourismLean = /coastal|false bay|south cape|west coast|cape town|port elizabeth|college of cape town/.test(lowerName);
+    const hasArtisanLean = /majuba|nkangala|orbit|tshwane|ekurhuleni|sedibeng|central johannesburg/.test(lowerName);
+    const serviceCourses = hasTourismLean
+      ? ["Hospitality and Catering", "Tourism", "Travel and Tourism", "Office Administration"]
+      : hasArtisanLean
+        ? ["Boilermaking", "Fitting and Turning", "Welding", "Motor Mechanics"]
+        : ["Hospitality and Catering", "Public Management N4", "Office Administration", "Generic Management"];
+
+    return {
+      faculties: [
+        buildFaculty("Business Studies", ["Financial Management N4", "Business Management N4", "Management Assistant N4", "Human Resource Management N4"]),
+        buildFaculty("Engineering Studies", ["Electrical Engineering N4", "Mechanical Engineering N4", "Civil Engineering N4", "Chemical Engineering N4"]),
+        buildFaculty("ICT and Office Administration", ["Information Technology and Computer Science", "End User Computing", "Systems Development", "Office Administration"]),
+        buildFaculty("Utility and Services", serviceCourses)
+      ]
+    };
+  }
+
+  function buildGenericUniversityOfTechnologyProfile() {
+    return {
+      faculties: [
+        buildFaculty("Engineering and the Built Environment", ["Civil Engineering", "Electrical Engineering", "Mechanical Engineering", "Architecture"]),
+        buildFaculty("Applied and Computer Sciences", ["Information Technology", "Computer Science", "Analytical Chemistry", "Mathematics"]),
+        buildFaculty("Management Sciences", ["Accounting", "Marketing", "Human Resource Management", "Public Management"]),
+        buildFaculty("Human Sciences", ["Journalism", "Tourism Management", "Public Relations", "Design Studies"])
+      ]
+    };
+  }
+
+  function buildGenericUniversityStudyProfile() {
+    return {
+      faculties: [
+        buildFaculty("Commerce and Management", ["Accounting", "Economics", "Business Management", "Human Resource Management"]),
+        buildFaculty("Humanities and Education", ["Psychology", "English", "History", "BEd Foundation Phase"]),
+        buildFaculty("Science and Technology", ["Computer Science", "Mathematics", "Biochemistry", "Environmental Science"]),
+        buildFaculty("Law and Public Administration", ["LLB", "Public Administration", "Political Studies", "Criminology"])
+      ]
+    };
+  }
+
+  function resolveInstitutionStudyProfile(institution) {
+    const exact = institutionStudyProfilesById[institution?.id];
+    if (exact) return clone(exact);
+    if (String(institution?.type || "").trim() === "TVET") return buildGenericTvetStudyProfile(institution);
+    if (String(institution?.type || "").trim() === "University of Technology") return buildGenericUniversityOfTechnologyProfile(institution);
+    if (String(institution?.type || "").trim() === "University") return buildGenericUniversityStudyProfile(institution);
+    return null;
+  }
+
   function buildGroupedInstitutions(records) {
     return (records || []).reduce((acc, institution) => {
       acc[institution.province] = acc[institution.province] || {};
@@ -142254,17 +142389,84 @@
     }, {});
   }
 
+  function institutionDedupeKey(record) {
+    const name = String(record?.name || record?.institution || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .replace(/[.,'"]/g, "")
+      .toLowerCase();
+    return name || "";
+  }
+
+  function mergeInstitutionFaculties(primary, duplicate) {
+    const byName = new Map();
+    [primary, duplicate].forEach((record) => {
+      (Array.isArray(record?.faculties) ? record.faculties : []).forEach((faculty) => {
+        const name = String(faculty?.name || "").trim();
+        if (!name) return;
+        const key = name.toLowerCase();
+        const existing = byName.get(key) || { ...faculty, courses: [] };
+        const courses = [...new Set([...(existing.courses || []), ...(faculty.courses || [])].map((course) => String(course || "").trim()).filter(Boolean))];
+        byName.set(key, {
+          ...existing,
+          ...faculty,
+          name,
+          courses,
+          courseCount: Math.max(Number(existing.courseCount || 0), Number(faculty.courseCount || 0), courses.length)
+        });
+      });
+    });
+    return Array.from(byName.values());
+  }
+
+  function dedupeInstitutionRecords(records) {
+    const byKey = new Map();
+    (records || []).forEach((record) => {
+      const key = institutionDedupeKey(record);
+      if (!key) return;
+      const current = byKey.get(key);
+      if (!current) {
+        byKey.set(key, record);
+        return;
+      }
+      const preferred = (record.status === "open" && current.status !== "open") || (record.faculties || []).length > (current.faculties || []).length
+        ? record
+        : current;
+      const secondary = preferred === record ? current : record;
+      const faculties = mergeInstitutionFaculties(preferred, secondary);
+      byKey.set(key, {
+        ...secondary,
+        ...preferred,
+        faculties,
+        facultyCount: faculties.length,
+        courseCount: faculties.reduce((sum, faculty) => sum + Number(faculty.courseCount || (faculty.courses || []).length || 0), 0)
+      });
+    });
+    return Array.from(byKey.values());
+  }
+
   const existing = window.KagieData || {};
   const existingInstitutions = Array.isArray(existing.institutions) ? existing.institutions : [];
+  const detailedById = new Map(existingInstitutions.filter((institution) => institution?.id).map((institution) => [institution.id, institution]));
   const detailedByName = new Map(existingInstitutions.map((institution) => [institution.name, institution]));
 
-  const institutions = catalog.institutions.map((institution) => {
-    const detailed = detailedByName.get(institution.name) || null;
-    const year = String(detailed?.year || institution.year || new Date().getFullYear());
-    const closingDate = String(detailed?.closingDate || detailed?.closing_date || detailed?.applicationDeadline || institution.applicationDeadline || "").trim();
-    const openingDate = String(detailed?.openingDate || detailed?.opening_date || institution.openingDate || institution.opening_date || `${year}-01-15`).trim();
-    const isActive = detailed?.isActive !== false && detailed?.is_active !== false;
-    const manualStatus = String(detailed?.manualStatus || detailed?.manual_status || institution.manualStatus || "").trim().toLowerCase();
+  const institutions = dedupeInstitutionRecords(catalog.institutions.map((institution) => {
+    const detailed = detailedById.get(institution.id) || detailedByName.get(institution.name) || null;
+    const studyProfile = resolveInstitutionStudyProfile(institution);
+    const merged = {
+      ...(studyProfile || {}),
+      ...(detailed || {})
+    };
+    const faculties = Array.isArray(detailed?.faculties) && detailed.faculties.length
+      ? clone(detailed.faculties)
+      : Array.isArray(studyProfile?.faculties) && studyProfile.faculties.length
+        ? clone(studyProfile.faculties)
+        : [];
+    const year = String(merged.year || institution.year || new Date().getFullYear());
+    const closingDate = String(merged.closingDate || merged.closing_date || merged.applicationDeadline || institution.applicationDeadline || "").trim();
+    const openingDate = String(merged.openingDate || merged.opening_date || institution.openingDate || institution.opening_date || `${year}-01-15`).trim();
+    const isActive = merged.isActive !== false && merged.is_active !== false;
+    const manualStatus = String(merged.manualStatus || merged.manual_status || institution.manualStatus || "").trim().toLowerCase();
     const today = new Date().toISOString().slice(0, 10);
     const normalizedManualStatus = manualStatus === "closing soon" ? "closing_soon" : manualStatus;
     let derivedStatus = normalizedManualStatus;
@@ -142295,13 +142497,14 @@
       is_active: isActive,
       manualStatus: normalizedManualStatus,
       ...institution,
+      ...(studyProfile || {}),
       ...(detailed || {}),
-      faculties: Array.isArray(detailed?.faculties) ? clone(detailed.faculties) : [],
-      courseEntryMode: Array.isArray(detailed?.faculties) && detailed.faculties.length ? "guided" : "manual",
+      faculties,
+      courseEntryMode: faculties.length ? "guided" : "manual",
       applicationDeadline: closingDate || institution.applicationDeadline || "",
       status: derivedStatus
     };
-  });
+  }));
 
   const prospectus = institutions.map((institution) => ({
     id: institution.id,

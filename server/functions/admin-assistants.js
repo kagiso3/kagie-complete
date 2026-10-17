@@ -1,3 +1,4 @@
+const { getBearerToken, assertActiveActor, actorRole } = require("./_admin-auth");
 const REST_PAGE_SIZE = 1000;
 const REST_MAX_PAGES = 20;
 
@@ -8,7 +9,8 @@ function json(statusCode, payload, origin = "*") {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS"
+      "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+      "Cache-Control": "private, no-store"
     },
     body: JSON.stringify(payload)
   };
@@ -20,11 +22,6 @@ function normalizeEmail(email) {
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
-}
-
-function getBearerToken(headers) {
-  const value = headers.authorization || headers.Authorization || "";
-  return value.startsWith("Bearer ") ? value.slice(7).trim() : "";
 }
 
 function validationError(message, origin) {
@@ -88,7 +85,7 @@ async function getProfileSnapshotWithHeaders(supabaseUrl, headers, userId) {
   if (!userId) return null;
   const rows = await supabaseFetch(
     supabaseUrl,
-    `/rest/v1/profiles?id=eq.${encodeFilter(userId)}&select=id,role,full_name&limit=1`,
+    `/rest/v1/profiles?id=eq.${encodeFilter(userId)}&select=*&limit=1`,
     {
       method: "GET",
       headers
@@ -149,10 +146,7 @@ async function listAllAuthUsers(supabaseUrl, serviceRoleKey) {
 }
 
 function isMasterAdminActor(actor, profileRole = "") {
-  const role = String(actor?.app_metadata?.role || actor?.user_metadata?.role || profileRole || "").trim().toLowerCase();
-  if (role === "master_admin") return true;
-  const email = normalizeEmail(actor?.email || "");
-  return ["kagisowitness79@gmail.com", "masteradmin@kagie.app"].includes(email);
+  return actorRole(actor) === "master_admin";
 }
 
 function normalizeKagieRole(roleArg, fallbackRole = "user") {
@@ -171,8 +165,16 @@ function normalizeKagieRole(roleArg, fallbackRole = "user") {
 }
 
 function isStaffActor(actor, profileRole = "") {
-  const role = normalizeKagieRole(actor?.app_metadata?.role || actor?.user_metadata?.role || profileRole || "", "user");
+  const role = actorRole(actor);
   return role === "master_admin" || role === "assistant_admin" || isMasterAdminActor(actor, profileRole);
+}
+
+async function saveAssistantProfile(supabaseUrl, serviceRoleKey, userId, fullName) {
+  await supabaseFetch(supabaseUrl, "/rest/v1/profiles?on_conflict=id", {
+    method: "POST",
+    headers: adminHeaders(serviceRoleKey, { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }),
+    body: JSON.stringify({ id: userId, full_name: fullName, role: "assistant_admin" })
+  });
 }
 
 exports.handler = async (event) => {
@@ -201,6 +203,7 @@ exports.handler = async (event) => {
   let body;
   try {
     body = JSON.parse(event.body || "{}");
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Invalid body");
   } catch (_error) {
     return validationError("Request body must be valid JSON.", origin);
   }
@@ -213,7 +216,8 @@ exports.handler = async (event) => {
     });
 
     const readHeaders = serviceRoleKey ? adminHeaders(serviceRoleKey) : bearerHeaders(anonKey, token);
-    const actorProfile = await getProfileSnapshotWithHeaders(supabaseUrl, readHeaders, actor?.id).catch(() => null);
+    const actorProfile = await getProfileSnapshotWithHeaders(supabaseUrl, readHeaders, actor?.id);
+    assertActiveActor(actor, actorProfile);
     const masterActor = isMasterAdminActor(actor, actorProfile?.role || "");
     const staffActor = isStaffActor(actor, actorProfile?.role || "");
 
@@ -248,7 +252,7 @@ exports.handler = async (event) => {
       authUsers.forEach((user) => {
         const profile = profileMap.get(String(user?.id || "").trim()) || {};
         const role = normalizeKagieRole(
-          user?.app_metadata?.role || user?.user_metadata?.role || profile?.role || "",
+          actorRole(user),
           "user"
         );
         if (role !== "assistant_admin") return;
@@ -263,7 +267,7 @@ exports.handler = async (event) => {
         });
       });
 
-      assistantProfiles.forEach((profile) => {
+      if (!serviceRoleKey) assistantProfiles.forEach((profile) => {
         pushAssistant({
           id: String(profile?.id || "").trim(),
           role: "assistant_admin",
@@ -333,69 +337,28 @@ exports.handler = async (event) => {
       }
 
       const assistantUserId = String(assistant.id || "").trim();
-      const timestamp = new Date().toISOString();
-
-      await Promise.allSettled([
-        supabaseFetch(
-          supabaseUrl,
-          `/rest/v1/applications?assistant_id=eq.${encodeFilter(assistantUserId)}`,
-          {
-            method: "PATCH",
-            headers: adminHeaders(serviceRoleKey, {
-              "Content-Type": "application/json",
-              Prefer: "return=minimal"
-            }),
-            body: JSON.stringify({
-              assistant_id: null,
-              updated_at: timestamp
-            })
-          }
-        ),
-        supabaseFetch(
-          supabaseUrl,
-          `/rest/v1/user_profiles?user_id=eq.${encodeFilter(assistantUserId)}`,
-          {
-            method: "DELETE",
-            headers: adminHeaders(serviceRoleKey, { Prefer: "return=minimal" })
-          }
-        ),
-        supabaseFetch(
-          supabaseUrl,
-          `/rest/v1/guardian_profiles?user_id=eq.${encodeFilter(assistantUserId)}`,
-          {
-            method: "DELETE",
-            headers: adminHeaders(serviceRoleKey, { Prefer: "return=minimal" })
-          }
-        ),
-        supabaseFetch(
-          supabaseUrl,
-          `/rest/v1/school_profiles?user_id=eq.${encodeFilter(assistantUserId)}`,
-          {
-            method: "DELETE",
-            headers: adminHeaders(serviceRoleKey, { Prefer: "return=minimal" })
-          }
-        ),
-        supabaseFetch(
-          supabaseUrl,
-          `/rest/v1/carts?user_id=eq.${encodeFilter(assistantUserId)}`,
-          {
-            method: "DELETE",
-            headers: adminHeaders(serviceRoleKey, { Prefer: "return=minimal" })
-          }
-        )
-      ]);
-
-      await supabaseFetch(supabaseUrl, `/auth/v1/admin/users/${encodeURIComponent(assistantUserId)}`, {
-        method: "DELETE",
-        headers: adminHeaders(serviceRoleKey)
+      if (assistantUserId === actor.id) return validationError("You cannot remove your own account here.", origin);
+      const targetAuthUser = await supabaseFetch(supabaseUrl, `/auth/v1/admin/users/${encodeURIComponent(assistantUserId)}`, {
+        method: "GET", headers: adminHeaders(serviceRoleKey)
       });
-
-      return json(200, {
-        data: {
-          id: assistantUserId,
-          removed: true
-        }
-      }, origin);
+      const alreadyRevoked = actorRole(targetAuthUser) === 'user' && targetAuthUser.app_metadata?.kagie_previous_staff_role === 'assistant_admin';
+      if (actorRole(targetAuthUser) !== 'assistant_admin' && !alreadyRevoked) {
+        return validationError('Only verified assistant access can be revoked here.', origin);
+      }
+      // Revoke trusted authority first. Never hard-delete Auth or related rows:
+      // an assistant may have applications/documents from an earlier learner role.
+      if (!alreadyRevoked) await supabaseFetch(supabaseUrl, '/auth/v1/admin/users/' + encodeURIComponent(assistantUserId), {
+        method: 'PUT', headers: adminHeaders(serviceRoleKey, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ app_metadata: { ...targetAuthUser.app_metadata, role: 'user', kagie_previous_staff_role: 'assistant_admin', kagie_staff_revoked_at: new Date().toISOString() } })
+      });
+      let profileSyncPending = false;
+      try {
+        await supabaseFetch(supabaseUrl, '/rest/v1/profiles?id=eq.' + encodeFilter(assistantUserId), {
+          method: 'PATCH', headers: adminHeaders(serviceRoleKey, { 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+          body: JSON.stringify({ role: 'user' })
+        });
+      } catch { profileSyncPending = true; }
+      return json(200, { data: { id: assistantUserId, removed: true, accessRevoked: true, accountPreserved: true, profileSyncPending } }, origin);
     }
 
     const fullName = String(body.fullName || "").trim();
@@ -405,14 +368,16 @@ exports.handler = async (event) => {
 
     if (fullName.length < 2) return validationError("Assistant full name is required.", origin);
     if (!isValidEmail(email)) return validationError("Use a real assistant email address, for example name@kagie.app.", origin);
-    if (password.length < 6) return validationError("Assistant password must be at least 6 characters.", origin);
+    if (password.length < 8) return validationError("Assistant password must be at least 8 characters.", origin);
 
     const existingAuthUser = await findAuthUserByEmail(supabaseUrl, serviceRoleKey, email);
-    const existingRole = existingAuthUser?.app_metadata?.role || existingAuthUser?.user_metadata?.role || "";
     if (existingAuthUser) {
-      if (existingRole && normalizeKagieRole(existingRole, "user") !== "assistant_admin") {
+      const existingProfile = await getProfileSnapshot(supabaseUrl, serviceRoleKey, existingAuthUser.id);
+      const existingRole = actorRole(existingAuthUser);
+      if (existingRole !== "assistant_admin" || normalizeKagieRole(existingAuthUser?.app_metadata?.role || "", "user") === "master_admin") {
         return json(409, { message: "This email is already used by a non-assistant Kagie account." }, origin);
       }
+      assertActiveActor(existingAuthUser, existingProfile);
 
       const existingUserId = String(existingAuthUser.id || "").trim();
       try {
@@ -438,16 +403,19 @@ exports.handler = async (event) => {
               password,
               email_confirm: true,
               user_metadata: {
+                ...(existingAuthUser.user_metadata || {}),
                 full_name: fullName,
                 phone,
-                role: "assistant_admin"
               },
               app_metadata: {
+                ...(existingAuthUser.app_metadata || {}),
                 role: "assistant_admin"
               }
             })
           }
         );
+
+        await saveAssistantProfile(supabaseUrl, serviceRoleKey, existingUserId, fullName);
 
         return json(200, {
           data: {
@@ -462,43 +430,8 @@ exports.handler = async (event) => {
             repaired: true
           }
         }, origin);
-      } catch (lookupError) {
-        const status = typeof lookupError?.status === "number" ? lookupError.status : 500;
-        if (status !== 404) throw lookupError;
-        await Promise.allSettled([
-          supabaseFetch(
-            supabaseUrl,
-            `/rest/v1/user_profiles?user_id=eq.${encodeFilter(existingUserId)}`,
-            {
-              method: "DELETE",
-              headers: adminHeaders(serviceRoleKey, { Prefer: "return=minimal" })
-            }
-          ),
-          supabaseFetch(
-            supabaseUrl,
-            `/rest/v1/guardian_profiles?user_id=eq.${encodeFilter(existingUserId)}`,
-            {
-              method: "DELETE",
-              headers: adminHeaders(serviceRoleKey, { Prefer: "return=minimal" })
-            }
-          ),
-          supabaseFetch(
-            supabaseUrl,
-            `/rest/v1/school_profiles?user_id=eq.${encodeFilter(existingUserId)}`,
-            {
-              method: "DELETE",
-              headers: adminHeaders(serviceRoleKey, { Prefer: "return=minimal" })
-            }
-          ),
-          supabaseFetch(
-            supabaseUrl,
-            `/rest/v1/carts?user_id=eq.${encodeFilter(existingUserId)}`,
-            {
-              method: "DELETE",
-              headers: adminHeaders(serviceRoleKey, { Prefer: "return=minimal" })
-            }
-          )
-        ]);
+      } catch (error) {
+        throw error;
       }
     }
 
@@ -514,7 +447,6 @@ exports.handler = async (event) => {
         user_metadata: {
           full_name: fullName,
           phone,
-          role: "assistant_admin"
         },
         app_metadata: {
           role: "assistant_admin"
@@ -523,6 +455,15 @@ exports.handler = async (event) => {
     });
 
     const userId = created.id;
+    if (!userId) throw new Error("The assistant account could not be created.");
+    try {
+      await saveAssistantProfile(supabaseUrl, serviceRoleKey, userId, fullName);
+    } catch (error) {
+      await supabaseFetch(supabaseUrl, `/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+        method: "DELETE", headers: adminHeaders(serviceRoleKey)
+      }).catch(() => { console.error("New assistant profile save failed; account cleanup requires operator attention."); });
+      throw error;
+    }
 
     return json(201, {
       data: {
@@ -546,7 +487,11 @@ exports.handler = async (event) => {
       (/foreign key constraint/i.test(String(message)) && /profiles/i.test(String(message))) ||
       (/update or delete on table/i.test(String(message)) && /users/i.test(String(message)) && /profiles/i.test(String(message)))
     ) {
-      message = "Live profile policy conflict blocked assistant creation. Kagie should switch to the direct assistant signup fallback on the latest deploy.";
+      message = event.httpMethod === "DELETE"
+        ? "Related records prevent removing this assistant. Ask the server operator to review the database relationships."
+        : "The assistant profile could not be synchronized. Ask the server operator to review profile triggers and database relationships.";
+    } else if (statusCode >= 500) {
+      message = "The assistant account operation could not be completed. Please try again.";
     }
     return json(statusCode, { message }, origin);
   }

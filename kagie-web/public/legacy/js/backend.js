@@ -4,42 +4,78 @@
   const KEYS = {
     users: 'kagie_users',
     current: 'kagie_current_user',
+    loginPersistence: 'kagie_login_persistence',
+    activeSession: 'kagie_active_session',
     applications: 'kagie_applications',
+    applicationPacksCatalog: 'kagie_application_packs_catalog',
+    promoCampaigns: 'kagie_promo_campaigns_catalog',
+    marketingCampaigns: 'kagie_marketing_campaigns_catalog',
+    adminContent: 'kagie_admin_content_catalog',
+    announcements: 'kagie_announcements_catalog',
+    careerArticles: 'kagie_career_articles_catalog',
     institutions: 'kagie_institutions',
+    accommodationListingsCatalog: 'kagie_accommodation_listings_catalog',
     favorites: 'kagie_favorites',
     accommodationRequests: 'kagie_accommodation_requests',
+    transportOptionsCatalog: 'kagie_transport_options_catalog',
     transportRequests: 'kagie_transport_requests',
     userPrefsPrefix: 'kagie_user_prefs_',
     notifications: 'kagie_notifications',
+    prospectusLibrary: 'kagie_prospectus_library_catalog',
+    pastPaperLibrary: 'kagie_past_paper_library_catalog',
+    questionPaperLibrary: 'kagie_question_paper_library_catalog',
     docs: 'kagie_docs',
     docReviews: 'kagie_doc_reviews',
+    pastPaperProgress: 'kagie_past_paper_progress',
     supportChats: 'kagie_support_chats',
+    supportThreads: 'kagie_support_threads',
+    assistantFormPermissions: 'kagie_assistant_form_permissions',
+    applicationUpdates: 'kagie_application_updates',
     callRequests: 'kagie_call_requests',
     assistantActivity: 'kagie_assistant_activity',
     notes: 'kagie_notes',
     settings: 'kagie_settings',
     cartPrefix: 'kagie_cart_',
-    supabaseSessionCache: 'kagie_supabase_session_cache'
+    pendingPromoCode: 'kagie_pending_promo_code',
+    supabaseSessionCache: 'kagie_supabase_session_cache',
+    oauthIntent: 'kagie_oauth_intent',
+    logoutIntent: 'kagie_logout_intent'
   };
 
   const STATUS = {
     application: {
       DRAFT: 'Draft',
+      PACKAGE_SELECTED: 'Package Selected',
+      AWAITING_PAYMENT: 'Awaiting Payment',
+      PAID: 'Paid',
+      PENDING_DETAILS: 'Pending Details',
+      INCOMPLETE: 'Incomplete',
       SUBMITTED: 'Submitted',
       UNDER_REVIEW: 'Under Review',
+      DOCUMENTS_REQUIRED: 'Documents Required',
+      DOCUMENTS_MISSING: 'Documents Missing',
       MISSING_DOCUMENTS: 'Missing Documents',
+      AWAITING_INSTITUTION_FEE: 'Awaiting Institution Fee',
+      SUBMITTED_TO_INSTITUTION: 'Submitted to Institution',
       READY_TO_APPLY: 'Ready to Apply',
       APPLIED: 'Applied',
       PENDING_FEEDBACK: 'Pending Feedback',
       ACCEPTED: 'Accepted',
       REJECTED: 'Rejected',
+      CANCELLED: 'Cancelled',
       PROCESSING: 'Application being processed'
     },
     payment: {
+      UNPAID: 'Unpaid',
+      PENDING_SHORT: 'Pending',
+      PAID: 'Paid',
       PENDING: 'Payment Pending',
       PENDING_VERIFICATION: 'Pending Verification',
       VERIFIED: 'Verified',
-      REJECTED: 'Rejected'
+      REJECTED: 'Rejected',
+      FAILED: 'Failed',
+      CANCELLED: 'Cancelled',
+      REFUNDED: 'Refunded'
     },
     doc: {
       PENDING: 'Pending Review',
@@ -59,6 +95,108 @@
     MASTER: 'master_admin'
   };
 
+  function normalizeKagieRole(roleArg, fallbackRole = ROLES.USER) {
+    const role = String(roleArg || '').trim().toLowerCase();
+    if (!role) return fallbackRole;
+
+    if (
+      role === ROLES.MASTER ||
+      role === 'master admin' ||
+      role === 'master-admin' ||
+      role === 'masteradmin' ||
+      role === 'super_admin' ||
+      role === 'super-admin' ||
+      role === 'super admin' ||
+      role === 'superadmin' ||
+      role === 'owner'
+    ) {
+      return ROLES.MASTER;
+    }
+
+    if (
+      role === ROLES.ASSISTANT ||
+      role === 'assistant' ||
+      role === 'assistant admin' ||
+      role === 'assistant-admin' ||
+      role === 'assistantadmin' ||
+      role === 'admin' ||
+      role === 'administrator' ||
+      role === 'staff' ||
+      role === 'support' ||
+      role === 'support_staff' ||
+      role === 'support-staff' ||
+      role === 'support staff'
+    ) {
+      return ROLES.ASSISTANT;
+    }
+
+    if (role === ROLES.USER || role === 'learner' || role === 'student' || role === 'authenticated') {
+      return ROLES.USER;
+    }
+
+    if (role === 'parent' || role === 'guardian') {
+      return 'parent';
+    }
+
+    if (role === 'teacher' || role === 'educator' || role === 'school_admin' || role === 'school-admin' || role === 'school admin') {
+      return 'teacher';
+    }
+
+    return fallbackRole;
+  }
+
+  function getKagieRoleVariants(roleArg) {
+    const canonicalRole = normalizeKagieRole(roleArg, String(roleArg || '').trim().toLowerCase() || ROLES.USER);
+
+    if (canonicalRole === ROLES.MASTER) {
+      return [
+        ROLES.MASTER,
+        'master admin',
+        'master-admin',
+        'masteradmin',
+        'super_admin',
+        'super-admin',
+        'super admin',
+        'superadmin',
+        'owner'
+      ];
+    }
+
+    if (canonicalRole === ROLES.ASSISTANT) {
+      return [
+        ROLES.ASSISTANT,
+        'assistant',
+        'assistant admin',
+        'assistant-admin',
+        'assistantadmin',
+        'admin',
+        'administrator',
+        'staff',
+        'support',
+        'support_staff',
+        'support-staff',
+        'support staff'
+      ];
+    }
+
+    if (canonicalRole === 'parent') {
+      return ['parent', 'guardian'];
+    }
+
+    if (canonicalRole === 'teacher') {
+      return ['teacher', 'educator', 'school_admin', 'school-admin', 'school admin'];
+    }
+
+    return [ROLES.USER, 'learner', 'student', 'authenticated'];
+  }
+
+  function normalizeUserRecord(userArg) {
+    if (!userArg || typeof userArg !== 'object') return userArg;
+    const next = { ...userArg };
+    next.role = normalizeKagieRole(next.role, String(next.role || '').trim() || ROLES.USER);
+    return next;
+  }
+
   const DEFAULT_SETTINGS = {
       appName: 'Kagie',
       currency: 'ZAR',
@@ -71,11 +209,13 @@
         accountType: 'Business Account',
         branchCode: '',
         referencePrefix: 'KAG',
-        verificationMessage: 'Payments are verified manually after checkout.',
-        yocoEnabled: true,
-        yocoPaymentLink: 'https://pay.yoco.com/kagie-app',
-        yocoProviderLabel: 'Yoco secure checkout',
+        verificationMessage: 'After you transfer, Kagie verifies your payment manually. Use your Kagie reference and upload proof of payment.',
+        yocoEnabled: false,
+        yocoCheckoutEndpoint: '',
+        yocoPaymentLink: '',
+        yocoProviderLabel: '',
         payfastEnabled: false,
+        payfastCheckoutEndpoint: '',
         payfastProviderLabel: 'PayFast secure checkout'
       },
       supabase: {
@@ -83,10 +223,14 @@
         url: '',
         anonKey: '',
         profileTable: 'profiles',
-      syncProfiles: true,
-      adminCreateAssistantEndpoint: ''
-    }
-  };
+        syncProfiles: true,
+        adminConfigStatusEndpoint: '',
+        adminCreateAssistantEndpoint: '',
+        adminBootstrapMasterEndpoint: '',
+        authRoleEndpoint: '',
+        adminMarketingBroadcastEndpoint: ''
+      }
+    };
 
   const DEFAULT_EXPERIENCE_PREFERENCES = {
     lowDataMode: false,
@@ -97,9 +241,17 @@
 
   let supabaseClient = null;
   let remotePackCache = null;
+  let remotePromoCache = null;
+  let packCatalogCache = null;
+  let promoCatalogCache = null;
   let institutionCatalogCache = null;
+  let remoteInstitutionCatalogCache = null;
+  let accommodationListingCache = null;
+  let transportOptionCache = null;
   const institutionQueryCache = new Map();
   const PAYMENT_NOTE_PREFIX = '__KAGIE_PAYMENT_META__';
+  const PORTAL_ACCESS_NOTE_PREFIX = '__KAGIE_PORTAL_ACCESS__';
+  const LEARNER_SUPPORT_NOTE_PREFIX = '__KAGIE_LEARNER_SUPPORT__';
 
   function getLocationSnapshot() {
     try {
@@ -114,6 +266,66 @@
     if (!locationRef) return true;
     const host = String(locationRef.hostname || '').trim().toLowerCase();
     return locationRef.protocol === 'file:' || host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+  }
+
+  function shouldLogDataFlowDebug() {
+    return isLocalEnvironment();
+  }
+
+  function logDataFlowDebug(label, details) {
+    if (!shouldLogDataFlowDebug()) return;
+    try {
+      console.info(`Kagie data debug: ${label}`, details || {});
+    } catch (_error) {
+      // Debug logging must never block learner or staff flows.
+    }
+  }
+
+  function isLocalStaffSession(userArg) {
+    const user = userArg || null;
+    if (!isLocalEnvironment() || !user) return false;
+    const role = normalizeKagieRole(user.role, String(user.role || '').trim());
+    const source = String(user.source || '').trim().toLowerCase();
+    const supabaseUserId = String(user.supabaseUserId || '').trim();
+    return (role === ROLES.ASSISTANT || role === ROLES.MASTER) && source === 'local' && !supabaseUserId;
+  }
+
+  function clearCachedSupabaseSessionTokens() {
+    write(KEYS.supabaseSessionCache, null);
+    try {
+      const settings = getSettings();
+      const supabaseUrl = String(settings?.supabase?.url || '');
+      const projectRef = supabaseUrl ? supabaseUrl.replace(/^https?:\/\//, '').split('.')[0] : '';
+      const clearKeys = (storage) => {
+        if (!storage) return;
+        Object.keys(storage).forEach((key) => {
+          if (
+            key.startsWith('sb-') &&
+            (!projectRef || key.includes(`sb-${projectRef}-`))
+          ) {
+            storage.removeItem(key);
+          }
+        });
+      };
+      clearKeys(localStorage);
+      clearKeys(window.sessionStorage);
+    } catch (err) {
+      console.warn('Supabase token cleanup failed:', err);
+    }
+  }
+
+  function markLogoutIntent() {
+    write(KEYS.logoutIntent, { at: Date.now() });
+  }
+
+  function clearLogoutIntent() {
+    write(KEYS.logoutIntent, null);
+  }
+
+  function hasRecentLogoutIntent() {
+    const raw = read(KEYS.logoutIntent, null);
+    const at = Number(raw?.at || raw || 0);
+    return Number.isFinite(at) && at > 0 && (Date.now() - at) < 15000;
   }
 
   function shouldSeedLocalStaffAccounts() {
@@ -144,12 +356,32 @@
     }
   }
 
+  function readSession(key, fallback) {
+    try {
+      const raw = window.sessionStorage.getItem(key);
+      return raw ? JSON.parse(raw) : clone(fallback);
+    } catch (err) {
+      console.error(`Failed to read session ${key}`, err);
+      return clone(fallback);
+    }
+  }
+
   function write(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
       return true;
     } catch (err) {
       console.error(`Failed to write ${key}`, err);
+      return false;
+    }
+  }
+
+  function writeSession(key, value) {
+    try {
+      window.sessionStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (err) {
+      console.error(`Failed to write session ${key}`, err);
       return false;
     }
   }
@@ -179,6 +411,60 @@
     return String(email || '').trim().toLowerCase();
   }
 
+  function shouldRememberLogin() {
+    return Boolean(read(KEYS.loginPersistence, { remember: false })?.remember);
+  }
+
+  function hasActiveSessionMarker() {
+    return Boolean(readSession(KEYS.activeSession, { active: false })?.active);
+  }
+
+  function getActiveSessionState() {
+    const state = readSession(KEYS.activeSession, { active: false, updatedAt: 0 }) || {};
+    return {
+      active: Boolean(state.active),
+      updatedAt: Number(state.updatedAt || 0)
+    };
+  }
+
+  function setLoginPersistence(remember) {
+    const persist = Boolean(remember);
+    write(KEYS.loginPersistence, {
+      remember: persist,
+      updatedAt: Date.now()
+    });
+
+    const current = currentUserRaw();
+    if (current) setCurrentUser(current, { persist });
+    return persist;
+  }
+
+  function clearOAuthIntent() {
+    writeSession(KEYS.oauthIntent, null);
+  }
+
+  function getPendingOAuthIntent() {
+    const intent = readSession(KEYS.oauthIntent, null);
+    const age = Date.now() - Number(intent?.startedAt || 0);
+    if (!intent || !Number.isFinite(age) || age < 0 || age > 1000 * 60 * 15) {
+      if (intent) clearOAuthIntent();
+      return null;
+    }
+    return intent;
+  }
+
+  function isOAuthCallbackForIntent(intent) {
+    if (!intent) return false;
+    try {
+      const current = new URL(window.location.href);
+      const target = new URL(intent.redirectTo);
+      return current.origin === target.origin && current.pathname === target.pathname &&
+        current.searchParams.get('oauth') === intent.provider;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   function normalizePhoneNumber(phone) {
     let value = String(phone || '').trim();
     if (!value) return '';
@@ -193,6 +479,45 @@
     return Array.isArray(value) ? value : [];
   }
 
+  function parseImageList(value) {
+    if (Array.isArray(value)) {
+      return value.map((item) => String(item || '').trim()).filter(Boolean);
+    }
+    return String(value || '')
+      .split(/\r?\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function toNumber(value, fallback = 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function roundMoney(value) {
+    return Math.round(toNumber(value, 0) * 100) / 100;
+  }
+
+  function formatMoneyLabel(value) {
+    return `R${roundMoney(value).toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  }
+
+  function normalizePromoCodeValue(value) {
+    return String(value || '')
+      .replace(/[^a-z0-9]/gi, '')
+      .toUpperCase()
+      .slice(0, 9);
+  }
+
+  function generateRandomPromoCode(length = 9) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    while (code.length < length) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
   function parsePaymentNoteState(rawNote) {
     const fallback = {
       customerNote: String(rawNote || '').trim(),
@@ -202,7 +527,11 @@
       proofFileName: '',
       proofUploadedAt: '',
       reviewedAt: '',
-      verifiedAt: ''
+      verifiedAt: '',
+      promoCode: '',
+      promoTitle: '',
+      offerNote: '',
+      discountAmount: ''
     };
 
     const source = String(rawNote || '').trim();
@@ -218,7 +547,15 @@
         proofFileName: String(payload?.proofFileName || ''),
         proofUploadedAt: String(payload?.proofUploadedAt || ''),
         reviewedAt: String(payload?.reviewedAt || ''),
-        verifiedAt: String(payload?.verifiedAt || '')
+        verifiedAt: String(payload?.verifiedAt || ''),
+        promoCode: normalizePromoCodeValue(payload?.promoCode || ''),
+        promoTitle: String(payload?.promoTitle || ''),
+        offerNote: String(payload?.offerNote || ''),
+        discountAmount: String(payload?.discountAmount || ''),
+        gatewayProvider: String(payload?.gatewayProvider || ''),
+        gatewayCheckoutId: String(payload?.gatewayCheckoutId || ''),
+        gatewayPaymentId: String(payload?.gatewayPaymentId || ''),
+        gatewayStatus: String(payload?.gatewayStatus || '')
       };
     } catch (error) {
       console.warn('Could not parse payment note metadata.', error);
@@ -226,20 +563,178 @@
     }
   }
 
+  function mergePaymentNoteStates(primaryRawNote, fallbackRawNote) {
+    const primary = parsePaymentNoteState(primaryRawNote);
+    const fallback = parsePaymentNoteState(fallbackRawNote);
+    const merged = { ...fallback };
+
+    Object.entries(primary).forEach(([key, value]) => {
+      if (String(value ?? '').trim()) merged[key] = value;
+    });
+
+    return merged;
+  }
+
   function serializePaymentNoteState(payment) {
     const note = String(payment?.note || '').trim();
-    const meta = {
-      customerNote: note,
-      verificationNote: String(payment?.verificationNote || '').trim(),
-      rejectionReason: String(payment?.rejectionReason || '').trim(),
-      proofDocumentId: String(payment?.proofDocumentId || '').trim(),
-      proofFileName: String(payment?.proofFileName || '').trim(),
-      proofUploadedAt: String(payment?.proofUploadedAt || '').trim(),
-      reviewedAt: String(payment?.reviewedAt || '').trim(),
-      verifiedAt: String(payment?.verifiedAt || '').trim()
-    };
+      const meta = {
+        customerNote: note,
+        verificationNote: String(payment?.verificationNote || '').trim(),
+        rejectionReason: String(payment?.rejectionReason || '').trim(),
+        proofDocumentId: String(payment?.proofDocumentId || '').trim(),
+        proofFileName: String(payment?.proofFileName || '').trim(),
+        proofUploadedAt: String(payment?.proofUploadedAt || '').trim(),
+        reviewedAt: String(payment?.reviewedAt || '').trim(),
+        verifiedAt: String(payment?.verifiedAt || '').trim(),
+        promoCode: normalizePromoCodeValue(payment?.promoCode || '').trim(),
+        promoTitle: String(payment?.promoTitle || '').trim(),
+        offerNote: String(payment?.offerNote || '').trim(),
+        discountAmount: String(payment?.discountAmount || '').trim(),
+        gatewayProvider: String(payment?.gatewayProvider || '').trim(),
+        gatewayCheckoutId: String(payment?.gatewayCheckoutId || '').trim(),
+        gatewayPaymentId: String(payment?.gatewayPaymentId || '').trim(),
+        gatewayStatus: String(payment?.gatewayStatus || '').trim()
+      };
     const hasMeta = Object.entries(meta).some(([key, value]) => key !== 'customerNote' && value);
     return hasMeta ? `${PAYMENT_NOTE_PREFIX}${JSON.stringify(meta)}` : note;
+  }
+
+  function portalAccessHasData(entry) {
+    return Boolean(
+      entry?.institutionName ||
+      entry?.portalLink ||
+      entry?.applicationNumber ||
+      entry?.studentNumber ||
+      entry?.username ||
+      entry?.password ||
+      entry?.deliveryNote ||
+      entry?.note
+    );
+  }
+
+  function normalizePortalAccessEntry(entryArg, fallbackIndex) {
+    const source = entryArg && typeof entryArg === 'object' ? entryArg : {};
+    return {
+      id: String(source.id || uid(`portal_${fallbackIndex || 1}`)).trim(),
+      institutionName: String(source.institutionName || source.institution || '').trim(),
+      portalLink: String(source.portalLink || source.portalUrl || source.url || '').trim(),
+      applicationNumber: String(source.applicationNumber || source.reference || '').trim(),
+      studentNumber: String(source.studentNumber || '').trim(),
+      username: String(source.username || source.portalUsername || source.email || '').trim(),
+      password: String(source.password || source.pin || source.tempPassword || '').trim(),
+      deliveryNote: String(source.deliveryNote || source.passwordSource || source.howReceived || '').trim(),
+      note: String(source.note || '').trim(),
+      updatedAt: String(source.updatedAt || nowISO()).trim(),
+      updatedBy: String(source.updatedBy || '').trim()
+    };
+  }
+
+  function isPortalAccessNoteText(noteText) {
+    return String(noteText || '').trim().startsWith(PORTAL_ACCESS_NOTE_PREFIX);
+  }
+
+  function serializePortalAccessState(entriesArg) {
+    const entries = safeArray(entriesArg)
+      .map((entry, index) => normalizePortalAccessEntry(entry, index + 1))
+      .filter(portalAccessHasData);
+    return `${PORTAL_ACCESS_NOTE_PREFIX}${JSON.stringify({ entries })}`;
+  }
+
+  function parsePortalAccessState(rawNote) {
+    const raw = String(rawNote || '').trim();
+    if (!isPortalAccessNoteText(raw)) return [];
+    try {
+      const payload = JSON.parse(raw.slice(PORTAL_ACCESS_NOTE_PREFIX.length));
+      const source = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.entries)
+          ? payload.entries
+          : payload && typeof payload === 'object'
+            ? [payload]
+            : [];
+      return source
+        .map((entry, index) => normalizePortalAccessEntry(entry, index + 1))
+        .filter(portalAccessHasData);
+    } catch (error) {
+      console.warn('Could not parse portal access metadata.', error);
+      return [];
+    }
+  }
+
+  function extractPortalAccessFromNotes(notesArg) {
+    const notes = safeArray(notesArg).slice().sort((a, b) => {
+      const aTime = new Date(a?.updatedAt || a?.createdAt || 0).getTime() || 0;
+      const bTime = new Date(b?.updatedAt || b?.createdAt || 0).getTime() || 0;
+      return bTime - aTime;
+    });
+
+    for (const note of notes) {
+      const rawText = String(note?.text || note?.note || '').trim();
+      if (!isPortalAccessNoteText(rawText)) continue;
+      return parsePortalAccessState(rawText);
+    }
+    return [];
+  }
+
+  function normalizeYesNoValue(value, fallback = '') {
+    const text = String(value || '').trim().toLowerCase();
+    if (['yes', 'true', '1'].includes(text)) return 'yes';
+    if (['no', 'false', '0'].includes(text)) return 'no';
+    return fallback;
+  }
+
+  function normalizeLearnerSupportNeeds(dataArg) {
+    const source = dataArg && typeof dataArg === 'object' ? dataArg : {};
+    const hasDisability = normalizeYesNoValue(source.hasDisability, '');
+    return {
+      needsBursary: normalizeYesNoValue(source.needsBursary || source.bursaryRequired, ''),
+      needsResidence: normalizeYesNoValue(source.needsResidence || source.residenceRequired, ''),
+      hasDisability,
+      disabilityDescription: hasDisability === 'yes' ? String(source.disabilityDescription || '').trim() : ''
+    };
+  }
+
+  function learnerSupportHasData(dataArg) {
+    const data = normalizeLearnerSupportNeeds(dataArg);
+    return Boolean(data.needsBursary || data.needsResidence || data.hasDisability || data.disabilityDescription);
+  }
+
+  function isLearnerSupportNoteText(noteText) {
+    return String(noteText || '').trim().startsWith(LEARNER_SUPPORT_NOTE_PREFIX);
+  }
+
+  function isSystemApplicationNoteText(noteText) {
+    return isPortalAccessNoteText(noteText) || isLearnerSupportNoteText(noteText);
+  }
+
+  function serializeLearnerSupportState(dataArg) {
+    return `${LEARNER_SUPPORT_NOTE_PREFIX}${JSON.stringify(normalizeLearnerSupportNeeds(dataArg))}`;
+  }
+
+  function parseLearnerSupportState(rawNote) {
+    const raw = String(rawNote || '').trim();
+    if (!isLearnerSupportNoteText(raw)) return normalizeLearnerSupportNeeds({});
+    try {
+      return normalizeLearnerSupportNeeds(JSON.parse(raw.slice(LEARNER_SUPPORT_NOTE_PREFIX.length)));
+    } catch (error) {
+      console.warn('Could not parse learner support metadata.', error);
+      return normalizeLearnerSupportNeeds({});
+    }
+  }
+
+  function extractLearnerSupportFromNotes(notesArg) {
+    const notes = safeArray(notesArg).slice().sort((a, b) => {
+      const aTime = new Date(a?.updatedAt || a?.createdAt || 0).getTime() || 0;
+      const bTime = new Date(b?.updatedAt || b?.createdAt || 0).getTime() || 0;
+      return bTime - aTime;
+    });
+
+    for (const note of notes) {
+      const rawText = String(note?.text || note?.note || '').trim();
+      if (!isLearnerSupportNoteText(rawText)) continue;
+      return parseLearnerSupportState(rawText);
+    }
+    return normalizeLearnerSupportNeeds({});
   }
 
   function normalizePaymentDetails(payment, paymentStatusArg) {
@@ -263,17 +758,250 @@
       proofUploadedAt: String(source.proofUploadedAt || noteState.proofUploadedAt || ''),
       reviewedAt: String(source.reviewedAt || noteState.reviewedAt || ''),
       verifiedAt: String(source.verifiedAt || noteState.verifiedAt || ''),
+      promoCode: normalizePromoCodeValue(source.promoCode || noteState.promoCode || ''),
+      promoTitle: String(source.promoTitle || noteState.promoTitle || ''),
+      offerNote: String(source.offerNote || noteState.offerNote || ''),
+      discountAmount: roundMoney(source.discountAmount || noteState.discountAmount || 0),
+      gatewayProvider: String(source.gatewayProvider || noteState.gatewayProvider || ''),
+      gatewayCheckoutId: String(source.gatewayCheckoutId || noteState.gatewayCheckoutId || ''),
+      gatewayPaymentId: String(source.gatewayPaymentId || noteState.gatewayPaymentId || ''),
+      gatewayStatus: String(source.gatewayStatus || noteState.gatewayStatus || ''),
+      currency: String(source.currency || 'ZAR'),
+      paidAt: source.paidAt || '',
+      failureReason: String(source.failureReason || ''),
       submittedAt: source.submittedAt || null
     };
+  }
+
+  function normalizeApplicationTypeKey(value) {
+    const type = String(value || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+    if (!type) return '';
+    if (['late', 'late_application', 'late_applications'].includes(type)) return 'late';
+    if (['bridging', 'bridge', 'bridging_programme', 'bridging_programmes'].includes(type)) return 'bridging';
+    if (['postgraduate', 'post_graduate', 'post_graduate_application', 'post_graduate_applications', 'post_grad', 'postgrad'].includes(type)) return 'postgraduate';
+    if (['undergraduate', 'undergrad', 'under_graduate', 'undergraduate_application', 'undergraduate_applications', 'under_graduate_application', 'under_graduate_applications'].includes(type)) return 'undergraduate';
+    if (type.includes('transfer')) return 'transfer';
+    return type;
+  }
+  function applicationTypeLabelForKey(value) {
+    const type = normalizeApplicationTypeKey(value);
+    const labels = {
+      undergraduate: 'Undergraduate Applications',
+      late: 'Late Applications',
+      postgraduate: 'Postgraduate Applications',
+      transfer: 'Transfer Applications',
+      bridging: 'Bridging Programmes'
+    };
+    return labels[type] || (type ? type.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()) : 'Undergraduate Applications');
+  }
+
+  const APPLICATION_UPDATE_STATUSES = [
+    'Application Submitted',
+    'Application Received',
+    'Under Review',
+    'Documents Required',
+    'Application Updated',
+    'Institution Response Received',
+    'Provisionally Accepted',
+    'Accepted',
+    'Unsuccessful',
+    'Waitlisted',
+    'Registration Information Available'
+  ];
+
+  const SUPPORT_TICKET_STATUSES = ['open', 'in_progress', 'awaiting_user', 'resolved', 'closed'];
+
+  function getApplicationFormTypes() {
+    return [
+      { formType: 'undergraduate', label: 'Undergraduate Applications', displayOrder: 10, enabled: true },
+      { formType: 'bridging', label: 'Bridging Programmes', displayOrder: 20, enabled: true },
+      { formType: 'transfer', label: 'Transfer Applications', displayOrder: 30, enabled: true },
+      { formType: 'postgraduate', label: 'Postgraduate Applications', displayOrder: 40, enabled: true },
+      { formType: 'late', label: 'Late Applications', displayOrder: 50, enabled: true }
+    ].map(clone);
+  }
+
+  function normalizeApplicationUpdateStatus(value) {
+    const raw = String(value || '').trim();
+    const match = APPLICATION_UPDATE_STATUSES.find((status) => status.toLowerCase() === raw.toLowerCase());
+    return match || 'Application Updated';
+  }
+
+  function normalizeSupportTicketStatus(value) {
+    const raw = String(value || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+    if (SUPPORT_TICKET_STATUSES.includes(raw)) return raw;
+    if (raw === 'open') return 'open';
+    if (raw === 'progress') return 'in_progress';
+    if (raw === 'awaiting') return 'awaiting_user';
+    if (raw === 'resolved') return 'resolved';
+    if (raw === 'closed') return 'closed';
+    return 'open';
+  }
+
+  function supportTicketStatusLabel(value) {
+    const status = normalizeSupportTicketStatus(value);
+    const labels = {
+      open: 'Open',
+      in_progress: 'In Progress',
+      awaiting_user: 'Awaiting User',
+      resolved: 'Resolved',
+      closed: 'Closed'
+    };
+    return labels[status] || 'Open';
+  }
+
+  function normalizeAssistantFormPermission(entryArg) {
+    const formType = normalizeApplicationTypeKey(entryArg?.formType || entryArg?.form_type || entryArg?.applicationType || entryArg?.application_type || '');
+    return {
+      assistantAdminId: String(entryArg?.assistantAdminId || entryArg?.assistant_admin_id || entryArg?.assistantId || entryArg?.assistant_id || '').trim(),
+      formType: formType || 'undergraduate',
+      label: entryArg?.label || applicationTypeLabelForKey(formType || 'undergraduate'),
+      enabled: entryArg?.enabled !== false,
+      grantedBy: String(entryArg?.grantedBy || entryArg?.granted_by || '').trim(),
+      grantedAt: entryArg?.grantedAt || entryArg?.granted_at || '',
+      updatedAt: entryArg?.updatedAt || entryArg?.updated_at || nowISO()
+    };
+  }
+
+  function normalizeApplicationUpdate(entryArg) {
+    return {
+      id: entryArg?.id || uid('upd'),
+      userId: String(entryArg?.userId || entryArg?.user_id || '').trim(),
+      applicationId: String(entryArg?.applicationId || entryArg?.application_id || '').trim(),
+      institutionId: String(entryArg?.institutionId || entryArg?.institution_id || '').trim(),
+      institutionName: String(entryArg?.institutionName || entryArg?.institution_name || '').trim(),
+      title: String(entryArg?.title || '').trim(),
+      message: String(entryArg?.message || '').trim(),
+      status: normalizeApplicationUpdateStatus(entryArg?.status),
+      actionLabel: String(entryArg?.actionLabel || entryArg?.action_label || '').trim(),
+      actionUrl: String(entryArg?.actionUrl || entryArg?.action_url || '').trim(),
+      read: Boolean(entryArg?.read || entryArg?.isRead || entryArg?.is_read),
+      postedBy: String(entryArg?.postedBy || entryArg?.posted_by || '').trim(),
+      postedByRole: normalizeKagieRole(entryArg?.postedByRole || entryArg?.posted_by_role, ROLES.MASTER),
+      updateAt: entryArg?.updateAt || entryArg?.update_at || entryArg?.createdAt || entryArg?.created_at || nowISO(),
+      createdAt: entryArg?.createdAt || entryArg?.created_at || nowISO(),
+      updatedAt: entryArg?.updatedAt || entryArg?.updated_at || entryArg?.createdAt || entryArg?.created_at || nowISO(),
+      source: entryArg?.source || ''
+    };
+  }
+
+  function normalizeSupportThread(entryArg) {
+    return {
+      id: entryArg?.id || uid('ticket'),
+      userId: String(entryArg?.userId || entryArg?.user_id || '').trim(),
+      assistantId: String(entryArg?.assistantId || entryArg?.assistant_id || '').trim(),
+      subject: String(entryArg?.subject || 'Support request').trim() || 'Support request',
+      category: String(entryArg?.category || 'General').trim() || 'General',
+      priority: String(entryArg?.priority || 'normal').trim() || 'normal',
+      status: normalizeSupportTicketStatus(entryArg?.status),
+      statusLabel: supportTicketStatusLabel(entryArg?.status),
+      lastMessageAt: entryArg?.lastMessageAt || entryArg?.last_message_at || entryArg?.updatedAt || entryArg?.updated_at || entryArg?.createdAt || entryArg?.created_at || nowISO(),
+      closedAt: entryArg?.closedAt || entryArg?.closed_at || '',
+      createdAt: entryArg?.createdAt || entryArg?.created_at || nowISO(),
+      updatedAt: entryArg?.updatedAt || entryArg?.updated_at || nowISO(),
+      source: entryArg?.source || ''
+    };
+  }
+
+  function supportReferenceIdentityKeys(referenceArg) {
+    const reference = String(referenceArg || '').trim();
+    if (!reference) return [];
+    const user = getUserByIdentity(reference);
+    return uniqueNonEmptyStrings([reference].concat(user ? getUserIdentityKeys(user) : []));
+  }
+
+  function identitySetHasAny(identitySetArg, keysArg) {
+    const set = identitySetArg instanceof Set ? identitySetArg : new Set();
+    return safeArray(keysArg).some((key) => set.has(String(key || '').trim().toLowerCase()));
+  }
+
+  function supportActorIdentitySet(actorArg) {
+    const actor = actorArg || currentUser();
+    return new Set(
+      uniqueNonEmptyStrings([toRemoteUserId(actor)].concat(getUserIdentityKeys(actor)))
+        .map((key) => String(key || '').trim().toLowerCase())
+    );
+  }
+
+  const SPECIALISED_FORM_META_KEYS = new Set([
+    'applicationType',
+    'package',
+    'learner',
+    'parent',
+    'school',
+    'marks',
+    'apply',
+    'institutions',
+    'current',
+    'type',
+    'currentStep',
+    'submitted',
+    'reference',
+    'selectedPackage'
+  ]);
+
+  function objectRecord(value) {
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  }
+
+  function hasObjectKeys(value) {
+    return Object.keys(objectRecord(value)).length > 0;
+  }
+
+  function unwrapSpecialisedApplicationValues(value) {
+    const source = objectRecord(value);
+    if (hasObjectKeys(source.values)) return objectRecord(source.values);
+    if (hasObjectKeys(source.current?.values)) return objectRecord(source.current.values);
+    if (hasObjectKeys(source.current) && !source.current?.currentStep) return objectRecord(source.current);
+    return Object.fromEntries(Object.entries(source).filter(([key]) => !SPECIALISED_FORM_META_KEYS.has(key)));
+  }
+
+  function hasUsefulApplicationValues(value) {
+    return Object.values(objectRecord(value)).some((entry) => {
+      if (Array.isArray(entry)) return entry.length > 0;
+      if (entry && typeof entry === 'object') return Object.keys(entry).length > 0;
+      return String(entry ?? '').trim();
+    });
+  }
+
+  function remoteApplicationTypeKey(value) {
+    const type = normalizeApplicationTypeKey(value);
+    if (type === 'postgraduate') return 'POST_GRADUATE';
+    if (type === 'bridging') return 'BRIDGING';
+    if (type === 'transfer') return 'TRANSFER';
+    if (type === 'late') return 'LATE';
+    return 'UNDERGRADUATE';
   }
 
   function normalizeStoredApplication(app) {
     if (!app || typeof app !== 'object') return null;
     const safeApp = clone(app);
+    const applicationType = normalizeApplicationTypeKey(
+      safeApp.applicationType ||
+      safeApp.forms?.applicationType?.type ||
+      safeApp.applicationTypeLabel ||
+      safeApp.forms?.applicationType?.label ||
+      safeApp.applicationEngine?.type ||
+      safeApp.lateApplication?.type ||
+      ''
+    ) || 'undergraduate';
+    safeApp.applicationType = applicationType;
+    safeApp.applicationTypeLabel = applicationTypeLabelForKey(applicationType);
+    safeApp.forms = safeApp.forms && typeof safeApp.forms === 'object' ? safeApp.forms : {};
+    safeApp.forms.applicationType = { ...(safeApp.forms.applicationType || {}), type: applicationType, label: safeApp.applicationTypeLabel };
     safeApp.payment = normalizePaymentDetails(safeApp.payment, safeApp.paymentStatus);
     safeApp.timeline = safeArray(safeApp.timeline);
     safeApp.institutions = safeArray(safeApp.institutions);
     safeApp.services = safeArray(safeApp.services);
+    safeApp.forms = safeApp.forms && typeof safeApp.forms === 'object' ? safeApp.forms : {};
+    safeApp.forms.learner = {
+      ...(safeApp.forms.learner || {}),
+      ...normalizeLearnerSupportNeeds(safeApp.forms?.learner || {})
+    };
+    safeApp.forms = safeApp.forms && typeof safeApp.forms === 'object' ? safeApp.forms : {};
+    safeApp.forms.portalAccess = safeArray(safeApp.forms.portalAccess)
+      .map((entry, index) => normalizePortalAccessEntry(entry, index + 1))
+      .filter(portalAccessHasData);
     return safeApp;
   }
 
@@ -296,6 +1024,34 @@
     const data = window.KagieData || {};
     const nscSubjects = safeArray(data.nscSubjects && data.nscSubjects.length ? data.nscSubjects : data.dbeSubjects);
     const iebSubjects = safeArray(data.iebSubjects && data.iebSubjects.length ? data.iebSubjects : nscSubjects);
+    const mergedHighSchools = [];
+    const seenHighSchools = new Set();
+    safeArray(data.highSchools)
+      .concat(safeArray(window.KAGIE_HIGH_SCHOOLS))
+      .forEach((school) => {
+        const key = String(
+          school?.id ||
+          [school?.name, school?.province, school?.district, school?.town]
+            .map((part) => String(part || '').trim().toLowerCase())
+            .join('|')
+        ).trim();
+        if (!key || seenHighSchools.has(key)) return;
+        seenHighSchools.add(key);
+        mergedHighSchools.push(school);
+      });
+    const mergedInstitutions = [];
+    const seenInstitutions = new Set();
+    safeArray(data.institutions)
+      .concat(safeArray(window.KAGIE_INSTITUTIONS))
+      .forEach((institution) => {
+        const key = String(
+          institution?.name || institution?.institution || ''
+        ).trim();
+        const normalizedKey = normalizeInstitutionNameKey ? normalizeInstitutionNameKey(key) : key.toLowerCase();
+        if (!normalizedKey || seenInstitutions.has(normalizedKey)) return;
+        seenInstitutions.add(normalizedKey);
+        mergedInstitutions.push(institution);
+      });
     return {
       provinces: safeArray(data.provinces),
       homeLanguages: safeArray(data.homeLanguages),
@@ -304,27 +1060,1165 @@
       dbeSubjects: safeArray(data.dbeSubjects && data.dbeSubjects.length ? data.dbeSubjects : nscSubjects),
       nscSubjects,
       iebSubjects,
-      highSchools: safeArray(data.highSchools),
+      highSchools: mergedHighSchools,
       applicationPacks: safeArray(data.applicationPacks),
       extraServices: safeArray(data.extraServices),
       accommodationListings: safeArray(data.accommodationListings),
       transportOptions: safeArray(data.transportOptions),
-      institutions: safeArray(data.institutions),
+      institutions: mergedInstitutions,
       prospectus: safeArray(data.prospectus),
-      updates: safeArray(data.updates)
+      updates: safeArray(data.updates),
+      pastPapers: safeArray(data.pastPapers),
+      pastPaperBlueprint: clone(data.pastPaperBlueprint || {})
     };
   }
 
   function sanitizeUser(user) {
     if (!user) return null;
-    const safe = { ...user };
+    const safe = normalizeUserRecord(user);
     delete safe.password;
     return safe;
   }
 
-  function getPackCatalog() {
-    return clone(getKagieData().applicationPacks);
+  function normalizePackCatalogEntry(item, fallbackIndex) {
+    const source = item && typeof item === 'object' ? item : {};
+    const code = String(source.code || source.id || `pack_${fallbackIndex || 1}`).trim();
+    const rawLimit = source.institutionLimit ?? source.institution_limit;
+    const isUnlimited = rawLimit === 'unlimited' || rawLimit === null || rawLimit === undefined || source.isUnlimited || source.is_unlimited;
+    const applicationType = normalizeApplicationTypeKey(source.applicationType || source.application_type || source.type || '');
+    const level = String(source.level || source.packageLevel || source.package_level || '').trim().toUpperCase();
+    return {
+      id: code,
+      code,
+      remoteId: String(source.remoteId || (source.code ? source.id || '' : '')).trim(),
+      name: String(source.name || source.packageName || source.package_name || '').trim(),
+      price: Number(source.price || 0),
+      institutionLimit: isUnlimited ? 'unlimited' : Math.max(0, Number(rawLimit || 0)),
+      isUnlimited,
+      highlight: String(source.highlight || '').trim(),
+      description: String(source.description || '').trim(),
+      applicationType,
+      level,
+      features: safeArray(source.features),
+      badge: source.badge || (source.is_popular || source.isPopular ? 'Most Popular' : source.is_premium || source.isPremium ? 'Best Support' : ''),
+      isPopular: Boolean(source.isPopular || source.is_popular),
+      isPremium: Boolean(source.isPremium || source.is_premium),
+      isActive: source.isActive !== false && source.is_active !== false,
+      sortOrder: Number(source.sortOrder || fallbackIndex || 0),
+      createdAt: source.createdAt || source.created_at || nowISO(),
+      updatedAt: source.updatedAt || source.updated_at || nowISO()
+    };
   }
+
+  function invalidatePackCatalogCache() {
+    packCatalogCache = null;
+    remotePackCache = null;
+    return true;
+  }
+
+  function getPackOverrideStore() {
+    return read(KEYS.applicationPacksCatalog, []);
+  }
+
+  function savePackOverrideStore(records) {
+    write(KEYS.applicationPacksCatalog, records);
+    invalidatePackCatalogCache();
+    return records;
+  }
+
+  function getMergedPackCatalogRecords() {
+    if (packCatalogCache) return packCatalogCache.map(clone);
+
+    const base = safeArray(getKagieData().applicationPacks).map((item, index) => normalizePackCatalogEntry(item, index + 1));
+    const merged = new Map(base.map((item) => [item.id, item]));
+
+    safeArray(remotePackCache).forEach((entry, index) => {
+      const normalized = normalizePackCatalogEntry({
+        ...entry,
+        id: entry?.code || entry?.id,
+        code: entry?.code || entry?.id,
+        remoteId: entry?.id || ''
+      }, base.length + index + 1);
+      if (!normalized.id) return;
+      const existing = merged.get(normalized.id);
+      merged.set(normalized.id, normalizePackCatalogEntry(existing ? mergeDeep(existing, normalized) : normalized, existing?.sortOrder || index + 1));
+    });
+
+    safeArray(getPackOverrideStore()).forEach((entry, index) => {
+      const normalized = normalizePackCatalogEntry(entry, base.length + index + 1);
+      if (!normalized.id) return;
+      if (entry?._deleted) {
+        merged.delete(normalized.id);
+        return;
+      }
+      const existing = merged.get(normalized.id);
+      merged.set(normalized.id, normalizePackCatalogEntry(existing ? mergeDeep(existing, normalized) : normalized, existing?.sortOrder || index + 1));
+    });
+
+    packCatalogCache = Array.from(merged.values())
+      .filter((item) => item.name)
+      .sort((a, b) => {
+        const orderDiff = Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
+        if (orderDiff) return orderDiff;
+        return a.name.localeCompare(b.name);
+      });
+
+    return packCatalogCache.map(clone);
+  }
+
+  function getPackById(packId) {
+    return getMergedPackCatalogRecords().find((item) => item.id === packId || item.code === packId) || null;
+  }
+
+  function getPackCatalog() {
+    return getMergedPackCatalogRecords()
+      .filter((item) => item.isActive !== false)
+      .map(clone);
+  }
+
+  function getPacksForAdmin() {
+    requireRole([ROLES.MASTER]);
+    return getMergedPackCatalogRecords().map(clone);
+  }
+
+  function updatePackByAdmin(packId, patch) {
+    requireRole([ROLES.MASTER]);
+
+    const current = getPackById(packId);
+    if (!current) throw new Error('Package not found.');
+
+    const nextPrice = Number(patch?.price ?? current.price);
+    if (!Number.isFinite(nextPrice) || nextPrice < 250 || nextPrice > 1000) {
+      throw new Error('Package price must stay between R250 and R1000.');
+    }
+
+    const store = getPackOverrideStore();
+    const index = store.findIndex((item) => String(item?.id || item?.code || '') === current.id);
+    const merged = normalizePackCatalogEntry({
+      ...current,
+      ...patch,
+      id: current.id,
+      code: current.code || current.id,
+      remoteId: current.remoteId || '',
+      price: nextPrice,
+      institutionLimit: current.institutionLimit,
+      isUnlimited: current.isUnlimited || current.institutionLimit === 'unlimited',
+      updatedAt: nowISO()
+    }, current.sortOrder || index + 1);
+
+    if (index >= 0) store[index] = mergeDeep(store[index], merged);
+    else store.push(merged);
+
+    savePackOverrideStore(store);
+    return getPackById(current.id) || merged;
+  }
+
+  function normalizePromoDiscountKind(value) {
+    const text = String(value || '').trim().toLowerCase();
+    if (text === 'amount' || text === 'flat') return 'amount';
+    if (text === 'free_application_pack' || text === 'free_pack' || text === 'free') return 'free_application_pack';
+    return 'percent';
+  }
+
+  function normalizePromoCampaignEntry(item, fallbackIndex) {
+    const source = item && typeof item === 'object' ? item : {};
+    const code = normalizePromoCodeValue(source.code || source.id || generateRandomPromoCode());
+    const redeemedUserIds = safeArray(source.redeemedUserIds || source.redeemed_user_ids)
+      .map((entry) => String(entry || '').trim())
+      .filter(Boolean);
+    const usedCount = Math.max(redeemedUserIds.length, Math.max(0, Number(source.usedCount ?? source.used_count ?? 0) || 0));
+    return {
+      id: code,
+      code,
+      remoteId: String(source.remoteId || (source.code ? source.id || '' : '')).trim(),
+      title: String(source.title || source.name || `Promo ${code}`).trim(),
+      description: String(source.description || '').trim(),
+      discountKind: normalizePromoDiscountKind(source.discountKind || source.discount_kind),
+      discountValue: roundMoney(source.discountValue ?? source.discount_value ?? source.value ?? 0),
+      offerNote: String(source.offerNote || source.offer_note || '').trim(),
+      maxUses: Math.max(0, Number(source.maxUses ?? source.max_uses ?? 0) || 0),
+      usedCount,
+      redeemedUserIds,
+      isActive: source.isActive !== false && source.is_active !== false,
+      sharePath: String(source.sharePath || source.share_path || `signup.html?promo=${encodeURIComponent(code)}`).trim(),
+      createdAt: source.createdAt || source.created_at || nowISO(),
+      updatedAt: source.updatedAt || source.updated_at || nowISO(),
+      _deleted: !!source._deleted
+    };
+  }
+
+  function invalidatePromoCatalogCache() {
+    promoCatalogCache = null;
+    remotePromoCache = null;
+    return true;
+  }
+
+  function getPromoOverrideStore() {
+    return read(KEYS.promoCampaigns, []);
+  }
+
+  function savePromoOverrideStore(records) {
+    write(KEYS.promoCampaigns, records);
+    invalidatePromoCatalogCache();
+    return records;
+  }
+
+  function getMergedPromoCampaignRecords() {
+    if (promoCatalogCache) return promoCatalogCache.map(clone);
+
+    const merged = new Map();
+    safeArray(remotePromoCache).forEach((entry, index) => {
+      const normalized = normalizePromoCampaignEntry(entry, index + 1);
+      if (normalized.code) merged.set(normalized.code, normalized);
+    });
+
+    safeArray(getPromoOverrideStore()).forEach((entry, index) => {
+      const normalized = normalizePromoCampaignEntry(entry, index + 1);
+      if (!normalized.code) return;
+      if (entry?._deleted) {
+        merged.delete(normalized.code);
+        return;
+      }
+      const current = merged.get(normalized.code);
+      merged.set(normalized.code, normalizePromoCampaignEntry(current ? mergeDeep(current, normalized) : normalized, index + 1));
+    });
+
+    promoCatalogCache = Array.from(merged.values())
+      .filter((entry) => entry.code)
+      .sort((a, b) => String(a.title || a.code).localeCompare(String(b.title || b.code)));
+    return promoCatalogCache.map(clone);
+  }
+
+  function getPromoCampaigns(optionsArg) {
+    const options = optionsArg || {};
+    let records = getMergedPromoCampaignRecords();
+    if (options.includeInactive !== true) {
+      records = records.filter((entry) => entry.isActive !== false);
+    }
+    return records.map(clone);
+  }
+
+  function getPromoCodesForAdmin() {
+    requireRole([ROLES.MASTER]);
+    return getMergedPromoCampaignRecords().map(clone);
+  }
+
+  function getPromoCampaignByCode(codeArg, optionsArg) {
+    const code = normalizePromoCodeValue(codeArg);
+    if (!code) return null;
+    const options = optionsArg || {};
+    return getMergedPromoCampaignRecords().find((entry) => entry.code === code && (options.includeInactive === true || entry.isActive !== false)) || null;
+  }
+
+  function savePendingPromoCode(codeArg) {
+    const code = normalizePromoCodeValue(codeArg);
+    if (code) write(KEYS.pendingPromoCode, code);
+    else write(KEYS.pendingPromoCode, '');
+    return code;
+  }
+
+  function getPendingPromoCode() {
+    return normalizePromoCodeValue(read(KEYS.pendingPromoCode, ''));
+  }
+
+  function capturePendingPromoCodeFromLocation() {
+    const locationRef = getLocationSnapshot();
+    if (!locationRef?.search) return getPendingPromoCode();
+    try {
+      const params = new URLSearchParams(locationRef.search);
+      const code = normalizePromoCodeValue(params.get('promo') || params.get('ref') || params.get('code'));
+      if (!code) return getPendingPromoCode();
+      savePendingPromoCode(code);
+      return code;
+    } catch (_error) {
+      return getPendingPromoCode();
+    }
+  }
+
+  function createPromoCampaignByAdmin(input) {
+    requireRole([ROLES.MASTER]);
+
+    const code = normalizePromoCodeValue(input?.code || generateRandomPromoCode());
+    const title = String(input?.title || `Promo ${code}`).trim();
+    if (!code || code.length !== 9) throw new Error('Promo code must be 9 letters or numbers.');
+    if (!title) throw new Error('Promo title is required.');
+
+    const current = getPromoCampaignByCode(code, { includeInactive: true });
+    if (current) throw new Error('That promo code already exists.');
+
+    const entry = normalizePromoCampaignEntry({
+      code,
+      title,
+      description: input?.description || '',
+      discountKind: input?.discountKind || input?.discount_kind || 'percent',
+      discountValue: input?.discountValue ?? input?.discount_value ?? input?.value ?? 0,
+      offerNote: input?.offerNote || input?.offer_note || '',
+      maxUses: input?.maxUses ?? input?.max_uses ?? 0,
+      isActive: input?.isActive !== false && input?.is_active !== false,
+      sharePath: input?.sharePath || input?.share_path || `signup.html?promo=${encodeURIComponent(code)}`,
+      redeemedUserIds: []
+    }, getPromoOverrideStore().length + 1);
+
+    const records = getPromoOverrideStore();
+    records.push(entry);
+    savePromoOverrideStore(records);
+    return getPromoCampaignByCode(code, { includeInactive: true }) || entry;
+  }
+
+  function updatePromoCampaignByAdmin(codeArg, patch) {
+    requireRole([ROLES.MASTER]);
+
+    const code = normalizePromoCodeValue(codeArg);
+    const current = getPromoCampaignByCode(code, { includeInactive: true });
+    if (!current) throw new Error('Promo code not found.');
+
+    const records = getPromoOverrideStore();
+    const index = records.findIndex((entry) => normalizePromoCodeValue(entry?.code || entry?.id) === code);
+    const next = normalizePromoCampaignEntry({
+      ...current,
+      ...patch,
+      code,
+      updatedAt: nowISO()
+    }, index + 1);
+
+    if (index >= 0) records[index] = mergeDeep(records[index], next);
+    else records.push(next);
+    savePromoOverrideStore(records);
+    return getPromoCampaignByCode(code, { includeInactive: true }) || next;
+  }
+
+  function deletePromoCampaignByAdmin(codeArg) {
+    requireRole([ROLES.MASTER]);
+
+    const code = normalizePromoCodeValue(codeArg);
+    const current = getPromoCampaignByCode(code, { includeInactive: true });
+    if (!current) throw new Error('Promo code not found.');
+
+    const records = getPromoOverrideStore();
+    const index = records.findIndex((entry) => normalizePromoCodeValue(entry?.code || entry?.id) === code);
+    const tombstone = {
+      ...(index >= 0 ? records[index] : current),
+      code,
+      _deleted: true,
+      updatedAt: nowISO()
+    };
+
+    if (index >= 0) records[index] = tombstone;
+    else records.push(tombstone);
+    savePromoOverrideStore(records);
+    return true;
+  }
+
+  function getPromoBenefitLabel(promoArg) {
+    const promo = normalizePromoCampaignEntry(promoArg || {});
+    if (promo.discountKind === 'free_application_pack') return 'Free application pack';
+    if (promo.discountKind === 'amount') return `${formatMoneyLabel(promo.discountValue)} off`;
+    return `${Math.max(0, Number(promo.discountValue || 0))}% off`;
+  }
+
+  function normalizeMarketingCategory(valueArg) {
+    const value = String(valueArg || '').trim().toLowerCase();
+    if (value === 'bursary_updates' || value === 'bursaries') return 'bursary_updates';
+    if (value === 'internships' || value === 'learnerships') return 'internships';
+    if (value === 'closing_dates' || value === 'deadlines') return 'closing_dates';
+    if (value === 'application_reopenings' || value === 'reopenings' || value === 'reopening') return 'application_reopenings';
+    if (value === 'late_applications' || value === 'late_application') return 'late_applications';
+    return 'general_updates';
+  }
+
+  function getMarketingCategoryLabel(categoryArg) {
+    const category = normalizeMarketingCategory(categoryArg);
+    if (category === 'bursary_updates') return 'Bursary updates';
+    if (category === 'internships') return 'Internships and learnerships';
+    if (category === 'closing_dates') return 'Closing dates';
+    if (category === 'application_reopenings') return 'Application reopenings';
+    if (category === 'late_applications') return 'Late applications';
+    return 'General updates';
+  }
+
+  function normalizeMarketingAudience(valueArg) {
+    const value = String(valueArg || '').trim().toLowerCase();
+    if (value === 'all_accounts' || value === 'everyone' || value === 'all') return 'all_accounts';
+    return 'learners';
+  }
+
+  function normalizeMarketingChannels(sourceArg) {
+    const source = sourceArg && typeof sourceArg === 'object' ? sourceArg : {};
+    const fallbackApp = source.inApp ?? source.app ?? source.push ?? source.notification;
+    const fallbackEmail = source.email ?? source.mail;
+    const fallbackSms = source.sms ?? source.text;
+    return {
+      inApp: fallbackApp !== false,
+      email: Boolean(fallbackEmail),
+      sms: Boolean(fallbackSms)
+    };
+  }
+
+  function normalizeMarketingCampaignEntry(entryArg, fallbackIndex) {
+    const entry = entryArg && typeof entryArg === 'object' ? entryArg : {};
+    const delivery = entry.delivery && typeof entry.delivery === 'object' ? entry.delivery : {};
+    const warnings = safeArray(entry.warnings).map((item) => String(item || '').trim()).filter(Boolean);
+    return {
+      id: String(entry.id || uid('campaign')).trim() || uid('campaign'),
+      title: String(entry.title || 'Marketing update').trim() || 'Marketing update',
+      message: String(entry.message || '').trim(),
+      type: String(entry.type || 'info').trim().toLowerCase() || 'info',
+      category: normalizeMarketingCategory(entry.category),
+      categoryLabel: getMarketingCategoryLabel(entry.category),
+      audience: normalizeMarketingAudience(entry.audience),
+      channels: normalizeMarketingChannels(entry.channels || entry),
+      ctaLabel: String(entry.ctaLabel || entry.cta_label || '').trim(),
+      ctaHref: String(entry.ctaHref || entry.cta_href || '').trim(),
+      createdById: String(entry.createdById || entry.created_by_id || '').trim(),
+      createdByName: String(entry.createdByName || entry.created_by_name || '').trim(),
+      totalRecipients: Math.max(0, Number(entry.totalRecipients ?? entry.total_recipients ?? delivery.totalRecipients ?? 0) || 0),
+      delivery: {
+        totalRecipients: Math.max(0, Number(delivery.totalRecipients ?? delivery.total_recipients ?? entry.totalRecipients ?? 0) || 0),
+        inAppDelivered: Math.max(0, Number(delivery.inAppDelivered ?? delivery.in_app_delivered ?? 0) || 0),
+        emailEligible: Math.max(0, Number(delivery.emailEligible ?? delivery.email_eligible ?? 0) || 0),
+        emailSent: Math.max(0, Number(delivery.emailSent ?? delivery.email_sent ?? 0) || 0),
+        smsEligible: Math.max(0, Number(delivery.smsEligible ?? delivery.sms_eligible ?? 0) || 0),
+        smsSent: Math.max(0, Number(delivery.smsSent ?? delivery.sms_sent ?? 0) || 0)
+      },
+      warnings,
+      mode: String(entry.mode || '').trim() || 'local',
+      createdAt: String(entry.createdAt || entry.created_at || nowISO()).trim() || nowISO(),
+      updatedAt: String(entry.updatedAt || entry.updated_at || entry.createdAt || entry.created_at || nowISO()).trim() || nowISO(),
+      sortOrder: Number(entry.sortOrder || fallbackIndex || 0) || fallbackIndex || 0
+    };
+  }
+
+  function getMarketingCampaignStore() {
+    return read(KEYS.marketingCampaigns, []);
+  }
+
+  function saveMarketingCampaignStore(records) {
+    write(KEYS.marketingCampaigns, safeArray(records));
+    return getMarketingCampaigns();
+  }
+
+  function getMarketingCampaigns() {
+    requireRole([ROLES.MASTER]);
+    return safeArray(getMarketingCampaignStore())
+      .map((entry, index) => normalizeMarketingCampaignEntry(entry, index + 1))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .map(clone);
+  }
+
+  function storeMarketingCampaign(entryArg) {
+    const current = safeArray(getMarketingCampaignStore());
+    const entry = normalizeMarketingCampaignEntry(entryArg, current.length + 1);
+    current.unshift(entry);
+    write(KEYS.marketingCampaigns, current);
+    return clone(entry);
+  }
+
+  const ADMIN_CONTENT_DEFAULTS = {
+    career_hub: {
+      contentKey: 'career_hub',
+      title: 'Career Hub Admin',
+      body: 'Published question papers, study guides, and career practice content are managed here.',
+      status: 'active',
+      settings: {
+        featuredTopic: 'Career practice hub',
+        ctaLabel: 'Open Career Hub',
+        ctaHref: 'career-guidance.html'
+      }
+    },
+    housing_hub: {
+      contentKey: 'housing_hub',
+      title: 'Housing Admin',
+      body: 'Manage housing guidance and availability messaging for learners.',
+      status: 'active',
+      settings: {
+        serviceStatus: 'open',
+        supportPhone: '',
+        ctaLabel: 'Open Housing',
+        ctaHref: 'more-service/accommodation-assist.html'
+      }
+    }
+  };
+
+  function normalizeAdminContentKey(valueArg) {
+    const value = String(valueArg || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    if (value === 'career' || value === 'careerhub') return 'career_hub';
+    if (value === 'housing' || value === 'accommodation') return 'housing_hub';
+    return value || 'general';
+  }
+
+  function normalizeAdminContentStatus(valueArg) {
+    const value = String(valueArg || '').trim().toLowerCase();
+    return value === 'inactive' || value === 'disabled' || value === 'draft' ? 'inactive' : 'active';
+  }
+
+  function normalizeAdminContentEntry(entryArg, fallbackKeyArg) {
+    const fallbackKey = normalizeAdminContentKey(fallbackKeyArg);
+    const fallback = ADMIN_CONTENT_DEFAULTS[fallbackKey] || {};
+    const entry = entryArg && typeof entryArg === 'object' ? entryArg : {};
+    let settings = entry.settings || entry.settings_json || fallback.settings || {};
+    if (typeof settings === 'string') {
+      try {
+        settings = JSON.parse(settings);
+      } catch (_error) {
+        settings = {};
+      }
+    }
+    const contentKey = normalizeAdminContentKey(entry.contentKey || entry.content_key || fallback.contentKey || fallbackKey);
+    return {
+      id: String(entry.id || fallback.id || contentKey).trim(),
+      contentKey,
+      title: String(entry.title || fallback.title || 'Admin content').trim(),
+      body: String(entry.body || entry.message || fallback.body || '').trim(),
+      status: normalizeAdminContentStatus(entry.status || fallback.status),
+      settings: {
+        ...(fallback.settings || {}),
+        ...(settings && typeof settings === 'object' ? settings : {})
+      },
+      createdById: String(entry.createdById || entry.created_by || '').trim(),
+      updatedById: String(entry.updatedById || entry.updated_by || '').trim(),
+      createdAt: entry.createdAt || entry.created_at || nowISO(),
+      updatedAt: entry.updatedAt || entry.updated_at || nowISO()
+    };
+  }
+
+  function getAdminContentStore() {
+    const byKey = new Map();
+    Object.keys(ADMIN_CONTENT_DEFAULTS).forEach((key) => {
+      byKey.set(key, normalizeAdminContentEntry(ADMIN_CONTENT_DEFAULTS[key], key));
+    });
+    safeArray(read(KEYS.adminContent, [])).forEach((entry) => {
+      const normalized = normalizeAdminContentEntry(entry, entry?.contentKey || entry?.content_key);
+      byKey.set(normalized.contentKey, normalized);
+    });
+    return Array.from(byKey.values());
+  }
+
+  function saveAdminContentStore(recordsArg) {
+    const normalized = safeArray(recordsArg).map((entry) => normalizeAdminContentEntry(entry, entry?.contentKey || entry?.content_key));
+    write(KEYS.adminContent, normalized);
+    return getAdminContentStore();
+  }
+
+  function getAdminContent(contentKeyArg) {
+    const contentKey = normalizeAdminContentKey(contentKeyArg);
+    return clone(getAdminContentStore().find((entry) => entry.contentKey === contentKey) || normalizeAdminContentEntry(null, contentKey));
+  }
+
+  async function getAdminContentAsync(contentKeyArg) {
+    const local = getAdminContent(contentKeyArg);
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const client = initSupabaseClient();
+      if (!client) return local;
+      const contentKey = normalizeAdminContentKey(contentKeyArg);
+      const result = await client.from('admin_content').select('*').eq('content_key', contentKey).maybeSingle();
+      if (result.error) {
+        const message = String(result.error.message || result.error).toLowerCase();
+        if (message.includes('admin_content') || message.includes('could not find') || message.includes('does not exist')) return local;
+        throw new Error(result.error.message || 'Could not load admin content.');
+      }
+      if (!result.data) return local;
+      const remote = normalizeAdminContentEntry(result.data, contentKey);
+      saveAdminContentStore(getAdminContentStore().filter((entry) => entry.contentKey !== contentKey).concat(remote));
+      return clone(remote);
+    } catch (error) {
+      console.warn('Admin content fell back to local storage.', error);
+      return local;
+    }
+  }
+
+  async function saveAdminContentByAdminAsync(contentKeyArg, payloadArg) {
+    const beforeSave = getAdminContentStore();
+    const actor = requireRole([ROLES.MASTER]);
+    const contentKey = normalizeAdminContentKey(contentKeyArg);
+    const current = getAdminContent(contentKey);
+    const next = normalizeAdminContentEntry({
+      ...current,
+      ...(payloadArg || {}),
+      contentKey,
+      updatedById: actor.id,
+      updatedAt: nowISO()
+    }, contentKey);
+    saveAdminContentStore(getAdminContentStore().filter((entry) => entry.contentKey !== contentKey).concat(next));
+
+    if (!isSupabaseEnabled()) return clone(next);
+    try {
+      const client = initSupabaseClient();
+      if (!client) throw new Error('Live content could not connect. Please sign in again.');
+      const result = await client.from('admin_content').upsert({
+        content_key: next.contentKey,
+        title: next.title,
+        body: next.body,
+        status: next.status,
+        settings: next.settings,
+        updated_by: actor.supabaseUserId || actor.id || null
+      }, { onConflict: 'content_key' }).select('*').single();
+      if (result.error) {
+        const message = String(result.error.message || result.error).toLowerCase();
+
+        throw new Error(result.error.message || 'Could not save admin content.');
+      }
+      const remote = normalizeAdminContentEntry(result.data, contentKey);
+      saveAdminContentStore(getAdminContentStore().filter((entry) => entry.contentKey !== contentKey).concat(remote));
+      return clone(remote);
+    } catch (error) {
+      saveAdminContentStore(beforeSave);
+      throw error;
+    }
+  }
+
+  function normalizeAnnouncementAudience(valueArg) {
+    const value = String(valueArg || '').trim().toLowerCase();
+    if (['all', 'all_users', 'all_accounts', 'everyone'].includes(value)) return 'all';
+    if (['assistant', 'assistants', 'assistant_admin', 'assistant_admins', 'staff'].includes(value)) return 'assistants';
+    if (['institution', 'institution_specific', 'institution_users'].includes(value)) return 'institution';
+    return 'learners';
+  }
+
+  function normalizeAnnouncementStatus(valueArg, activeArg) {
+    if (activeArg === false) return 'inactive';
+    const value = String(valueArg || '').trim().toLowerCase();
+    return value === 'inactive' || value === 'disabled' || value === 'draft' ? 'inactive' : 'active';
+  }
+
+  function normalizeAnnouncementEntry(entryArg) {
+    const entry = entryArg && typeof entryArg === 'object' ? entryArg : {};
+    const active = entry.active ?? entry.is_active;
+    return {
+      id: String(entry.id || uid('announcement')).trim(),
+      title: String(entry.title || 'Kagie announcement').trim(),
+      message: String(entry.message || entry.body || '').trim(),
+      type: String(entry.type || 'info').trim().toLowerCase() || 'info',
+      audience: normalizeAnnouncementAudience(entry.audience || entry.target_audience),
+      institutionName: String(entry.institutionName || entry.institution_name || '').trim(),
+      priority: String(entry.priority || 'normal').trim().toLowerCase() || 'normal',
+      scheduledFor: String(entry.scheduledFor || entry.scheduled_for || '').trim(),
+      status: normalizeAnnouncementStatus(entry.status, active),
+      active: normalizeAnnouncementStatus(entry.status, active) === 'active',
+      createdById: String(entry.createdById || entry.created_by || '').trim(),
+      updatedById: String(entry.updatedById || entry.updated_by || '').trim(),
+      createdAt: entry.createdAt || entry.created_at || nowISO(),
+      updatedAt: entry.updatedAt || entry.updated_at || nowISO()
+    };
+  }
+
+  function getAnnouncementStore() {
+    return safeArray(read(KEYS.announcements, []))
+      .map(normalizeAnnouncementEntry)
+      .sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
+  }
+
+  function saveAnnouncementStore(recordsArg) {
+    const byId = new Map();
+    safeArray(recordsArg).forEach((entry) => {
+      const normalized = normalizeAnnouncementEntry(entry);
+      byId.set(normalized.id, normalized);
+    });
+    const normalized = Array.from(byId.values()).sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
+    write(KEYS.announcements, normalized);
+    return normalized.map(clone);
+  }
+
+  function announcementMatchesUser(announcement, userArg) {
+    if (!announcement?.active) return false;
+    const user = userArg || currentUser() || {};
+    const role = normalizeKagieRole(user?.role, ROLES.USER);
+    if (announcement.audience === 'all') return true;
+    if (announcement.audience === 'assistants') return role === ROLES.ASSISTANT || role === ROLES.MASTER;
+    if (announcement.audience === 'institution') {
+      const target = String(announcement.institutionName || '').trim().toLowerCase();
+      if (!target) return role === ROLES.USER;
+      const selected = [
+        user?.selectedInstitution,
+        user?.selected_institution,
+        user?.latestInstitution
+      ].concat(safeArray(user?.selectedInstitutions).map((item) => item?.institutionName || item?.name || item))
+        .join(' ')
+        .toLowerCase();
+      return role === ROLES.USER && selected.includes(target);
+    }
+    return role === ROLES.USER;
+  }
+
+  function announcementToNotification(entryArg, userIdArg) {
+    const entry = normalizeAnnouncementEntry(entryArg);
+    return {
+      id: `announcement_${entry.id}`,
+      userId: userIdArg || 'all',
+      title: entry.title,
+      message: entry.message,
+      type: entry.type || 'info',
+      read: false,
+      createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
+      source: 'announcement',
+      announcementId: entry.id
+    };
+  }
+
+  function getAnnouncementsForAdmin() {
+    requireRole([ROLES.MASTER]);
+    return getAnnouncementStore();
+  }
+
+  function getAnnouncementsForUser(userIdArg) {
+    const viewer = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const userId = String(userIdArg || viewer.id || '').trim();
+    const targetUser = getUsers().find((user) => [user.id, user.supabaseUserId, user.email].some((value) => String(value || '').trim() === userId)) || viewer;
+    return getAnnouncementStore().filter((entry) => announcementMatchesUser(entry, targetUser)).map(clone);
+  }
+
+  async function fetchRemoteAnnouncementsForAdmin() {
+    const client = initSupabaseClient();
+    if (!client) return [];
+    const result = await client.from('announcements').select('*').order('created_at', { ascending: false });
+    if (result.error) {
+      const message = String(result.error.message || result.error).toLowerCase();
+      if (message.includes('announcements') || message.includes('could not find') || message.includes('does not exist')) return [];
+      throw new Error(result.error.message || 'Could not load announcements.');
+    }
+    return safeArray(result.data).map(normalizeAnnouncementEntry);
+  }
+
+  async function fetchRemoteAnnouncementsForUser(userArg) {
+    const client = initSupabaseClient();
+    if (!client) return [];
+    const result = await client.from('announcements').select('*').eq('status', 'active').order('created_at', { ascending: false });
+    if (result.error) {
+      const message = String(result.error.message || result.error).toLowerCase();
+      if (message.includes('announcements') || message.includes('could not find') || message.includes('does not exist')) return [];
+      throw new Error(result.error.message || 'Could not load announcements.');
+    }
+    return safeArray(result.data).map(normalizeAnnouncementEntry).filter((entry) => announcementMatchesUser(entry, userArg));
+  }
+
+  async function getAnnouncementsForAdminAsync() {
+    requireRole([ROLES.MASTER]);
+    const local = getAnnouncementsForAdmin();
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const remote = await fetchRemoteAnnouncementsForAdmin();
+      if (remote.length) {
+        saveAnnouncementStore(remote);
+        return remote.map(clone);
+      }
+      return local;
+    } catch (error) {
+      console.warn('Announcement admin list fell back to local storage.', error);
+      return local;
+    }
+  }
+
+  async function getAnnouncementsForUserAsync(userIdArg) {
+    const viewer = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const local = getAnnouncementsForUser(userIdArg);
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const userId = String(userIdArg || viewer.id || '').trim();
+      const targetUser = getUsers().find((user) => [user.id, user.supabaseUserId, user.email].some((value) => String(value || '').trim() === userId)) || viewer;
+      const remote = await fetchRemoteAnnouncementsForUser(targetUser);
+      if (remote.length) {
+        saveAnnouncementStore(remote.concat(getAnnouncementStore().filter((entry) => !remote.some((item) => item.id === entry.id))));
+        return remote.map(clone);
+      }
+      return local;
+    } catch (error) {
+      console.warn('Announcement user list fell back to local storage.', error);
+      return local;
+    }
+  }
+
+  async function saveAnnouncementByAdminAsync(payloadArg) {
+    const beforeSave = getAnnouncementStore();
+    const actor = requireRole([ROLES.MASTER]);
+    const payload = payloadArg && typeof payloadArg === 'object' ? payloadArg : {};
+    if (!String(payload.title || '').trim()) throw new Error('Announcement title is required.');
+    if (!String(payload.message || payload.body || '').trim()) throw new Error('Announcement message is required.');
+    const current = payload.id ? getAnnouncementStore().find((item) => item.id === payload.id) : null;
+    const next = normalizeAnnouncementEntry({
+      ...current,
+      ...payload,
+      createdById: current?.createdById || actor.id,
+      updatedById: actor.id,
+      createdAt: current?.createdAt || nowISO(),
+      updatedAt: nowISO()
+    });
+    saveAnnouncementStore([next].concat(getAnnouncementStore().filter((item) => item.id !== next.id)));
+
+    if (!isSupabaseEnabled()) return clone(next);
+    try {
+      const client = initSupabaseClient();
+      if (!client) throw new Error('Live content could not connect. Please sign in again.');
+      const row = {
+        title: next.title,
+        message: next.message,
+        type: next.type,
+        audience: next.audience,
+        institution_name: next.institutionName || null,
+        priority: next.priority,
+        scheduled_for: next.scheduledFor || null,
+        status: next.status,
+        updated_by: actor.supabaseUserId || actor.id || null
+      };
+      const result = current && isUuid(next.id)
+        ? await client.from('announcements').update(row).eq('id', next.id).select('*').single()
+        : await client.from('announcements').insert({
+            ...row,
+            created_by: actor.supabaseUserId || actor.id || null
+          }).select('*').single();
+      if (result.error) {
+        const message = String(result.error.message || result.error).toLowerCase();
+
+        throw new Error(result.error.message || 'Could not save announcement.');
+      }
+      const remote = normalizeAnnouncementEntry(result.data);
+      saveAnnouncementStore([remote].concat(getAnnouncementStore().filter((item) => item.id !== next.id && item.id !== remote.id)));
+      return clone(remote);
+    } catch (error) {
+      saveAnnouncementStore(beforeSave);
+      throw error;
+    }
+  }
+
+  async function deleteAnnouncementByAdminAsync(announcementIdArg) {
+    const beforeDelete = getAnnouncementStore();
+    requireRole([ROLES.MASTER]);
+    const announcementId = String(announcementIdArg || '').trim();
+    if (!announcementId) throw new Error('Announcement id is required.');
+    const existing = getAnnouncementStore().find((item) => item.id === announcementId);
+    saveAnnouncementStore(getAnnouncementStore().filter((item) => item.id !== announcementId));
+    if (isUuid(announcementId) && isSupabaseEnabled()) {
+      try {
+        const client = initSupabaseClient();
+        if (!client) throw new Error('Live content could not connect.');
+        if (client) {
+          const result = await client.from('announcements').delete().eq('id', announcementId);
+          if (result.error) throw new Error(result.error.message || 'Could not delete announcement.');
+        }
+      } catch (error) {
+        saveAnnouncementStore(beforeDelete);
+        throw error;
+      }
+    }
+    return true;
+  }
+
+  function normalizeCareerArticleStatus(statusArg) {
+    const status = String(statusArg || '').trim().toLowerCase();
+    if (status === 'published' || status === 'active') return 'published';
+    if (status === 'archived' || status === 'archive') return 'archived';
+    return 'draft';
+  }
+
+  function normalizeCareerArticleType(typeArg) {
+    const type = String(typeArg || '').trim().toLowerCase();
+    if (['job', 'jobs', 'vacancy', 'work'].includes(type)) return 'job';
+    if (['internship', 'internships', 'learnership', 'learnerships'].includes(type)) return 'internship';
+    if (['resource', 'guide', 'download'].includes(type)) return 'resource';
+    return 'article';
+  }
+
+  function normalizeCareerTextList(value) {
+    if (Array.isArray(value)) {
+      return value.map((item) => String(item || '').trim()).filter(Boolean);
+    }
+    return String(value || '')
+      .split(/\r?\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function normalizeCareerArticleEntry(entryArg) {
+    const entry = entryArg && typeof entryArg === 'object' ? entryArg : {};
+    return {
+      id: String(entry.id || uid('career')).trim(),
+      contentType: normalizeCareerArticleType(entry.contentType || entry.content_type || entry.type || entry.kind),
+      title: String(entry.title || '').trim(),
+      summary: String(entry.summary || entry.shortDescription || entry.short_description || '').trim(),
+      body: String(entry.body || entry.content || entry.description || '').trim(),
+      status: normalizeCareerArticleStatus(entry.status),
+      company: String(entry.company || entry.organisation || entry.organization || '').trim(),
+      location: String(entry.location || '').trim(),
+      workMode: String(entry.workMode || entry.work_mode || '').trim(),
+      employmentType: String(entry.employmentType || entry.employment_type || '').trim(),
+      category: String(entry.category || '').trim(),
+      level: String(entry.level || '').trim(),
+      closingDate: String(entry.closingDate || entry.closing_date || entry.closing || '').trim(),
+      startDate: String(entry.startDate || entry.start_date || '').trim(),
+      duration: String(entry.duration || '').trim(),
+      applicationUrl: String(entry.applicationUrl || entry.application_url || entry.applyUrl || entry.apply_url || '').trim(),
+      tags: normalizeCareerTextList(entry.tags),
+      requirements: normalizeCareerTextList(entry.requirements),
+      imageUrl: String(entry.imageUrl || entry.image_url || '').trim(),
+      fileUrl: String(entry.fileUrl || entry.file_url || '').trim(),
+      createdById: String(entry.createdById || entry.created_by || '').trim(),
+      updatedById: String(entry.updatedById || entry.updated_by || '').trim(),
+      publishedAt: String(entry.publishedAt || entry.published_at || '').trim(),
+      expiresAt: String(entry.expiresAt || entry.expires_at || '').trim(),
+      createdAt: String(entry.createdAt || entry.created_at || nowISO()).trim(),
+      updatedAt: String(entry.updatedAt || entry.updated_at || entry.createdAt || entry.created_at || nowISO()).trim()
+    };
+  }
+
+  function getCareerArticleStore() {
+    return safeArray(read(KEYS.careerArticles, []))
+      .map(normalizeCareerArticleEntry)
+      .filter((article) => article.title)
+      .sort((left, right) => new Date(right.updatedAt || right.createdAt || 0) - new Date(left.updatedAt || left.createdAt || 0));
+  }
+
+  function saveCareerArticleStore(recordsArg) {
+    const byId = new Map();
+    safeArray(recordsArg).forEach((entry) => {
+      const article = normalizeCareerArticleEntry(entry);
+      if (article.title) byId.set(article.id, article);
+    });
+    const records = Array.from(byId.values())
+      .sort((left, right) => new Date(right.updatedAt || right.createdAt || 0) - new Date(left.updatedAt || left.createdAt || 0));
+    write(KEYS.careerArticles, records);
+    return records.map(clone);
+  }
+
+  function filterCareerArticles(recordsArg, filtersArg, includeAllStatusesArg) {
+    const filters = filtersArg || {};
+    const query = String(filters.search || '').trim().toLowerCase();
+    const desiredStatus = normalizeCareerArticleStatus(filters.status || '');
+    const statusFilter = String(filters.status || '').trim() ? desiredStatus : '';
+    return safeArray(recordsArg)
+      .map(normalizeCareerArticleEntry)
+      .filter((article) => {
+        if (!includeAllStatusesArg && article.status !== 'published') return false;
+        if (!includeAllStatusesArg && article.expiresAt && Date.parse(article.expiresAt) <= Date.now()) return false;
+        if (statusFilter && article.status !== statusFilter) return false;
+        const typeFilter = String(filters.contentType || filters.type || '').trim().toLowerCase();
+        if (typeFilter && article.contentType !== normalizeCareerArticleType(typeFilter)) return false;
+        if (query && ![
+          article.title,
+          article.summary,
+          article.body,
+          article.status,
+          article.contentType,
+          article.company,
+          article.location,
+          article.workMode,
+          article.employmentType,
+          article.category,
+          article.level,
+          article.closingDate,
+          article.tags.join(' ')
+        ].join(' ').toLowerCase().includes(query)) return false;
+        return Boolean(article.title);
+      })
+      .map(clone);
+  }
+
+  function isMissingCareerArticlesTableError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return (message.includes('career_articles') && (message.includes('relation') || message.includes('could not find') || message.includes('does not exist')))
+      || message.includes('schema cache');
+  }
+
+  async function fetchRemoteCareerArticles() {
+    if (!isSupabaseEnabled()) return [];
+    const client = initSupabaseClient();
+    if (!client) return [];
+    const result = await client.from('career_articles').select('*').order('updated_at', { ascending: false });
+    if (result.error) {
+      if (isMissingCareerArticlesTableError(result.error)) return [];
+      throw new Error(result.error.message || 'Could not load Career Hub articles.');
+    }
+    return Promise.all(safeArray(result.data).map(async (row) => {
+      const resolveAsset = async (value) => {
+        if (!value || /^(https?:|data:)/i.test(value)) return value || '';
+        const signed = await client.storage.from('kagie-documents').createSignedUrl(value, 60 * 60);
+        if (signed.error) return '';
+        return signed.data?.signedUrl || '';
+      };
+      const [imageUrl, fileUrl] = await Promise.all([resolveAsset(row.image_url), resolveAsset(row.file_url)]);
+      return normalizeCareerArticleEntry({ ...row, image_url: imageUrl, file_url: fileUrl });
+    }));
+  }
+
+  function getCareerArticles(filtersArg) {
+    return filterCareerArticles(getCareerArticleStore(), filtersArg, false);
+  }
+
+  async function getCareerArticlesAsync(filtersArg) {
+    const local = getCareerArticles(filtersArg);
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const remote = await fetchRemoteCareerArticles();
+      saveCareerArticleStore(remote.concat(getCareerArticleStore().filter((article) => !isUuid(article.id))));
+      return filterCareerArticles(remote, filtersArg, false);
+    } catch (error) {
+      throw new Error(error.message || 'Career Hub opportunities could not load. Try again.');
+    }
+  }
+
+  function getCareerArticlesForAdmin(filtersArg) {
+    requireRole([ROLES.MASTER]);
+    return filterCareerArticles(getCareerArticleStore(), filtersArg, true);
+  }
+
+  async function getCareerArticlesForAdminAsync(filtersArg) {
+    requireRole([ROLES.MASTER]);
+    const local = getCareerArticlesForAdmin(filtersArg);
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const remote = await fetchRemoteCareerArticles();
+      saveCareerArticleStore(remote.concat(getCareerArticleStore().filter((article) => !isUuid(article.id))));
+      return filterCareerArticles(remote.concat(getCareerArticleStore().filter((article) => !isUuid(article.id))), filtersArg, true);
+    } catch (error) {
+      console.warn('Career Hub admin list fell back to local storage.', error);
+      return local;
+    }
+  }
+
+  async function saveCareerArticleByAdminAsync(payloadArg) {
+    const beforeSave = getCareerArticleStore();
+    const actor = requireRole([ROLES.MASTER]);
+    const payload = payloadArg && typeof payloadArg === 'object' ? payloadArg : {};
+    const current = payload.id ? getCareerArticleStore().find((article) => article.id === payload.id) : null;
+    const next = normalizeCareerArticleEntry({
+      ...current,
+      ...payload,
+      createdById: current?.createdById || actor.supabaseUserId || actor.id,
+      updatedById: actor.supabaseUserId || actor.id,
+      publishedAt: normalizeCareerArticleStatus(payload.status || current?.status) === 'published'
+        ? (current?.publishedAt || nowISO())
+        : '',
+      createdAt: current?.createdAt || nowISO(),
+      updatedAt: nowISO()
+    });
+    if (!next.title) throw new Error('Career article title is required.');
+    if (!next.summary && !next.body) throw new Error('Add a short summary or article body before saving.');
+    saveCareerArticleStore([next].concat(getCareerArticleStore().filter((article) => article.id !== next.id)));
+
+    if (!isSupabaseEnabled()) return clone(next);
+    try {
+      const client = initSupabaseClient();
+      if (!client) throw new Error('Live content could not connect. Please sign in again.');
+      const row = {
+        content_type: next.contentType,
+        title: next.title,
+        summary: next.summary,
+        body: next.body,
+        status: next.status,
+        company: next.company,
+        location: next.location,
+        work_mode: next.workMode,
+        employment_type: next.employmentType,
+        category: next.category,
+        level: next.level,
+        closing_date: next.closingDate,
+        start_date: next.startDate,
+        duration: next.duration,
+        application_url: next.applicationUrl,
+        tags: next.tags,
+        requirements: next.requirements,
+        image_url: next.imageUrl,
+        file_url: next.fileUrl,
+        published_at: next.publishedAt || null,
+        updated_by: actor.supabaseUserId || actor.id || null
+      };
+      const result = current && isUuid(next.id)
+        ? await client.from('career_articles').update(row).eq('id', next.id).select('*').single()
+        : await client.from('career_articles').insert({
+            ...row,
+            created_by: actor.supabaseUserId || actor.id || null
+          }).select('*').single();
+      if (result.error) {
+
+        throw new Error(result.error.message || 'Could not save the Career Hub article.');
+      }
+      const remote = normalizeCareerArticleEntry(result.data);
+      saveCareerArticleStore([remote].concat(getCareerArticleStore().filter((article) => article.id !== next.id && article.id !== remote.id)));
+      return clone(remote);
+    } catch (error) {
+      saveCareerArticleStore(beforeSave);
+      throw error;
+    }
+  }
+
+  async function uploadCareerAssetByAdminAsync(fileArg, kindArg) {
+    requireRole([ROLES.MASTER]);
+    const file = fileArg || null;
+    const kind = String(kindArg || 'resource').trim().toLowerCase() === 'image' ? 'image' : 'resource';
+    const fileName = String(file?.name || '').trim();
+    const mimeType = String(file?.type || 'application/octet-stream').trim() || 'application/octet-stream';
+    const size = Number(file?.size || 0);
+    const extension = String(fileName.split('.').pop() || extensionFromMime(mimeType) || '').toLowerCase();
+    const imageAllowed = /^image\/(jpeg|png|webp|gif)$/i.test(mimeType) || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension);
+    const resourceAllowed = /^(application\/pdf|application\/msword|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document)$/i.test(mimeType)
+      || ['pdf', 'doc', 'docx'].includes(extension);
+
+    if (!file || !fileName) throw new Error('Choose a Career Hub file to upload.');
+    if (!size || size > 8 * 1024 * 1024) throw new Error('Career Hub uploads must be 8 MB or smaller.');
+    if (kind === 'image' && !imageAllowed) throw new Error('Upload a JPG, PNG, WEBP, or GIF image.');
+    if (kind === 'resource' && !resourceAllowed) throw new Error('Upload a PDF, DOC, or DOCX resource.');
+
+    const fallback = async () => ({
+      url: await readFileAsDataUrl(file),
+      remotePath: '',
+      fileName,
+      mimeType,
+      size
+    });
+
+    if (!isSupabaseEnabled()) return fallback();
+    try {
+      const client = initSupabaseClient();
+      if (!client) return fallback();
+      const safeName = sanitizePathPart(fileName.replace(/\.[^.]+$/, '')) || `career-${kind}`;
+      const safeExtension = sanitizePathPart(extension || extensionFromMime(mimeType) || (kind === 'image' ? 'jpg' : 'pdf'));
+      const remotePath = `career-hub/${kind}/${Date.now()}__${safeName}.${safeExtension}`;
+      const upload = await client.storage.from('kagie-documents').upload(remotePath, file, {
+        cacheControl: '3600',
+        contentType: mimeType,
+        upsert: false
+      });
+      if (upload.error) throw new Error(upload.error.message || 'Could not upload the Career Hub file.');
+
+      const signed = await client.storage
+        .from('kagie-documents')
+        .createSignedUrl(remotePath, 60 * 60 * 24 * 365 * 10);
+      if (signed.error || !signed.data?.signedUrl) {
+        throw new Error(signed.error?.message || 'Could not create the Career Hub file link.');
+      }
+      return {
+        url: signed.data.signedUrl,
+        remotePath,
+        fileName,
+        mimeType,
+        size
+      };
+    } catch (error) {
+      console.warn('Career Hub asset upload fell back to local storage.', error);
+      return fallback();
+    }
+  }
+
+  async function deleteCareerArticleByAdminAsync(articleIdArg) {
+    const beforeDelete = getCareerArticleStore();
+    requireRole([ROLES.MASTER]);
+    const articleId = String(articleIdArg || '').trim();
+    if (!articleId) throw new Error('Career article id is required.');
+    saveCareerArticleStore(getCareerArticleStore().filter((article) => article.id !== articleId));
+    if (isUuid(articleId) && isSupabaseEnabled()) {
+      try {
+        const client = initSupabaseClient();
+        if (!client) throw new Error('Live content could not connect.');
+        const result = await client.from('career_articles').delete().eq('id', articleId);
+        if (result?.error) throw new Error(result.error.message || 'Could not delete the Career Hub article.');
+      } catch (error) {
+        saveCareerArticleStore(beforeDelete);
+        throw error;
+      }
+    }
+    return true;
+  }
+
+  capturePendingPromoCodeFromLocation();
 
   function getServiceCatalog() {
     return clone(getKagieData().extraServices).map((item) => ({
@@ -450,19 +2344,162 @@
     }).sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
   }
 
-  function getAccommodationListings(filtersArg) {
+  function normalizeAccommodationListingEntry(item, fallbackIndex) {
+    const source = item && typeof item === 'object' ? item : {};
+    const propertyName = String(source.propertyName || source.name || '').trim();
+    const institutionName = String(source.institutionName || source.university || '').trim();
+    const amenities = Array.isArray(source.amenities)
+      ? source.amenities.map((itemValue) => String(itemValue || '').trim()).filter(Boolean)
+      : String(source.amenities || source.amenitiesText || '')
+        .split(/\r?\n|,/)
+        .map((itemValue) => itemValue.trim())
+        .filter(Boolean);
+    return {
+      id: String(source.id || uid(`acclisting_${fallbackIndex || 1}`)).trim(),
+      propertyName,
+      institutionName,
+      university: institutionName,
+      province: String(source.province || '').trim(),
+      city: String(source.city || '').trim(),
+      location: String(source.location || '').trim(),
+      address: String(source.address || '').trim(),
+      price: toNumber(source.price, 0),
+      priceRange: String(source.priceRange || source.price_range || '').trim(),
+      roomType: String(source.roomType || '').trim(),
+      availabilityStatus: String(source.availabilityStatus || source.status || 'Available').trim() || 'Available',
+      distanceFromCampus: String(source.distanceFromCampus || '').trim(),
+      images: parseImageList(source.images),
+      imagePaths: parseImageList(source.imagePaths || source.image_paths),
+      shortDescription: String(source.shortDescription || source.short_description || '').trim(),
+      description: String(source.description || '').trim(),
+      amenities,
+      availableFrom: String(source.availableFrom || source.available_from || '').trim(),
+      propertyDetails: String(source.propertyDetails || '').trim(),
+      listingState: String(source.listingState || source.workflowState || 'draft').trim().toLowerCase() || 'draft',
+      isActive: source.isActive !== false && source.is_active !== false,
+      contactPhone: String(source.contactPhone || '').trim(),
+      contactEmail: String(source.contactEmail || source.contact_email || '').trim(),
+      inspectionDocumentName: String(source.inspectionDocumentName || '').trim(),
+      inspectionDocumentUrl: String(source.inspectionDocumentUrl || '').trim(),
+      pricingDocumentName: String(source.pricingDocumentName || '').trim(),
+      pricingDocumentUrl: String(source.pricingDocumentUrl || '').trim(),
+      createdAt: String(source.createdAt || nowISO()).trim(),
+      updatedAt: String(source.updatedAt || source.createdAt || nowISO()).trim()
+    };
+  }
+
+  function normalizeTransportOptionEntry(item, fallbackIndex) {
+    const source = item && typeof item === 'object' ? item : {};
+    return {
+      id: String(source.id || uid(`transport_${fallbackIndex || 1}`)).trim(),
+      company: String(source.company || '').trim(),
+      departureCity: String(source.departureCity || '').trim(),
+      destinationCity: String(source.destinationCity || '').trim(),
+      departureTime: String(source.departureTime || '').trim(),
+      arrivalTime: String(source.arrivalTime || '').trim(),
+      travelDateLabel: String(source.travelDateLabel || '').trim(),
+      routeType: String(source.routeType || 'Intercity coach').trim(),
+      estimatedPrice: toNumber(source.estimatedPrice, 0),
+      supportFee: toNumber(source.supportFee, 0),
+      duration: String(source.duration || '').trim(),
+      luggage: String(source.luggage || '').trim(),
+      description: String(source.description || '').trim(),
+      bookingStatus: String(source.bookingStatus || 'Available').trim(),
+      createdAt: String(source.createdAt || nowISO()).trim(),
+      updatedAt: String(source.updatedAt || source.createdAt || nowISO()).trim()
+    };
+  }
+
+  function getAccommodationListingOverrideStore() {
+    return read(KEYS.accommodationListingsCatalog, []);
+  }
+
+  function saveAccommodationListingOverrideStore(records) {
+    write(KEYS.accommodationListingsCatalog, records);
+    accommodationListingCache = null;
+    return records;
+  }
+
+  function getTransportOptionOverrideStore() {
+    return read(KEYS.transportOptionsCatalog, []);
+  }
+
+  function saveTransportOptionOverrideStore(records) {
+    write(KEYS.transportOptionsCatalog, records);
+    transportOptionCache = null;
+    return records;
+  }
+
+  function getMergedAccommodationListingRecords() {
+    if (accommodationListingCache) return accommodationListingCache.map(clone);
+
+    const base = safeArray(getKagieData().accommodationListings).map((item, index) => normalizeAccommodationListingEntry(item, index + 1));
+    const overrides = getAccommodationListingOverrideStore();
+    const merged = new Map(base.map((item) => [item.id, item]));
+
+    safeArray(overrides).forEach((entry, index) => {
+      const normalized = normalizeAccommodationListingEntry(entry, base.length + index + 1);
+      if (!normalized.id) return;
+      if (entry?._deleted) {
+        merged.delete(normalized.id);
+        return;
+      }
+      const existing = merged.get(normalized.id);
+      merged.set(normalized.id, normalizeAccommodationListingEntry(existing ? mergeDeep(existing, normalized) : normalized, index + 1));
+    });
+
+    accommodationListingCache = Array.from(merged.values())
+      .filter((item) => item.propertyName)
+      .sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+    return accommodationListingCache.map(clone);
+  }
+
+  function getMergedTransportOptionRecords() {
+    if (transportOptionCache) return transportOptionCache.map(clone);
+
+    const base = safeArray(getKagieData().transportOptions).map((item, index) => normalizeTransportOptionEntry(item, index + 1));
+    const overrides = getTransportOptionOverrideStore();
+    const merged = new Map(base.map((item) => [item.id, item]));
+
+    safeArray(overrides).forEach((entry, index) => {
+      const normalized = normalizeTransportOptionEntry(entry, base.length + index + 1);
+      if (!normalized.id) return;
+      if (entry?._deleted) {
+        merged.delete(normalized.id);
+        return;
+      }
+      const existing = merged.get(normalized.id);
+      merged.set(normalized.id, normalizeTransportOptionEntry(existing ? mergeDeep(existing, normalized) : normalized, index + 1));
+    });
+
+    transportOptionCache = Array.from(merged.values())
+      .filter((item) => item.company && item.departureCity && item.destinationCity)
+      .sort((a, b) => {
+        const departureCompare = String(a.departureTime || '').localeCompare(String(b.departureTime || ''));
+        if (departureCompare) return departureCompare;
+        return String(a.company || '').localeCompare(String(b.company || ''));
+      });
+    return transportOptionCache.map(clone);
+  }
+
+  function filterAccommodationListingRecords(recordsArg, filtersArg) {
     const filters = filtersArg || {};
     const query = String(filters.query || '').trim().toLowerCase();
     const institutionName = String(filters.institutionName || '').trim().toLowerCase();
     const province = String(filters.province || '').trim().toLowerCase();
     const roomType = String(filters.roomType || '').trim().toLowerCase();
     const availability = String(filters.availabilityStatus || '').trim().toLowerCase();
+    const includeDrafts = Boolean(filters.includeDrafts);
 
-    return getKagieData().accommodationListings
+    return safeArray(recordsArg)
+      .map((item, index) => normalizeAccommodationListingEntry(item, index + 1))
       .filter((listing) => {
+        const listingState = String(listing.listingState || 'draft').trim().toLowerCase();
+        if (!includeDrafts && (listingState !== 'published' || listing.isActive === false)) return false;
         const haystack = [
           listing.propertyName,
           listing.location,
+          listing.address,
           listing.province,
           listing.institutionName,
           listing.roomType,
@@ -475,8 +2512,69 @@
         if (availability && String(listing.availabilityStatus || '').trim().toLowerCase() !== availability) return false;
         return true;
       })
-      .sort((a, b) => Number(a.price || 0) - Number(b.price || 0))
       .map(clone);
+  }
+
+  function getAccommodationListings(filtersArg) {
+    return filterAccommodationListingRecords(getMergedAccommodationListingRecords(), filtersArg);
+  }
+
+  function isMissingAccommodationListingsTableError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return (message.includes('housing_listings') && (message.includes('relation') || message.includes('could not find') || message.includes('does not exist')))
+      || message.includes('schema cache');
+  }
+
+  async function signHousingListingImages(client, imagePathsArg) {
+    const paths = parseImageList(imagePathsArg);
+    if (!client || !paths.length) return paths;
+    return Promise.all(paths.map(async (path) => {
+      if (/^(https?:|data:|blob:)/i.test(path)) return path;
+      return createSignedProspectusUrl(client, 'kagie-documents', path);
+    }));
+  }
+
+  async function fetchRemoteAccommodationListings(filtersArg) {
+    if (!isSupabaseEnabled()) return [];
+    const client = initSupabaseClient();
+    if (!client) return [];
+    const result = await client.from('housing_listings').select('*').order('updated_at', { ascending: false });
+    if (result.error) {
+      if (isMissingAccommodationListingsTableError(result.error)) return [];
+      throw new Error(result.error.message || 'Could not load housing listings.');
+    }
+    const rows = await Promise.all(safeArray(result.data).map(async (row, index) => {
+      const imagePaths = parseImageList(row?.images);
+      return normalizeAccommodationListingEntry({
+        id: row?.id,
+        propertyName: row?.title,
+        shortDescription: row?.short_description,
+        description: row?.description,
+        institutionName: row?.institution_name,
+        province: row?.province,
+        city: row?.city,
+        location: row?.location,
+        address: row?.address,
+        price: row?.price,
+        priceRange: row?.price_range,
+        roomType: row?.room_type,
+        availabilityStatus: row?.availability_status,
+        listingState: row?.listing_state,
+        isActive: row?.is_active,
+        contactPhone: row?.contact_phone,
+        contactEmail: row?.contact_email,
+        amenities: row?.amenities,
+        availableFrom: row?.available_from,
+        images: await signHousingListingImages(client, imagePaths),
+        imagePaths,
+        createdAt: row?.created_at,
+        updatedAt: row?.updated_at
+      }, index + 1);
+    }));
+    return filterAccommodationListingRecords(rows, {
+      ...(filtersArg || {}),
+      includeDrafts: Boolean(filtersArg?.includeDrafts)
+    });
   }
 
   function getTransportOptions(filtersArg) {
@@ -486,12 +2584,14 @@
     const destinationCity = String(filters.destinationCity || '').trim().toLowerCase();
     const company = String(filters.company || '').trim().toLowerCase();
 
-    return getKagieData().transportOptions
+    return getMergedTransportOptionRecords()
       .filter((option) => {
         const haystack = [
           option.company,
           option.departureCity,
           option.destinationCity,
+          option.departureTime,
+          option.arrivalTime,
           option.routeType,
           option.description
         ].join(' ').toLowerCase();
@@ -507,23 +2607,103 @@
 
   function normalizeAccommodationRequest(entry, fallbackUserId) {
     const source = entry && typeof entry === 'object' ? entry : {};
+    const supportChecklist = safeArray(source.supportChecklist)
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
     return {
       id: String(source.id || uid('accreq')).trim(),
+      source: source.source === 'remote' ? 'remote' : 'local',
       userId: String(source.userId || fallbackUserId || '').trim(),
+      applicationId: String(source.applicationId || '').trim(),
       listingId: String(source.listingId || '').trim(),
       propertyName: String(source.propertyName || '').trim(),
       institutionName: String(source.institutionName || '').trim(),
       province: String(source.province || '').trim(),
       location: String(source.location || '').trim(),
+      address: String(source.address || '').trim(),
       roomType: String(source.roomType || '').trim(),
       price: Number(source.price || 0),
+      learnerName: String(source.learnerName || source.fullName || '').trim(),
+      learnerEmail: String(source.learnerEmail || source.email || '').trim(),
+      learnerPhone: String(source.learnerPhone || source.contactPhone || '').trim(),
+      alternatePhone: String(source.alternatePhone || '').trim(),
+      idNumber: String(source.idNumber || '').trim(),
+      studentNumber: String(source.studentNumber || '').trim(),
+      campusName: String(source.campusName || '').trim(),
+      yearOfStudy: String(source.yearOfStudy || '').trim(),
+      gender: String(source.gender || '').trim(),
       preferredMoveInDate: String(source.preferredMoveInDate || source.moveInDate || '').trim(),
-      contactPhone: String(source.contactPhone || '').trim(),
-      note: String(source.note || '').trim(),
-      status: String(source.status || 'Reservation requested').trim(),
+      preferredLeaseMonths: String(source.preferredLeaseMonths || '').trim(),
+      roomPreference: String(source.roomPreference || '').trim(),
+      fundingStatus: String(source.fundingStatus || '').trim(),
+      nsfasBeneficiary: String(source.nsfasBeneficiary || '').trim(),
+      nsfasSinceYear: String(source.nsfasSinceYear || '').trim(),
+      nsfasReferenceNumber: String(source.nsfasReferenceNumber || '').trim(),
+      nsfasAllowanceStatus: String(source.nsfasAllowanceStatus || '').trim(),
+      bursaryProvider: String(source.bursaryProvider || '').trim(),
+      guardianName: String(source.guardianName || '').trim(),
+      guardianPhone: String(source.guardianPhone || '').trim(),
+      guardianEmail: String(source.guardianEmail || '').trim(),
+      emergencyContactName: String(source.emergencyContactName || '').trim(),
+      emergencyContactPhone: String(source.emergencyContactPhone || '').trim(),
+      emergencyRelationship: String(source.emergencyRelationship || '').trim(),
+      documentsReady: String(source.documentsReady || '').trim(),
+      transportNeeded: String(source.transportNeeded || '').trim(),
+      specialNeeds: String(source.specialNeeds || '').trim(),
+      medicalNotes: String(source.medicalNotes || '').trim(),
+      contactPhone: String(source.contactPhone || source.learnerPhone || '').trim(),
+      note: String(source.note || source.supportNote || '').trim(),
+      supportChecklist,
+      supportSummary: String(source.supportSummary || '').trim(),
+      status: String(source.status || 'Support review requested').trim(),
       providerPhone: String(source.providerPhone || '').trim(),
-      createdAt: source.createdAt || nowISO()
+      images: parseImageList(source.images),
+      createdAt: source.createdAt || nowISO(),
+      updatedAt: source.updatedAt || source.createdAt || nowISO()
     };
+  }
+
+  function buildAccommodationSupportSummary(entryArg) {
+    const entry = entryArg && typeof entryArg === 'object' ? entryArg : {};
+    const parts = [];
+    if (entry.preferredMoveInDate) parts.push(`Move-in ${entry.preferredMoveInDate}`);
+    if (entry.fundingStatus) parts.push(`Funding ${entry.fundingStatus}`);
+    if (entry.nsfasBeneficiary === 'yes') {
+      parts.push(`NSFAS beneficiary${entry.nsfasSinceYear ? ` since ${entry.nsfasSinceYear}` : ''}`);
+    } else if (entry.nsfasBeneficiary === 'pending') {
+      parts.push('NSFAS outcome pending');
+    }
+    if (entry.documentsReady) parts.push(`Documents ${entry.documentsReady}`);
+    if (entry.transportNeeded === 'yes') parts.push('Transport support also needed');
+    if (entry.specialNeeds && entry.specialNeeds !== 'none') parts.push(`Support need: ${entry.specialNeeds}`);
+    return parts.join(' | ');
+  }
+
+  function normalizeTransportPassengerDetails(entriesArg) {
+    return safeArray(entriesArg).map((entry, index) => {
+      const source = entry && typeof entry === 'object' ? entry : {};
+      return {
+        type: String(source.type || 'adult').trim() || 'adult',
+        sequence: Number(source.sequence || index + 1),
+        title: String(source.title || '').trim(),
+        firstName: String(source.firstName || '').trim(),
+        surname: String(source.surname || '').trim(),
+        mobile: String(source.mobile || '').trim(),
+        emergencyContact: String(source.emergencyContact || '').trim(),
+        idType: String(source.idType || 'SA ID').trim(),
+        idNumber: String(source.idNumber || '').trim(),
+        dateOfBirth: String(source.dateOfBirth || '').trim(),
+        gender: String(source.gender || '').trim(),
+        withBaby: Boolean(source.withBaby),
+        institutionName: String(source.institutionName || '').trim(),
+        studentNumber: String(source.studentNumber || '').trim()
+      };
+    });
+  }
+
+  function isTransportServiceItem(itemArg) {
+    const item = itemArg && typeof itemArg === 'object' ? itemArg : {};
+    return String(item.serviceCode || '').trim().toLowerCase() === 'transport_assist' || Boolean(item.transportDetails);
   }
 
   function normalizeTransportRequest(entry, fallbackUserId) {
@@ -531,18 +2711,250 @@
     return {
       id: String(source.id || uid('transreq')).trim(),
       userId: String(source.userId || fallbackUserId || '').trim(),
+      applicationId: String(source.applicationId || '').trim(),
+      learnerName: String(source.learnerName || '').trim(),
+      learnerEmail: String(source.learnerEmail || '').trim(),
+      learnerPhone: String(source.learnerPhone || '').trim(),
+      assignedAssistantId: String(source.assignedAssistantId || '').trim(),
       optionId: String(source.optionId || '').trim(),
+      tripType: String(source.tripType || 'One Way').trim(),
       company: String(source.company || '').trim(),
       departureCity: String(source.departureCity || '').trim(),
       destinationCity: String(source.destinationCity || '').trim(),
+      departureTime: String(source.departureTime || '').trim(),
+      arrivalTime: String(source.arrivalTime || '').trim(),
       travelDate: String(source.travelDate || '').trim(),
+      returnDate: String(source.returnDate || '').trim(),
       passengers: String(source.passengers || '1').trim(),
+      passengerMix: String(source.passengerMix || '').trim(),
+      passengerDetails: normalizeTransportPassengerDetails(source.passengerDetails),
       estimatedPrice: Number(source.estimatedPrice || 0),
       supportFee: Number(source.supportFee || 0),
       note: String(source.note || '').trim(),
-      status: String(source.status || 'Travel request received').trim(),
-      createdAt: source.createdAt || nowISO()
+      requestSourceKey: String(source.requestSourceKey || '').trim(),
+      paymentReference: String(source.paymentReference || '').trim(),
+      paymentMethod: String(source.paymentMethod || '').trim(),
+      paymentAmount: Number(source.paymentAmount || 0),
+      paidAt: String(source.paidAt || '').trim(),
+      ticketCode: String(source.ticketCode || '').trim(),
+      ticketStatus: String(source.ticketStatus || source.status || 'Ticket sent').trim(),
+      sentAt: String(source.sentAt || source.createdAt || nowISO()).trim(),
+      bookedByUserId: String(source.bookedByUserId || '').trim(),
+      bookedByRole: String(source.bookedByRole || '').trim(),
+      status: String(source.status || 'Ticket sent').trim(),
+      createdAt: source.createdAt || nowISO(),
+      updatedAt: source.updatedAt || source.createdAt || nowISO()
     };
+  }
+
+  function decorateTransportServiceForManualBooking(itemArg, paymentArg) {
+    const item = itemArg && typeof itemArg === 'object' ? clone(itemArg) : {};
+    if (!isTransportServiceItem(item)) return item;
+    const transport = item.transportDetails && typeof item.transportDetails === 'object' ? clone(item.transportDetails) : {};
+    const passengerDetails = normalizeTransportPassengerDetails(item.passengerDetails || transport.passengerDetails);
+    const routeLabel = `${item.departureCity || transport.departureCity || 'Departure'} to ${item.destinationCity || transport.destinationCity || 'Destination'}`.trim();
+    const supportNote = 'Transport payment received. Kagie staff will buy this ticket manually and send it to the learner after booking.';
+    const existingNote = String(item.note || '').trim();
+    return {
+      ...item,
+      type: item.type === 'service_request' ? 'service' : (item.type || 'service'),
+      status: 'Paid - manual booking required',
+      paymentStatus: 'Awaiting Kagie booking',
+      passengerDetails,
+      note: existingNote ? `${existingNote} ${supportNote}`.trim() : supportNote,
+      requestSourceKey: String(item.requestSourceKey || item.clientKey || item.id || uid('transsvc')).trim(),
+      institution: item.institution || routeLabel,
+      transportDetails: {
+        ...transport,
+        company: transport.company || item.company || '',
+        departureCity: transport.departureCity || item.departureCity || '',
+        destinationCity: transport.destinationCity || item.destinationCity || '',
+        departureTime: transport.departureTime || item.departureTime || '',
+        arrivalTime: transport.arrivalTime || item.arrivalTime || '',
+        duration: transport.duration || '',
+        travelDate: transport.travelDate || item.travelDate || '',
+        returnDate: transport.returnDate || item.returnDate || '',
+        tripType: transport.tripType || item.tripType || 'One Way',
+        totalFare: Number(transport.totalFare ?? item.price ?? 0),
+        passengerCount: Number(transport.passengerCount || item.passengers || passengerDetails.length || 1),
+        passengerMix: transport.passengerMix || item.passengerMix || '',
+        passengerDetails,
+        routeStatus: 'Paid - manual booking required',
+        bookingFlow: 'manual_admin_booking',
+        paymentReference: String(paymentArg?.reference || '').trim(),
+        paymentMethod: String(paymentArg?.method || '').trim(),
+        paidAt: String(paymentArg?.submittedAt || nowISO()).trim()
+      }
+    };
+  }
+
+  function getTransportStaffRecipients(applicationArg) {
+    const app = applicationArg && typeof applicationArg === 'object' ? applicationArg : null;
+    const seen = new Set();
+    const recipients = [];
+    const addRecipient = (user) => {
+      if (!user?.id) return;
+      const key = String(user.id || '').trim();
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      recipients.push(sanitizeUser(user));
+    };
+
+    getUsers()
+      .filter((user) => user?.role === ROLES.MASTER || user?.role === ROLES.ASSISTANT)
+      .forEach(addRecipient);
+
+    if (app) {
+      const assignedAssistantId = String(app.assignedAssistantId || app.assistantId || '').trim();
+      if (assignedAssistantId) {
+        const assignedAssistant = getUserById(assignedAssistantId) || getUserBySupabaseId(assignedAssistantId);
+        if (assignedAssistant?.role === ROLES.ASSISTANT) addRecipient(assignedAssistant);
+      }
+    }
+
+    return recipients;
+  }
+
+  function syncTransportRequestsFromPaidServices(serviceItemsArg, userArg, applicationArg, paymentArg) {
+    const user = userArg && typeof userArg === 'object' ? userArg : {};
+    const app = applicationArg && typeof applicationArg === 'object' ? applicationArg : null;
+    const transportItems = safeArray(serviceItemsArg).filter(isTransportServiceItem);
+    if (!transportItems.length) return [];
+
+    const records = read(KEYS.transportRequests, []);
+    const created = [];
+
+    transportItems.forEach((item) => {
+      const transport = item.transportDetails && typeof item.transportDetails === 'object' ? item.transportDetails : {};
+      const sourceKey = String(item.requestSourceKey || item.clientKey || item.id || '').trim();
+      const existingIndex = records.findIndex((entry) =>
+        String(entry?.userId || '').trim() === String(user.id || app?.userId || '').trim()
+        && sourceKey
+        && String(entry?.requestSourceKey || '').trim() === sourceKey
+      );
+      const current = existingIndex >= 0
+        ? normalizeTransportRequest(records[existingIndex], user.id || app?.userId || '')
+        : normalizeTransportRequest({}, user.id || app?.userId || '');
+      const passengerDetails = normalizeTransportPassengerDetails(item.passengerDetails || transport.passengerDetails);
+      const next = normalizeTransportRequest({
+        ...current,
+        id: current.id || uid('transreq'),
+        userId: user.id || app?.userId || current.userId,
+        applicationId: app?.id || current.applicationId,
+        learnerName: user.fullName || user.name || current.learnerName || buildLearnerAlertMessage(app, 'Learner'),
+        learnerEmail: user.email || current.learnerEmail,
+        learnerPhone: user.phone || user.cellphone || current.learnerPhone,
+        assignedAssistantId: app?.assignedAssistantId || app?.assistantId || current.assignedAssistantId,
+        optionId: transport.routeId || item.optionId || current.optionId,
+        tripType: item.tripType || transport.tripType || current.tripType || 'One Way',
+        company: item.company || transport.company || current.company,
+        departureCity: item.departureCity || transport.departureCity || current.departureCity,
+        destinationCity: item.destinationCity || transport.destinationCity || current.destinationCity,
+        departureTime: item.departureTime || transport.departureTime || current.departureTime,
+        arrivalTime: item.arrivalTime || transport.arrivalTime || current.arrivalTime,
+        travelDate: item.travelDate || transport.travelDate || current.travelDate,
+        returnDate: item.returnDate || transport.returnDate || current.returnDate,
+        passengers: String(transport.passengerCount || item.passengers || current.passengers || passengerDetails.length || 1),
+        passengerMix: item.passengerMix || transport.passengerMix || current.passengerMix,
+        passengerDetails,
+        estimatedPrice: Number(item.price ?? transport.totalFare ?? current.estimatedPrice ?? 0),
+        supportFee: Number(item.supportFee ?? transport.supportFee ?? current.supportFee ?? 0),
+        note: item.note || current.note || 'Learner paid for transport. Kagie staff must buy the ticket manually.',
+        requestSourceKey: sourceKey || current.requestSourceKey || uid('transsvc'),
+        paymentReference: paymentArg?.reference || current.paymentReference,
+        paymentMethod: paymentArg?.method || current.paymentMethod,
+        paymentAmount: Number(item.price ?? transport.totalFare ?? current.paymentAmount ?? paymentArg?.amount ?? 0),
+        paidAt: paymentArg?.submittedAt || current.paidAt || nowISO(),
+        ticketCode: current.ticketCode || '',
+        ticketStatus: current.ticketCode ? (current.ticketStatus || 'Ticket sent') : 'Awaiting Kagie booking',
+        sentAt: current.sentAt || '',
+        bookedByUserId: current.bookedByUserId || '',
+        bookedByRole: current.bookedByRole || '',
+        status: current.ticketCode ? (current.status || 'Ticket sent') : 'Paid - manual booking required',
+        createdAt: current.createdAt || nowISO()
+      }, user.id || app?.userId || '');
+
+      if (existingIndex >= 0) records[existingIndex] = next;
+      else records.push(next);
+      created.push(clone(next));
+    });
+
+    write(KEYS.transportRequests, records);
+    return created;
+  }
+
+  function updateLatestApplicationTransportService(userIdArg, payloadArg) {
+    const userId = String(userIdArg || '').trim();
+    if (!userId) return null;
+    const payload = payloadArg && typeof payloadArg === 'object' ? payloadArg : {};
+    const apps = getApplicationsByUser(userId)
+      .slice()
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+    const app = apps[0];
+    if (!app) return null;
+
+    const services = safeArray(app.services).map((item) => clone(item));
+    let changed = false;
+    services.forEach((service, index) => {
+      if (!isTransportServiceItem(service)) return;
+      const serviceTransport = service.transportDetails && typeof service.transportDetails === 'object' ? service.transportDetails : {};
+      const sameSource = payload.requestSourceKey && String(service.requestSourceKey || service.clientKey || service.id || '').trim() === String(payload.requestSourceKey).trim();
+      const sameRoute = !payload.requestSourceKey
+        && String(service.departureCity || serviceTransport.departureCity || '').trim() === String(payload.departureCity || '').trim()
+        && String(service.destinationCity || serviceTransport.destinationCity || '').trim() === String(payload.destinationCity || '').trim()
+        && String(service.travelDate || serviceTransport.travelDate || '').trim() === String(payload.travelDate || '').trim();
+      if (!sameSource && !sameRoute) return;
+
+      services[index] = {
+        ...service,
+        status: payload.status || 'Ticket sent',
+        paymentStatus: payload.ticketStatus || payload.status || 'Ticket sent',
+        note: payload.note || service.note || '',
+        transportDetails: {
+          ...serviceTransport,
+          routeStatus: payload.status || 'Ticket sent',
+          ticketCode: payload.ticketCode || serviceTransport.ticketCode || ''
+        }
+      };
+      changed = true;
+    });
+
+    if (!changed) return null;
+    return updateApplication(app.id, { services });
+  }
+
+  function notifyStaffForTransportRequests(requestsArg, applicationArg) {
+    const requests = safeArray(requestsArg);
+    const app = applicationArg && typeof applicationArg === 'object' ? applicationArg : null;
+    if (!requests.length) return [];
+    const recipients = getTransportStaffRecipients(app);
+    if (!recipients.length) return [];
+
+    return requests.flatMap((request) => {
+      const title = 'Paid transport booking needs manual action';
+      const message = `${request.learnerName || buildLearnerAlertMessage(app, 'A learner')} paid for transport from ${request.departureCity || 'Departure'} to ${request.destinationCity || 'Destination'}${request.travelDate ? ` on ${request.travelDate}` : ''}. ${request.passengerMix || `${request.passengers || '1'} passenger`} still needs manual ticket booking in Kagie.`;
+      return recipients.map((recipient) => pushNotification(recipient.id, title, message, 'warning')).filter(Boolean);
+    });
+  }
+
+  async function notifyStaffForTransportRequestsAsync(requestsArg, applicationArg) {
+    const requests = safeArray(requestsArg);
+    const app = applicationArg && typeof applicationArg === 'object' ? applicationArg : null;
+    if (!requests.length) return [];
+    const recipients = getTransportStaffRecipients(app);
+    if (!recipients.length) return [];
+
+    const jobs = [];
+    requests.forEach((request) => {
+      const title = 'Paid transport booking needs manual action';
+      const message = `${request.learnerName || buildLearnerAlertMessage(app, 'A learner')} paid for transport from ${request.departureCity || 'Departure'} to ${request.destinationCity || 'Destination'}${request.travelDate ? ` on ${request.travelDate}` : ''}. ${request.passengerMix || `${request.passengers || '1'} passenger`} still needs manual ticket booking in Kagie.`;
+      recipients.forEach((recipient) => {
+        jobs.push(pushNotificationAsync(recipient.id, title, message, 'warning'));
+      });
+    });
+
+    const results = await Promise.allSettled(jobs);
+    return results.filter((entry) => entry.status === 'fulfilled' && entry.value).map((entry) => entry.value);
   }
 
   function getAccommodationRequests(userIdArg) {
@@ -551,7 +2963,7 @@
     return read(KEYS.accommodationRequests, [])
       .map((item) => normalizeAccommodationRequest(item, item?.userId || ''))
       .filter((item) => !targetUserId || item.userId === targetUserId)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
       .map(clone);
   }
 
@@ -568,32 +2980,93 @@
   function submitAccommodationRequest(payload, userIdArg) {
     const actor = requireRole([ROLES.USER]);
     const userId = userIdArg || actor.id;
+    const users = getUsers();
+    const user = users.find((item) => item.id === userId) || null;
+    const profile = user?.profile || {};
     const listing = getAccommodationListings().find((item) => item.id === payload?.listingId)
       || getAccommodationListings({ query: payload?.propertyName || '' }).find((item) => item.propertyName === payload?.propertyName)
       || null;
     const records = read(KEYS.accommodationRequests, []);
-    const entry = normalizeAccommodationRequest({
+    const nextListingId = String(payload?.listingId || listing?.id || '').trim();
+    const existingIndex = records.findIndex((item) => {
+      const sameUser = String(item?.userId || '').trim() === String(userId).trim();
+      if (!sameUser) return false;
+      if (nextListingId) return String(item?.listingId || '').trim() === nextListingId;
+      return String(item?.propertyName || '').trim().toLowerCase() === String(payload?.propertyName || listing?.propertyName || '').trim().toLowerCase();
+    });
+    const existing = existingIndex >= 0 ? normalizeAccommodationRequest(records[existingIndex], userId) : {};
+    const baseDraft = {
+      ...existing,
       ...payload,
+      source: 'local',
       userId,
-      listingId: payload?.listingId || listing?.id || '',
-      propertyName: payload?.propertyName || listing?.propertyName || '',
-      institutionName: payload?.institutionName || listing?.institutionName || '',
-      province: payload?.province || listing?.province || '',
-      location: payload?.location || listing?.location || '',
-      roomType: payload?.roomType || listing?.roomType || '',
-      price: payload?.price ?? listing?.price ?? 0,
-      providerPhone: payload?.providerPhone || listing?.contactPhone || '',
-      status: payload?.status || 'Reservation requested'
-    }, userId);
-    records.push(entry);
+      listingId: nextListingId,
+      propertyName: payload?.propertyName || listing?.propertyName || existing.propertyName || '',
+      institutionName: payload?.institutionName || listing?.institutionName || existing.institutionName || '',
+      province: payload?.province || listing?.province || existing.province || '',
+      location: payload?.location || listing?.location || existing.location || '',
+      address: payload?.address || listing?.address || existing.address || '',
+      roomType: payload?.roomType || listing?.roomType || existing.roomType || '',
+      price: payload?.price ?? listing?.price ?? existing.price ?? 0,
+      learnerName: payload?.learnerName || payload?.fullName || user?.fullName || existing.learnerName || '',
+      learnerEmail: payload?.learnerEmail || payload?.email || user?.email || existing.learnerEmail || '',
+      learnerPhone: payload?.learnerPhone || payload?.contactPhone || user?.phone || user?.cellphone || existing.learnerPhone || '',
+      alternatePhone: payload?.alternatePhone || existing.alternatePhone || '',
+      idNumber: payload?.idNumber || profile?.idNumber || existing.idNumber || '',
+      studentNumber: payload?.studentNumber || profile?.studentNumber || existing.studentNumber || '',
+      campusName: payload?.campusName || profile?.campusName || existing.campusName || '',
+      yearOfStudy: payload?.yearOfStudy || profile?.yearOfStudy || existing.yearOfStudy || '',
+      gender: payload?.gender || profile?.gender || existing.gender || '',
+      preferredMoveInDate: payload?.preferredMoveInDate || payload?.moveInDate || existing.preferredMoveInDate || '',
+      preferredLeaseMonths: payload?.preferredLeaseMonths || existing.preferredLeaseMonths || '',
+      roomPreference: payload?.roomPreference || existing.roomPreference || '',
+      fundingStatus: payload?.fundingStatus || existing.fundingStatus || '',
+      nsfasBeneficiary: payload?.nsfasBeneficiary || existing.nsfasBeneficiary || '',
+      nsfasSinceYear: payload?.nsfasSinceYear || existing.nsfasSinceYear || '',
+      nsfasReferenceNumber: payload?.nsfasReferenceNumber || existing.nsfasReferenceNumber || '',
+      nsfasAllowanceStatus: payload?.nsfasAllowanceStatus || existing.nsfasAllowanceStatus || '',
+      bursaryProvider: payload?.bursaryProvider || existing.bursaryProvider || '',
+      guardianName: payload?.guardianName || profile?.guardianName || existing.guardianName || '',
+      guardianPhone: payload?.guardianPhone || profile?.guardianPhone || profile?.guardianCell1 || existing.guardianPhone || '',
+      guardianEmail: payload?.guardianEmail || profile?.guardianEmail || existing.guardianEmail || '',
+      emergencyContactName: payload?.emergencyContactName || existing.emergencyContactName || '',
+      emergencyContactPhone: payload?.emergencyContactPhone || existing.emergencyContactPhone || '',
+      emergencyRelationship: payload?.emergencyRelationship || existing.emergencyRelationship || '',
+      documentsReady: payload?.documentsReady || existing.documentsReady || '',
+      transportNeeded: payload?.transportNeeded || existing.transportNeeded || '',
+      specialNeeds: payload?.specialNeeds || existing.specialNeeds || '',
+      medicalNotes: payload?.medicalNotes || existing.medicalNotes || '',
+      contactPhone: payload?.contactPhone || payload?.learnerPhone || user?.phone || user?.cellphone || existing.contactPhone || '',
+      note: payload?.note || payload?.supportNote || existing.note || '',
+      supportChecklist: safeArray(payload?.supportChecklist).length ? payload.supportChecklist : existing.supportChecklist || [],
+      providerPhone: payload?.providerPhone || listing?.contactPhone || existing.providerPhone || '',
+      images: payload?.images || listing?.images || existing.images || [],
+      status: payload?.status || existing.status || 'Support review requested',
+      createdAt: existing.createdAt || nowISO(),
+      updatedAt: nowISO()
+    };
+    const entry = normalizeAccommodationRequest({
+      ...baseDraft,
+      supportSummary: payload?.supportSummary || buildAccommodationSupportSummary(baseDraft)
+      }, userId);
+    if (existingIndex >= 0) records[existingIndex] = entry;
+    else records.push(entry);
     write(KEYS.accommodationRequests, records);
-    pushNotification(userId, 'Accommodation request received', `${entry.propertyName} has been added to your dashboard for tracking.`, 'success');
+    pushNotification(
+      userId,
+      'Accommodation request received',
+      `${entry.propertyName} has been added to your dashboard for tracking. Kagie support can now review your move-in and funding details.`,
+      'success'
+    );
     return clone(entry);
   }
 
   function submitTransportRequest(payload, userIdArg) {
-    const actor = requireRole([ROLES.USER]);
-    const userId = userIdArg || actor.id;
+    const actor = requireRole([ROLES.MASTER, ROLES.ASSISTANT]);
+    const userId = String(userIdArg || payload?.userId || '').trim();
+    if (!userId) throw new Error('Choose the learner first before sending the ticket.');
+    const learner = getUserById(userId);
+    if (!learner || learner.role !== ROLES.USER) throw new Error('Learner not found for this transport ticket.');
     const option = getTransportOptions().find((item) => item.id === payload?.optionId)
       || getTransportOptions({
         departureCity: payload?.departureCity || '',
@@ -602,20 +3075,61 @@
       })[0]
       || null;
     const records = read(KEYS.transportRequests, []);
+    const ticketCode = String(payload?.ticketCode || uid('ticket').replace(/[^a-z0-9]/gi, '').slice(-8).toUpperCase()).trim();
+    const sourceKey = String(payload?.requestSourceKey || '').trim();
+    const existingIndex = records.findIndex((entry) => {
+      const sameUser = String(entry?.userId || '').trim() === userId;
+      if (!sameUser) return false;
+      if (sourceKey && String(entry?.requestSourceKey || '').trim() === sourceKey) return true;
+      return !String(entry?.ticketCode || '').trim()
+        && String(entry?.departureCity || '').trim() === String(payload?.departureCity || option?.departureCity || '').trim()
+        && String(entry?.destinationCity || '').trim() === String(payload?.destinationCity || option?.destinationCity || '').trim()
+        && String(entry?.travelDate || '').trim() === String(payload?.travelDate || '').trim();
+    });
+    const current = existingIndex >= 0 ? normalizeTransportRequest(records[existingIndex], userId) : normalizeTransportRequest({}, userId);
     const entry = normalizeTransportRequest({
+      ...current,
       ...payload,
       userId,
-      optionId: payload?.optionId || option?.id || '',
-      company: payload?.company || option?.company || '',
-      departureCity: payload?.departureCity || option?.departureCity || '',
-      destinationCity: payload?.destinationCity || option?.destinationCity || '',
-      estimatedPrice: payload?.estimatedPrice ?? option?.estimatedPrice ?? 0,
-      supportFee: payload?.supportFee ?? option?.supportFee ?? 0,
-      status: payload?.status || 'Travel request received'
+      learnerName: payload?.learnerName || learner.fullName || current.learnerName || '',
+      learnerEmail: payload?.learnerEmail || learner.email || current.learnerEmail || '',
+      learnerPhone: payload?.learnerPhone || learner.phone || learner.cellphone || current.learnerPhone || '',
+      optionId: payload?.optionId || option?.id || current.optionId || '',
+      tripType: payload?.tripType || current.tripType || 'One Way',
+      company: payload?.company || option?.company || current.company || '',
+      departureCity: payload?.departureCity || option?.departureCity || current.departureCity || '',
+      destinationCity: payload?.destinationCity || option?.destinationCity || current.destinationCity || '',
+      departureTime: payload?.departureTime || option?.departureTime || current.departureTime || '',
+      arrivalTime: payload?.arrivalTime || option?.arrivalTime || current.arrivalTime || '',
+      travelDate: payload?.travelDate || current.travelDate || '',
+      returnDate: payload?.returnDate || current.returnDate || '',
+      passengers: payload?.passengers || current.passengers || '1',
+      passengerMix: payload?.passengerMix || current.passengerMix || '',
+      passengerDetails: normalizeTransportPassengerDetails(payload?.passengerDetails || current.passengerDetails),
+      estimatedPrice: payload?.estimatedPrice ?? option?.estimatedPrice ?? current.estimatedPrice ?? 0,
+      supportFee: payload?.supportFee ?? option?.supportFee ?? current.supportFee ?? 0,
+      requestSourceKey: sourceKey || current.requestSourceKey || '',
+      paymentReference: payload?.paymentReference || current.paymentReference || '',
+      paymentMethod: payload?.paymentMethod || current.paymentMethod || '',
+      paymentAmount: payload?.paymentAmount ?? current.paymentAmount ?? 0,
+      paidAt: payload?.paidAt || current.paidAt || '',
+      ticketCode,
+      ticketStatus: payload?.ticketStatus || 'Ticket sent',
+      sentAt: payload?.sentAt || nowISO(),
+      bookedByUserId: actor.id,
+      bookedByRole: actor.role,
+      status: payload?.status || 'Ticket sent'
     }, userId);
-    records.push(entry);
+    if (existingIndex >= 0) records[existingIndex] = entry;
+    else records.push(entry);
     write(KEYS.transportRequests, records);
-    pushNotification(userId, 'Transport request received', `${entry.company} travel support from ${entry.departureCity} to ${entry.destinationCity} is now being tracked.`, 'success');
+    updateLatestApplicationTransportService(userId, entry);
+    pushNotification(
+      userId,
+      'Transport ticket ready',
+      `${entry.company} ticket from ${entry.departureCity} to ${entry.destinationCity} is now available in your Kagie account.`,
+      'success'
+    );
     return clone(entry);
   }
 
@@ -627,11 +3141,11 @@
       serviceCode: 'accommodation_assist',
       serviceName: 'Accommodation reservation',
       institution: request.institutionName || request.location,
-      note: request.note,
+      note: request.supportSummary || request.note,
       status: request.status,
-      paymentStatus: 'No upfront payment',
+      paymentStatus: 'Reservation request received',
       applicationStatus: STATUS.application.DRAFT,
-      requestedAt: request.createdAt
+      requestedAt: request.updatedAt || request.createdAt
     };
   }
 
@@ -641,38 +3155,505 @@
       userId: request.userId,
       applicationId: '',
       serviceCode: 'transport_assist',
-      serviceName: 'Transport request',
+      serviceName: 'Transport ticket',
       institution: `${request.departureCity} to ${request.destinationCity}`,
       note: request.note,
       status: request.status,
-      paymentStatus: request.supportFee > 0 ? `Support fee may apply (${money(request.supportFee)})` : 'Support on request',
+      paymentStatus: request.ticketStatus || request.status || 'Ticket sent',
       applicationStatus: STATUS.application.DRAFT,
       requestedAt: request.createdAt
     };
   }
 
   async function getAccommodationListingsAsync(filtersArg) {
-    return getAccommodationListings(filtersArg);
+    const local = getAccommodationListings(filtersArg);
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const remote = await fetchRemoteAccommodationListings(filtersArg);
+      const localOnly = getAccommodationListingOverrideStore().filter((item) => !isUuid(item?.id));
+      if (remote.length) {
+        saveAccommodationListingOverrideStore(localOnly.concat(remote));
+      }
+      return remote.length ? filterAccommodationListingRecords(remote.concat(localOnly), filtersArg) : local;
+    } catch (error) {
+      console.warn('Accommodation listing catalog fell back to local storage.', error);
+      return local;
+    }
   }
 
   async function getTransportOptionsAsync(filtersArg) {
     return getTransportOptions(filtersArg);
   }
 
+  function isRecoverableServiceRequestSyncError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return isRecoverableRemoteSyncError(error)
+      || message.includes('accommodation_requests')
+      || message.includes('transport_requests')
+      || (message.includes('relation') && message.includes('does not exist'))
+      || message.includes('row-level security')
+      || message.includes('schema cache');
+  }
+
+  function normalizeRemoteAccommodationRequestRow(row, requesterUserArg) {
+    const requesterUser = requesterUserArg || getUserBySupabaseId(row?.user_id) || getUserById(row?.user_id) || null;
+    return normalizeAccommodationRequest({
+      id: row?.id || uid('accreq'),
+      source: 'remote',
+      userId: requesterUser?.id || row?.user_id || '',
+      applicationId: row?.application_id || '',
+      listingId: row?.listing_id || '',
+      propertyName: row?.property_name || '',
+      institutionName: row?.institution_name || '',
+      province: row?.province || '',
+      location: row?.location || '',
+      address: row?.address || '',
+      roomType: row?.room_type || '',
+      price: row?.price || 0,
+      learnerName: row?.learner_name || requesterUser?.fullName || '',
+      learnerEmail: row?.learner_email || requesterUser?.email || '',
+      learnerPhone: row?.learner_phone || requesterUser?.phone || '',
+      alternatePhone: row?.alternate_phone || '',
+      idNumber: row?.id_number || '',
+      studentNumber: row?.student_number || '',
+      campusName: row?.campus_name || '',
+      yearOfStudy: row?.year_of_study || '',
+      gender: row?.gender || '',
+      preferredMoveInDate: row?.preferred_move_in_date || '',
+      preferredLeaseMonths: row?.preferred_lease_months || '',
+      roomPreference: row?.room_preference || '',
+      fundingStatus: row?.funding_status || '',
+      nsfasBeneficiary: row?.nsfas_beneficiary || '',
+      nsfasSinceYear: row?.nsfas_since_year || '',
+      nsfasReferenceNumber: row?.nsfas_reference_number || '',
+      nsfasAllowanceStatus: row?.nsfas_allowance_status || '',
+      bursaryProvider: row?.bursary_provider || '',
+      guardianName: row?.guardian_name || '',
+      guardianPhone: row?.guardian_phone || '',
+      guardianEmail: row?.guardian_email || '',
+      emergencyContactName: row?.emergency_contact_name || '',
+      emergencyContactPhone: row?.emergency_contact_phone || '',
+      emergencyRelationship: row?.emergency_relationship || '',
+      documentsReady: row?.documents_ready || '',
+      transportNeeded: row?.transport_needed || '',
+      specialNeeds: row?.special_needs || '',
+      medicalNotes: row?.medical_notes || '',
+      contactPhone: row?.contact_phone || row?.learner_phone || '',
+      note: row?.note || '',
+      supportChecklist: row?.support_checklist || [],
+      supportSummary: row?.support_summary || '',
+      status: row?.status || 'Support review requested',
+      providerPhone: row?.provider_phone || '',
+      images: row?.images || [],
+      createdAt: row?.created_at || nowISO(),
+      updatedAt: row?.updated_at || row?.created_at || nowISO()
+    }, requesterUser?.id || row?.user_id || '');
+  }
+
+  function normalizeRemoteTransportRequestRow(row, requesterUserArg, assistantUserArg) {
+    const requesterUser = requesterUserArg || getUserBySupabaseId(row?.user_id) || getUserById(row?.user_id) || null;
+    const assistantUser = assistantUserArg || getUserBySupabaseId(row?.assigned_assistant_id) || getUserById(row?.assigned_assistant_id) || null;
+    return normalizeTransportRequest({
+      id: row?.id || uid('transreq'),
+      userId: requesterUser?.id || row?.user_id || '',
+      applicationId: row?.application_id || '',
+      learnerName: row?.learner_name || requesterUser?.fullName || '',
+      learnerEmail: row?.learner_email || requesterUser?.email || '',
+      learnerPhone: row?.learner_phone || requesterUser?.phone || '',
+      assignedAssistantId: assistantUser?.id || row?.assigned_assistant_id || '',
+      optionId: row?.option_id || '',
+      tripType: row?.trip_type || 'One Way',
+      company: row?.company || '',
+      departureCity: row?.departure_city || '',
+      destinationCity: row?.destination_city || '',
+      departureTime: row?.departure_time || '',
+      arrivalTime: row?.arrival_time || '',
+      travelDate: row?.travel_date || '',
+      returnDate: row?.return_date || '',
+      passengers: row?.passengers || '1',
+      passengerMix: row?.passenger_mix || '',
+      passengerDetails: row?.passenger_details || [],
+      estimatedPrice: row?.estimated_price || 0,
+      supportFee: row?.support_fee || 0,
+      note: row?.note || '',
+      requestSourceKey: row?.request_source_key || '',
+      paymentReference: row?.payment_reference || '',
+      paymentMethod: row?.payment_method || '',
+      paymentAmount: row?.payment_amount || 0,
+      paidAt: row?.paid_at || '',
+      ticketCode: row?.ticket_code || '',
+      ticketStatus: row?.ticket_status || row?.status || 'Ticket sent',
+      sentAt: row?.sent_at || row?.created_at || nowISO(),
+      bookedByUserId: row?.booked_by_user_id || '',
+      bookedByRole: row?.booked_by_role || '',
+      status: row?.status || 'Ticket sent',
+      createdAt: row?.created_at || nowISO(),
+      updatedAt: row?.updated_at || row?.created_at || nowISO()
+    }, requesterUser?.id || row?.user_id || '');
+  }
+
+  function mirrorRemoteAccommodationRequests(itemsArg, fallbackUserId) {
+    const normalized = safeArray(itemsArg).map((item) =>
+      normalizeAccommodationRequest(item, item?.userId || fallbackUserId || '')
+    );
+    const targetUserIds = new Set(normalized.map((item) => String(item.userId || '').trim()).filter(Boolean));
+    if (fallbackUserId) targetUserIds.add(String(fallbackUserId).trim());
+
+    const retained = read(KEYS.accommodationRequests, [])
+      .map((item) => normalizeAccommodationRequest(item, item?.userId || ''))
+      .filter((item) => !targetUserIds.has(String(item.userId || '').trim()));
+    write(KEYS.accommodationRequests, retained.concat(normalized));
+    return normalized.map(clone);
+  }
+
+  function mirrorRemoteTransportRequests(itemsArg, fallbackUserId) {
+    const normalized = safeArray(itemsArg).map((item) =>
+      normalizeTransportRequest(item, item?.userId || fallbackUserId || '')
+    );
+    const targetUserIds = new Set(normalized.map((item) => String(item.userId || '').trim()).filter(Boolean));
+    if (fallbackUserId) targetUserIds.add(String(fallbackUserId).trim());
+
+    const retained = read(KEYS.transportRequests, [])
+      .map((item) => normalizeTransportRequest(item, item?.userId || ''))
+      .filter((item) => !targetUserIds.has(String(item.userId || '').trim()));
+    write(KEYS.transportRequests, retained.concat(normalized));
+    return normalized.map(clone);
+  }
+
   async function getAccommodationRequestsAsync(userIdArg) {
-    return getAccommodationRequests(userIdArg);
+    const viewer = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const targetUserId = viewer.role === ROLES.USER ? viewer.id : String(userIdArg || '').trim();
+    if (!targetUserId && viewer.role !== ROLES.USER) return [];
+
+    const local = getAccommodationRequests(targetUserId || viewer.id);
+    const ctx = await resolveSupabaseContext(targetUserId || viewer.id);
+    if (!ctx?.targetRemoteId) return local;
+
+    const query = await ctx.client
+      .from('accommodation_requests')
+      .select('*')
+      .eq('user_id', ctx.targetRemoteId)
+      .order('updated_at', { ascending: false });
+    if (query.error) {
+      if (isRecoverableServiceRequestSyncError(query.error)) {
+        console.warn('Falling back to local accommodation requests because the remote table is unavailable.', query.error);
+        return local;
+      }
+      throw new Error(query.error.message || 'Could not load accommodation requests.');
+    }
+
+    const requesterUser = ctx.targetLocalUser || getUserByIdentity(targetUserId) || viewer;
+    const items = safeArray(query.data).map((row) => normalizeRemoteAccommodationRequestRow(row, requesterUser));
+    return mirrorRemoteAccommodationRequests(items, requesterUser?.id || targetUserId);
   }
 
   async function getTransportRequestsAsync(userIdArg) {
-    return getTransportRequests(userIdArg);
+    const viewer = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const targetUserId = viewer.role === ROLES.USER ? viewer.id : String(userIdArg || '').trim();
+    if (!targetUserId && viewer.role !== ROLES.USER) return [];
+
+    const local = getTransportRequests(targetUserId || viewer.id);
+    const ctx = await resolveSupabaseContext(targetUserId || viewer.id);
+    if (!ctx?.targetRemoteId) return local;
+
+    const query = await ctx.client
+      .from('transport_requests')
+      .select('*')
+      .eq('user_id', ctx.targetRemoteId)
+      .order('created_at', { ascending: false });
+    if (query.error) {
+      if (isRecoverableServiceRequestSyncError(query.error)) {
+        console.warn('Falling back to local transport requests because the remote table is unavailable.', query.error);
+        return local;
+      }
+      throw new Error(query.error.message || 'Could not load transport requests.');
+    }
+
+    const remoteIds = safeArray(query.data).flatMap((row) => [row.user_id, row.assigned_assistant_id]).filter(Boolean);
+    const syncedUsers = await fetchRemoteUsersByIds(remoteIds, ctx.client).catch(() => []);
+    const userMap = new Map(syncedUsers.map((user) => [user.supabaseUserId, user]));
+    const requesterUser = ctx.targetLocalUser || getUserByIdentity(targetUserId) || viewer;
+    const items = safeArray(query.data).map((row) =>
+      normalizeRemoteTransportRequestRow(row, userMap.get(row.user_id) || requesterUser, userMap.get(row.assigned_assistant_id))
+    );
+    return mirrorRemoteTransportRequests(items, requesterUser?.id || targetUserId);
   }
 
   async function submitAccommodationRequestAsync(payload, userIdArg) {
-    return submitAccommodationRequest(payload, userIdArg);
+    const actor = requireRole([ROLES.USER]);
+    const targetUserId = userIdArg || actor.id;
+    const ctx = await resolveSupabaseContext(targetUserId);
+    if (!ctx?.targetRemoteId) return submitAccommodationRequest(payload, userIdArg);
+
+    const user = ctx.targetLocalUser || actor;
+    const profile = await getProfileAsync(targetUserId).catch(() => ({}));
+    const latestApplication = await getLatestApplicationAsync(targetUserId).catch(() => null);
+    const listing = getAccommodationListings().find((item) => item.id === payload?.listingId)
+      || getAccommodationListings({ query: payload?.propertyName || '' }).find((item) => item.propertyName === payload?.propertyName)
+      || null;
+
+    const draft = normalizeAccommodationRequest({
+      ...payload,
+      userId: targetUserId,
+      applicationId: payload?.applicationId || latestApplication?.id || '',
+      listingId: payload?.listingId || listing?.id || '',
+      propertyName: payload?.propertyName || listing?.propertyName || '',
+      institutionName: payload?.institutionName || listing?.institutionName || '',
+      province: payload?.province || listing?.province || '',
+      location: payload?.location || listing?.location || '',
+      address: payload?.address || listing?.address || '',
+      roomType: payload?.roomType || listing?.roomType || '',
+      price: payload?.price ?? listing?.price ?? 0,
+      learnerName: payload?.learnerName || payload?.fullName || user?.fullName || profile?.fullName || '',
+      learnerEmail: payload?.learnerEmail || payload?.email || user?.email || profile?.email || '',
+      learnerPhone: payload?.learnerPhone || payload?.contactPhone || user?.phone || profile?.phone || '',
+      idNumber: payload?.idNumber || profile?.idNumber || '',
+      studentNumber: payload?.studentNumber || profile?.studentNumber || '',
+      supportSummary: payload?.supportSummary || buildAccommodationSupportSummary(payload),
+      supportChecklist: payload?.supportChecklist || [],
+      status: payload?.status || 'Support review requested',
+      images: payload?.images || listing?.images || []
+    }, targetUserId);
+
+    const savePayload = {
+      user_id: ctx.targetRemoteId,
+      application_id: draft.applicationId || null,
+      listing_id: draft.listingId || '',
+      property_name: draft.propertyName,
+      institution_name: draft.institutionName,
+      province: draft.province,
+      location: draft.location,
+      address: draft.address,
+      room_type: draft.roomType,
+      price: Number(draft.price || 0),
+      learner_name: draft.learnerName,
+      learner_email: draft.learnerEmail,
+      learner_phone: draft.learnerPhone,
+      alternate_phone: draft.alternatePhone,
+      id_number: draft.idNumber,
+      student_number: draft.studentNumber,
+      campus_name: draft.campusName,
+      year_of_study: draft.yearOfStudy,
+      gender: draft.gender,
+      preferred_move_in_date: toDateOrNull(draft.preferredMoveInDate),
+      preferred_lease_months: draft.preferredLeaseMonths,
+      room_preference: draft.roomPreference,
+      funding_status: draft.fundingStatus,
+      nsfas_beneficiary: draft.nsfasBeneficiary,
+      nsfas_since_year: draft.nsfasSinceYear,
+      nsfas_reference_number: draft.nsfasReferenceNumber,
+      nsfas_allowance_status: draft.nsfasAllowanceStatus,
+      bursary_provider: draft.bursaryProvider,
+      guardian_name: draft.guardianName,
+      guardian_phone: draft.guardianPhone,
+      guardian_email: draft.guardianEmail,
+      emergency_contact_name: draft.emergencyContactName,
+      emergency_contact_phone: draft.emergencyContactPhone,
+      emergency_relationship: draft.emergencyRelationship,
+      documents_ready: draft.documentsReady,
+      transport_needed: draft.transportNeeded,
+      special_needs: draft.specialNeeds,
+      medical_notes: draft.medicalNotes,
+      contact_phone: draft.contactPhone,
+      note: draft.note,
+      support_checklist: draft.supportChecklist,
+      support_summary: draft.supportSummary || buildAccommodationSupportSummary(draft),
+      status: draft.status,
+      provider_phone: draft.providerPhone,
+      images: draft.images
+    };
+
+    const existingQuery = await ctx.client
+      .from('accommodation_requests')
+      .select('id')
+      .eq('user_id', ctx.targetRemoteId)
+      .eq('listing_id', draft.listingId || '')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existingQuery.error && !isRecoverableServiceRequestSyncError(existingQuery.error)) {
+      throw new Error(existingQuery.error.message || 'Could not load the existing accommodation request.');
+    }
+
+    let saved;
+    if (existingQuery.data?.id) {
+      saved = await ctx.client
+        .from('accommodation_requests')
+        .update(savePayload)
+        .eq('id', existingQuery.data.id)
+        .select('*')
+        .single();
+    } else {
+      saved = await ctx.client
+        .from('accommodation_requests')
+        .insert(savePayload)
+        .select('*')
+        .single();
+    }
+    if (saved.error) {
+      if (isRecoverableServiceRequestSyncError(saved.error)) {
+        console.warn('Falling back to local accommodation request save because the remote table is unavailable.', saved.error);
+        return submitAccommodationRequest(payload, userIdArg);
+      }
+      throw new Error(saved.error.message || 'Could not save the accommodation request.');
+    }
+
+    const entry = normalizeRemoteAccommodationRequestRow(saved.data, user);
+    mirrorRemoteAccommodationRequests([entry], user.id || targetUserId);
+    return entry;
   }
 
   async function submitTransportRequestAsync(payload, userIdArg) {
-    return submitTransportRequest(payload, userIdArg);
+    const actor = requireRole([ROLES.MASTER, ROLES.ASSISTANT]);
+    const targetUserId = String(userIdArg || payload?.userId || '').trim();
+    if (!targetUserId) throw new Error('Choose the learner first before sending the ticket.');
+
+    const actorCtx = await resolveSupabaseContext(actor.id);
+    const learnerCtx = await resolveSupabaseContext(targetUserId);
+    if (!actorCtx?.remoteSelfId || !learnerCtx?.targetRemoteId) return submitTransportRequest(payload, userIdArg);
+
+    const learner = learnerCtx.targetLocalUser || getUserByIdentity(targetUserId) || null;
+    if (!learner || normalizeKagieRole(learner.role, learner.role || ROLES.USER) !== ROLES.USER) {
+      throw new Error('Learner not found for this transport ticket.');
+    }
+
+    const option = getTransportOptions().find((item) => item.id === payload?.optionId)
+      || getTransportOptions({
+        departureCity: payload?.departureCity || '',
+        destinationCity: payload?.destinationCity || '',
+        company: payload?.company || ''
+      })[0]
+      || null;
+    const latestApplication = await getLatestApplicationAsync(targetUserId).catch(() => null);
+    const draft = normalizeTransportRequest({
+      ...payload,
+      userId: targetUserId,
+      applicationId: payload?.applicationId || latestApplication?.id || '',
+      learnerName: payload?.learnerName || learner.fullName || '',
+      learnerEmail: payload?.learnerEmail || learner.email || '',
+      learnerPhone: payload?.learnerPhone || learner.phone || learner.cellphone || '',
+      assignedAssistantId: payload?.assignedAssistantId || (actor.role === ROLES.ASSISTANT ? actor.id : ''),
+      optionId: payload?.optionId || option?.id || '',
+      tripType: payload?.tripType || 'One Way',
+      company: payload?.company || option?.company || '',
+      departureCity: payload?.departureCity || option?.departureCity || '',
+      destinationCity: payload?.destinationCity || option?.destinationCity || '',
+      departureTime: payload?.departureTime || option?.departureTime || '',
+      arrivalTime: payload?.arrivalTime || option?.arrivalTime || '',
+      supportFee: payload?.supportFee ?? option?.supportFee ?? 0,
+      estimatedPrice: payload?.estimatedPrice ?? payload?.paymentAmount ?? 0,
+      bookedByUserId: actor.id,
+      bookedByRole: actor.role,
+      ticketStatus: payload?.ticketStatus || payload?.status || 'Ticket sent',
+      status: payload?.status || 'Ticket sent',
+      sentAt: payload?.sentAt || nowISO()
+    }, targetUserId);
+
+    let assignedAssistantRemoteId = null;
+    if (draft.assignedAssistantId) {
+      const assistantCtx = await resolveSupabaseContext(draft.assignedAssistantId);
+      assignedAssistantRemoteId = assistantCtx?.targetRemoteId || null;
+    } else if (actor.role === ROLES.ASSISTANT) {
+      assignedAssistantRemoteId = actorCtx.remoteSelfId;
+    }
+
+    const savePayload = {
+      user_id: learnerCtx.targetRemoteId,
+      application_id: draft.applicationId || null,
+      assigned_assistant_id: assignedAssistantRemoteId,
+      option_id: draft.optionId,
+      trip_type: draft.tripType,
+      company: draft.company,
+      departure_city: draft.departureCity,
+      destination_city: draft.destinationCity,
+      departure_time: draft.departureTime,
+      arrival_time: draft.arrivalTime,
+      travel_date: toDateOrNull(draft.travelDate),
+      return_date: toDateOrNull(draft.returnDate),
+      passengers: draft.passengers,
+      passenger_mix: draft.passengerMix,
+      passenger_details: draft.passengerDetails,
+      estimated_price: Number(draft.estimatedPrice || 0),
+      support_fee: Number(draft.supportFee || 0),
+      note: draft.note,
+      request_source_key: draft.requestSourceKey,
+      payment_reference: draft.paymentReference,
+      payment_method: draft.paymentMethod,
+      payment_amount: Number(draft.paymentAmount || 0),
+      paid_at: draft.paidAt || null,
+      ticket_code: draft.ticketCode,
+      ticket_status: draft.ticketStatus,
+      sent_at: draft.sentAt || nowISO(),
+      booked_by_user_id: actorCtx.remoteSelfId,
+      booked_by_role: draft.bookedByRole || actor.role,
+      status: draft.status,
+      learner_name: draft.learnerName,
+      learner_email: draft.learnerEmail,
+      learner_phone: draft.learnerPhone
+    };
+
+    let existingQuery;
+    if (draft.requestSourceKey) {
+      existingQuery = await actorCtx.client
+        .from('transport_requests')
+        .select('id')
+        .eq('user_id', learnerCtx.targetRemoteId)
+        .eq('request_source_key', draft.requestSourceKey)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    } else {
+      existingQuery = await actorCtx.client
+        .from('transport_requests')
+        .select('id')
+        .eq('user_id', learnerCtx.targetRemoteId)
+        .eq('departure_city', draft.departureCity)
+        .eq('destination_city', draft.destinationCity)
+        .eq('travel_date', toDateOrNull(draft.travelDate))
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    }
+    if (existingQuery.error && !isRecoverableServiceRequestSyncError(existingQuery.error)) {
+      throw new Error(existingQuery.error.message || 'Could not load the existing transport request.');
+    }
+
+    let saved;
+    if (existingQuery.data?.id) {
+      saved = await actorCtx.client
+        .from('transport_requests')
+        .update(savePayload)
+        .eq('id', existingQuery.data.id)
+        .select('*')
+        .single();
+    } else {
+      saved = await actorCtx.client
+        .from('transport_requests')
+        .insert(savePayload)
+        .select('*')
+        .single();
+    }
+    if (saved.error) {
+      if (isRecoverableServiceRequestSyncError(saved.error)) {
+        console.warn('Falling back to local transport request save because the remote table is unavailable.', saved.error);
+        return submitTransportRequest(payload, userIdArg);
+      }
+      throw new Error(saved.error.message || 'Could not save the transport request.');
+    }
+
+    const entry = normalizeRemoteTransportRequestRow(saved.data, learner, actor.role === ROLES.ASSISTANT ? actor : null);
+    mirrorRemoteTransportRequests([entry], learner.id || targetUserId);
+    await logAssistantActivityAsync({
+      assistantId: actor.id,
+      applicationId: draft.applicationId || latestApplication?.id || null,
+      action: 'transport_ticket_saved',
+      details: {
+        transportRequestId: entry.id,
+        learnerId: learner.id || targetUserId,
+        ticketStatus: entry.ticketStatus || entry.status
+      }
+    }).catch(() => {});
+    return entry;
   }
 
   function getServiceRequestsForUser(userIdArg) {
@@ -1040,26 +4021,171 @@
     return 'Closed';
   }
 
+  function normalizeInstitutionNameKey(value) {
+    return String(value || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/[.,'"]/g, '')
+      .toLowerCase();
+  }
+
+  function normalizeInstitutionDedupeKey(record) {
+    const nameKey = normalizeInstitutionNameKey(record?.name || record?.institution || record?.institutionName);
+    return nameKey || '';
+  }
+
+  function mergeInstitutionFaculties(primary, duplicate) {
+    const byName = new Map();
+    safeArray(primary?.faculties).concat(safeArray(duplicate?.faculties)).forEach((faculty) => {
+      const name = String(faculty?.name || '').trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      const existing = byName.get(key) || { ...faculty, courses: [] };
+      const courses = [...safeArray(existing.courses), ...safeArray(faculty?.courses)]
+        .map((course) => String(course || '').trim())
+        .filter(Boolean);
+      byName.set(key, {
+        ...existing,
+        ...faculty,
+        name,
+        courses: [...new Set(courses)],
+        courseCount: Math.max(Number(existing.courseCount || 0), Number(faculty?.courseCount || 0), courses.length)
+      });
+    });
+    return Array.from(byName.values());
+  }
+
+  function preferInstitutionRecord(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+
+    const aStatus = institutionStatusPriority(a.status);
+    const bStatus = institutionStatusPriority(b.status);
+    if (bStatus < aStatus) return b;
+
+    const aFacultyScore = safeArray(a.faculties).length + Number(a.courseCount || 0);
+    const bFacultyScore = safeArray(b.faculties).length + Number(b.courseCount || 0);
+    if (bFacultyScore > aFacultyScore) return b;
+
+    if (String(b.year || '').localeCompare(String(a.year || '')) > 0) return b;
+    return a;
+  }
+
+  function mergeInstitutionDuplicates(existing, incoming) {
+    const preferred = preferInstitutionRecord(existing, incoming) || existing || incoming;
+    const secondary = preferred === existing ? incoming : existing;
+    const mergedFaculties = mergeInstitutionFaculties(preferred, secondary);
+    const facultyCount = mergedFaculties.length;
+    const courseCount = mergedFaculties.reduce((sum, faculty) => sum + Number(faculty.courseCount || safeArray(faculty.courses).length || 0), 0);
+    return normalizeInstitutionCatalogEntry({
+      ...(secondary || {}),
+      ...(preferred || {}),
+      id: preferred?.id || secondary?.id,
+      faculties: mergedFaculties,
+      facultyCount,
+      courseCount,
+      shortName: preferred?.shortName || secondary?.shortName || '',
+      logo: preferred?.logo || secondary?.logo || '',
+      studyOverview: preferred?.studyOverview || secondary?.studyOverview || ''
+    }, 1);
+  }
+
+  function dedupeInstitutionCatalog(records) {
+    const byKey = new Map();
+    safeArray(records).forEach((record, index) => {
+      const normalized = normalizeInstitutionCatalogEntry(record, index + 1);
+      const key = normalizeInstitutionDedupeKey(normalized);
+      if (!key || normalized._deleted) return;
+      const current = byKey.get(key);
+      byKey.set(key, current ? mergeInstitutionDuplicates(current, normalized) : normalized);
+    });
+    return Array.from(byKey.values());
+  }
+
+  function defaultInstitutionApplicationFee(source) {
+    const type = String(source?.type || source?.institutionType || '').trim().toLowerCase();
+    const name = String(source?.name || source?.institution || '').trim().toLowerCase();
+    if (!type && !name) return 0;
+
+    if (type === 'tvet' || /tvet/.test(name)) return 0;
+    if (/cape town|stellenbosch|witwatersrand|wits|pretoria/.test(name)) return 100;
+    if (/johannesburg|ukzn|kwazulu-natal|western cape|ufs|free state|nelson mandela|north-west|walter sisulu/.test(name)) return 200;
+    if (/tshwane university of technology|durban university of technology|mangosuthu/.test(name)) return 240;
+    if (/unisa|south africa/.test(name)) return 140;
+    if (type === 'university of technology') return 240;
+    if (type === 'university') return 200;
+    return 0;
+  }
+
+  function resolveInstitutionApplicationFee(source) {
+    const numericFee = Number(
+      source?.applicationFee ??
+      source?.application_fee ??
+      source?.fee ??
+      source?.feeAmount ??
+      source?.fee_amount
+    );
+    const applicationFee = Number.isFinite(numericFee) ? Math.max(0, numericFee) : defaultInstitutionApplicationFee(source);
+    const applicationFeeLabel = String(
+      source?.applicationFeeLabel ||
+      source?.application_fee_label ||
+      (applicationFee > 0 ? `Institution fee: ${formatMoneyLabel(applicationFee)}` : 'Institution fee: Free')
+    ).trim();
+    const applicationFeeNote = String(
+      source?.applicationFeeNote ||
+      source?.application_fee_note ||
+      (applicationFee > 0
+        ? 'This fee is charged by the institution, not by Kagie. It may change by programme or intake.'
+        : 'This institution may not charge an application fee. That is separate from Kagie pricing.')
+    ).trim();
+    return {
+      applicationFee,
+      applicationFeeLabel,
+      applicationFeeNote
+    };
+  }
+
   function normalizeInstitutionCatalogEntry(item, fallbackIndex) {
     const source = item && typeof item === 'object' ? item : {};
     const closingDate = String(source.closingDate || source.closing_date || source.applicationDeadline || '').trim();
     const derivedYear = String(source.year || closingDate.slice(0, 4) || new Date().getFullYear());
     const openingDate = String(source.openingDate || source.opening_date || `${derivedYear}-01-15`).trim();
     const isActive = source.isActive !== false && source.is_active !== false;
-    const faculties = safeArray(source.faculties).map((faculty, index) => ({
-      id: faculty?.id || `${source.id || source.name || 'faculty'}_${index + 1}`,
-      name: String(faculty?.name || '').trim(),
-      courses: safeArray(faculty?.courses).map((course) => String(course || '').trim()).filter(Boolean)
-    })).filter((faculty) => faculty.name);
+    const feeState = resolveInstitutionApplicationFee(source);
+    const faculties = safeArray(source.faculties).map((faculty, index) => {
+      const courses = safeArray(faculty?.courses).map((course) => String(course || '').trim()).filter(Boolean);
+      return {
+        id: faculty?.id || `${source.id || source.name || 'faculty'}_${index + 1}`,
+        name: String(faculty?.name || '').trim(),
+        courses,
+        courseCount: Math.max(0, Number(faculty?.courseCount || courses.length) || courses.length),
+        featuredCourses: safeArray(faculty?.featuredCourses).length ? safeArray(faculty?.featuredCourses).map((course) => String(course || '').trim()).filter(Boolean) : courses.slice(0, 4),
+        summary: String(faculty?.summary || '').trim(),
+        focusTags: safeArray(faculty?.focusTags).map((tag) => String(tag || '').trim()).filter(Boolean)
+      };
+    }).filter((faculty) => faculty.name);
+    const facultyCount = Math.max(0, Number(source.facultyCount || faculties.length) || faculties.length);
+    const courseCount = Math.max(0, Number(source.courseCount || faculties.reduce((sum, faculty) => sum + Number(faculty.courseCount || safeArray(faculty.courses).length || 0), 0)) || 0);
 
     const normalized = {
       id: String(source.id || `institution_${fallbackIndex || 1}`).trim(),
       name: String(source.name || source.institution || '').trim(),
       shortName: String(source.shortName || source.short_name || '').trim(),
       province: String(source.province || '').trim(),
+      city: String(source.city || '').trim(),
       type: String(source.type || source.institutionType || '').trim(),
+      website: String(source.website || '').trim(),
+      contactEmail: String(source.contactEmail || source.contact_email || '').trim(),
+      description: String(source.description || '').trim(),
+      notes: String(source.notes || '').trim(),
       logo: String(source.logo || '').trim(),
       year: derivedYear,
+      applicationFee: feeState.applicationFee,
+      application_fee: feeState.applicationFee,
+      applicationFeeLabel: feeState.applicationFeeLabel,
+      application_fee_label: feeState.applicationFeeLabel,
+      applicationFeeNote: feeState.applicationFeeNote,
+      application_fee_note: feeState.applicationFeeNote,
       openingDate,
       opening_date: openingDate,
       closingDate,
@@ -1069,17 +4195,23 @@
       is_active: isActive,
       manualStatus: normalizeInstitutionLifecycleStatus(source.manualStatus || source.manual_status),
       faculties,
+      facultyCount,
+      courseCount,
+      studyOverview: String(source.studyOverview || '').trim() || (facultyCount ? `${facultyCount} guided faculties and ${courseCount} visible course options are ready in Kagie for comparison.` : ''),
       courseEntryMode: source.courseEntryMode || (faculties.length ? 'guided' : 'manual'),
       createdAt: source.createdAt || nowISO(),
       updatedAt: source.updatedAt || nowISO(),
+      catalogMetadata: clone(source.catalogMetadata || {}),
       _deleted: !!source._deleted
     };
 
+    const finalStatus = normalizeInstitutionLifecycleStatus(source.status) || deriveInstitutionLifecycleStatus(normalized);
+
     return {
       ...normalized,
-      status: normalizeInstitutionLifecycleStatus(source.status) || deriveInstitutionLifecycleStatus(normalized),
-      statusLabel: getInstitutionStatusLabel(normalizeInstitutionLifecycleStatus(source.status) || deriveInstitutionLifecycleStatus(normalized)),
-      canApply: isActive && deriveInstitutionLifecycleStatus(normalized) !== 'closed'
+      status: finalStatus,
+      statusLabel: getInstitutionStatusLabel(finalStatus),
+      canApply: isActive && finalStatus !== 'closed'
     };
   }
 
@@ -1088,8 +4220,12 @@
     institutionQueryCache.clear();
   }
 
-  function refreshCatalogCaches() {
+  function refreshCatalogCaches(options = {}) {
+    invalidatePackCatalogCache();
     invalidateInstitutionCatalogCache();
+    if (!options.preserveRemote) remoteInstitutionCatalogCache = null;
+    accommodationListingCache = null;
+    transportOptionCache = null;
     return true;
   }
 
@@ -1098,16 +4234,18 @@
   }
 
   function saveInstitutionOverrideStore(records) {
-    write(KEYS.institutions, records);
+    const deduped = dedupeInstitutionCatalog(records);
+    write(KEYS.institutions, deduped);
     invalidateInstitutionCatalogCache();
-    return records;
+    return deduped;
   }
 
   function getMergedInstitutionCatalogRecords() {
     if (institutionCatalogCache) return institutionCatalogCache.map(clone);
 
-    const base = safeArray(getKagieData().institutions).map((item, index) => normalizeInstitutionCatalogEntry(item, index + 1));
-    const overrides = getInstitutionOverrideStore();
+    const base = safeArray(Array.isArray(remoteInstitutionCatalogCache) ? remoteInstitutionCatalogCache : getKagieData().institutions)
+      .map((item, index) => normalizeInstitutionCatalogEntry(item, index + 1));
+    const overrides = isSupabaseEnabled() && Array.isArray(remoteInstitutionCatalogCache) ? [] : getInstitutionOverrideStore();
     const merged = new Map(base.map((item) => [item.id, item]));
 
     safeArray(overrides).forEach((entry, index) => {
@@ -1121,7 +4259,7 @@
       merged.set(normalized.id, normalizeInstitutionCatalogEntry(existing ? mergeDeep(existing, normalized) : normalized, index + 1));
     });
 
-    institutionCatalogCache = Array.from(merged.values())
+    institutionCatalogCache = dedupeInstitutionCatalog(Array.from(merged.values()))
       .filter((item) => item.name)
       .sort((a, b) => {
         const statusDiff = institutionStatusPriority(a.status) - institutionStatusPriority(b.status);
@@ -1174,9 +4312,12 @@
           institution.name,
           institution.shortName,
           institution.province,
+          institution.city,
           institution.type,
           institution.status,
           institution.year,
+          institution.contactEmail,
+          institution.description,
           ...safeArray(institution.faculties).map((faculty) => `${faculty.name} ${(faculty.courses || []).join(' ')}`)
         ].join(' ').toLowerCase();
         if (!haystack.includes(query)) return false;
@@ -1192,6 +4333,71 @@
     return clone(result);
   }
 
+  function normalizeRemoteInstitutionRow(row) {
+    const source = row || {};
+    const metadata = source.catalog_metadata && typeof source.catalog_metadata === 'object' && !Array.isArray(source.catalog_metadata) ? source.catalog_metadata : {};
+    return normalizeInstitutionCatalogEntry({
+      ...metadata, id: source.id, name: source.name,
+      shortName: source.short_name ?? metadata.shortName,
+      province: source.province, city: source.city ?? metadata.city,
+      type: source.institution_type ?? source.type,
+      website: source.website ?? metadata.website,
+      contactEmail: source.contact_email ?? metadata.contactEmail,
+      description: source.description ?? metadata.description,
+      notes: source.notes, logo: source.logo ?? metadata.logo,
+      year: source.year ?? metadata.year,
+      applicationFee: source.application_fee ?? metadata.applicationFee,
+      applicationFeeLabel: source.application_fee_label ?? metadata.applicationFeeLabel,
+      applicationFeeNote: source.application_fee_note ?? metadata.applicationFeeNote,
+      openingDate: source.opening_date, closingDate: source.closing_date,
+      manualStatus: source.application_status ?? source.manual_status,
+      isActive: (source.is_visible ?? source.is_active) !== false,
+      faculties: safeArray(source.faculties ?? metadata.faculties),
+      courseEntryMode: source.course_entry_mode ?? metadata.courseEntryMode,
+      catalogMetadata: metadata, createdAt: source.created_at, updatedAt: source.updated_at
+    }, 1);
+  }
+
+  function isMissingInstitutionsTableError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return message.includes('relation') && message.includes('institutions')
+      || message.includes('could not find the table')
+      || message.includes('does not exist');
+  }
+
+  async function loadRemoteInstitutionCatalog(force = false, strict = false) {
+    if (!isSupabaseEnabled()) return [];
+    if (remoteInstitutionCatalogCache && !force) return remoteInstitutionCatalogCache.map(clone);
+
+    try {
+      const client = initSupabaseClient();
+      if (!client) throw new Error('The shared institution catalog is unavailable.');
+      const result = await client
+        .from('institutions')
+        .select('*')
+        .order('name', { ascending: true });
+      if (result.error) {
+        if (strict) throw new Error(result.error.message || 'Could not load the shared institution catalog.');
+        if (!isMissingInstitutionsTableError(result.error)) {
+          console.warn('Could not load remote institution catalog:', result.error.message || result.error);
+        }
+        return [];
+      }
+      remoteInstitutionCatalogCache = dedupeInstitutionCatalog(safeArray(result.data).map(normalizeRemoteInstitutionRow));
+      invalidateInstitutionCatalogCache();
+      return remoteInstitutionCatalogCache.map(clone);
+    } catch (error) {
+      if (strict) throw error;
+      console.warn('Remote institution catalog fallback:', error);
+      return [];
+    }
+  }
+
+  async function getInstitutionCatalogAsync(filters) {
+    await loadRemoteInstitutionCatalog(false);
+    return getInstitutionCatalog(filters);
+  }
+
   function getInstitutionYears() {
     const years = [...new Set(getMergedInstitutionCatalogRecords().map((item) => String(item.year || '')).filter(Boolean))];
     const current = String(new Date().getFullYear());
@@ -1204,10 +4410,10 @@
   }
 
   function getInstitutionByNameAndYear(name, year) {
-    const normalizedName = String(name || '').trim().toLowerCase();
+    const normalizedName = normalizeInstitutionNameKey(name);
     if (!normalizedName) return null;
     return getMergedInstitutionCatalogRecords().find((item) => {
-      if (item.name.trim().toLowerCase() !== normalizedName) return false;
+      if (normalizeInstitutionNameKey(item.name) !== normalizedName) return false;
       if (year && String(item.year) !== String(year)) return false;
       return true;
     }) || null;
@@ -1219,6 +4425,12 @@
       ...(filters || {}),
       includeInactive: true
     });
+  }
+
+  async function getInstitutionsForAdminAsync(filters) {
+    requireRole([ROLES.MASTER]);
+    await loadRemoteInstitutionCatalog(false, true);
+    return getInstitutionsForAdmin(filters);
   }
 
   function addInstitutionByAdmin(input) {
@@ -1240,9 +4452,17 @@
       name,
       shortName: input?.shortName || '',
       province,
+      city: input?.city || '',
       type,
+      website: input?.website || '',
+      contactEmail: input?.contactEmail || input?.contact_email || '',
+      description: input?.description || '',
+      notes: input?.notes || '',
       logo: input?.logo || '',
       year,
+      applicationFee: roundMoney(input?.applicationFee ?? input?.application_fee ?? 0),
+      applicationFeeLabel: input?.applicationFeeLabel || input?.application_fee_label || '',
+      applicationFeeNote: input?.applicationFeeNote || input?.application_fee_note || '',
       openingDate: input?.openingDate || input?.opening_date || `${year}-01-15`,
       closingDate: input?.closingDate || input?.closing_date || '',
       manualStatus: normalizeInstitutionLifecycleStatus(input?.manualStatus || input?.status, true) === 'auto' ? '' : normalizeInstitutionLifecycleStatus(input?.manualStatus || input?.status),
@@ -1253,8 +4473,8 @@
       updatedAt: nowISO()
     }, records.length + 1);
 
-    const duplicate = getMergedInstitutionCatalogRecords().find((item) => item.name.toLowerCase() === entry.name.toLowerCase() && String(item.year) === String(entry.year));
-    if (duplicate) throw new Error('An institution with that name and year already exists.');
+    const duplicate = getMergedInstitutionCatalogRecords().find((item) => normalizeInstitutionDedupeKey(item) === normalizeInstitutionDedupeKey(entry));
+    if (duplicate) throw new Error('An institution with that name already exists.');
 
     records.push(entry);
     saveInstitutionOverrideStore(records);
@@ -1274,6 +4494,9 @@
       ...patch,
       id: institutionId,
       updatedAt: nowISO(),
+      applicationFee: roundMoney(patch?.applicationFee ?? patch?.application_fee ?? current.applicationFee ?? 0),
+      applicationFeeLabel: patch?.applicationFeeLabel || patch?.application_fee_label || current.applicationFeeLabel || '',
+      applicationFeeNote: patch?.applicationFeeNote || patch?.application_fee_note || current.applicationFeeNote || '',
       manualStatus: normalizeInstitutionLifecycleStatus(patch?.manualStatus || patch?.status, true) === 'auto'
         ? ''
         : normalizeInstitutionLifecycleStatus(patch?.manualStatus || patch?.status) || current.manualStatus || ''
@@ -1316,27 +4539,380 @@
     return true;
   }
 
+  function normalizeInstitutionRemotePayload(inputArg, existingArg) {
+    const input = inputArg && typeof inputArg === 'object' ? inputArg : {};
+    const existing = existingArg && typeof existingArg === 'object' ? existingArg : {};
+    const edited = { ...existing, ...input, id: existing.id || input.id };
+    if (Object.prototype.hasOwnProperty.call(input, 'manualStatus') || Object.prototype.hasOwnProperty.call(input, 'status')) {
+      const override = Object.prototype.hasOwnProperty.call(input, 'manualStatus') ? input.manualStatus : input.status;
+      edited.manualStatus = normalizeInstitutionLifecycleStatus(override, true) === 'auto' ? '' : normalizeInstitutionLifecycleStatus(override);
+    }
+    const merged = normalizeInstitutionCatalogEntry(edited, 1);
+    return {
+      name: merged.name, province: merged.province || '', institution_type: merged.type || '',
+      website: merged.website || '', notes: merged.notes || '',
+      opening_date: merged.openingDate || null, closing_date: merged.closingDate || null,
+      application_status: merged.manualStatus || 'auto', is_visible: merged.isActive !== false,
+      catalog_metadata: {
+        ...(existing.catalogMetadata || {}), shortName: merged.shortName || '', year: String(merged.year),
+        city: merged.city || '', contactEmail: merged.contactEmail || '', description: merged.description || '',
+        logo: merged.logo || '', applicationFee: Number(merged.applicationFee || 0),
+        applicationFeeLabel: merged.applicationFeeLabel || '', applicationFeeNote: merged.applicationFeeNote || '',
+        faculties: safeArray(merged.faculties), courseEntryMode: merged.courseEntryMode || 'manual'
+      }
+    };
+  }
+
+  async function addInstitutionByAdminAsync(input) {
+    requireRole([ROLES.MASTER]);
+    if (!isSupabaseEnabled()) return addInstitutionByAdmin(input);
+    const client = initSupabaseClient();
+    if (!client) throw new Error('The shared institution catalog is unavailable.');
+    const result = await client.from('institutions').insert(normalizeInstitutionRemotePayload(input)).select('*').single();
+    if (result.error || !result.data) throw new Error(result.error?.message || 'The institution could not be saved.');
+    const confirmed = normalizeRemoteInstitutionRow(result.data);
+    remoteInstitutionCatalogCache = safeArray(remoteInstitutionCatalogCache).filter(row => row.id !== confirmed.id).concat(confirmed);
+    invalidateInstitutionCatalogCache();
+    await loadRemoteInstitutionCatalog(true);
+    return confirmed;
+  }
+
+  async function updateInstitutionByAdminAsync(institutionId, patch) {
+    requireRole([ROLES.MASTER]);
+    if (!isSupabaseEnabled()) return updateInstitutionByAdmin(institutionId, patch);
+    await loadRemoteInstitutionCatalog(false, true);
+    const current = getInstitutionById(institutionId);
+    if (!current || !isUuid(current.id)) throw new Error('The institution was not found in the shared catalog.');
+    const client = initSupabaseClient();
+    if (!client) throw new Error('The shared institution catalog is unavailable.');
+    const result = await client.from('institutions').update(normalizeInstitutionRemotePayload(patch, current)).eq('id', current.id).select('*').single();
+    if (result.error || !result.data) throw new Error(result.error?.message || 'The institution could not be updated.');
+    const confirmed = normalizeRemoteInstitutionRow(result.data);
+    remoteInstitutionCatalogCache = safeArray(remoteInstitutionCatalogCache).filter(row => row.id !== confirmed.id).concat(confirmed);
+    invalidateInstitutionCatalogCache();
+    await loadRemoteInstitutionCatalog(true);
+    return confirmed;
+  }
+
+  async function deleteInstitutionByAdminAsync(institutionId) {
+    requireRole([ROLES.MASTER]);
+    if (!isSupabaseEnabled()) return deleteInstitutionByAdmin(institutionId);
+    await loadRemoteInstitutionCatalog(false, true);
+    const current = getInstitutionById(institutionId);
+    if (!current || !isUuid(current.id)) throw new Error('The institution was not found in the shared catalog.');
+    const client = initSupabaseClient();
+    if (!client) throw new Error('The shared institution catalog is unavailable.');
+    const result = await client.from('institutions').delete().eq('id', current.id).select('id');
+    if (result.error || !safeArray(result.data).length) throw new Error(result.error?.message || 'The institution could not be deleted.');
+    remoteInstitutionCatalogCache = safeArray(remoteInstitutionCatalogCache).filter(row => row.id !== current.id);
+    invalidateInstitutionCatalogCache();
+    await loadRemoteInstitutionCatalog(true);
+    saveInstitutionOverrideStore(getInstitutionOverrideStore().filter(item => item.id !== institutionId));
+    return true;
+  }
+
+  function getAccommodationListingsForAdmin() {
+    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    return getMergedAccommodationListingRecords();
+  }
+
+  function addAccommodationListingByAdmin(input) {
+    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+
+    const propertyName = String(input?.propertyName || '').trim();
+    const institutionName = String(input?.institutionName || input?.university || '').trim();
+    const province = String(input?.province || '').trim();
+    const location = String(input?.location || '').trim();
+
+    if (!propertyName) throw new Error('Property name is required.');
+    if (!institutionName) throw new Error('University is required.');
+    if (!province) throw new Error('Province is required.');
+    if (!location) throw new Error('Location is required.');
+
+    const records = getAccommodationListingOverrideStore();
+    const entry = normalizeAccommodationListingEntry({
+      id: input?.id || uid('acclisting'),
+      propertyName,
+      institutionName,
+      university: institutionName,
+      province,
+      location,
+      address: input?.address || '',
+      price: input?.price,
+      roomType: input?.roomType || '',
+      availabilityStatus: input?.availabilityStatus || 'Available',
+      listingState: String(input?.listingState || 'draft').trim().toLowerCase() || 'draft',
+      distanceFromCampus: input?.distanceFromCampus || '',
+      images: input?.images || [],
+      amenities: input?.amenities || [],
+      propertyDetails: input?.propertyDetails || '',
+      description: input?.description || '',
+      contactPhone: input?.contactPhone || '',
+      inspectionDocumentName: input?.inspectionDocumentName || '',
+      inspectionDocumentUrl: input?.inspectionDocumentUrl || '',
+      pricingDocumentName: input?.pricingDocumentName || '',
+      pricingDocumentUrl: input?.pricingDocumentUrl || '',
+      createdAt: nowISO(),
+      updatedAt: nowISO()
+    }, records.length + 1);
+
+    records.push(entry);
+    saveAccommodationListingOverrideStore(records);
+    return entry;
+  }
+
+  function updateAccommodationListingByAdmin(listingId, patch) {
+    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+
+    const current = getMergedAccommodationListingRecords().find((item) => item.id === listingId);
+    if (!current) throw new Error('Accommodation listing not found.');
+
+    const store = getAccommodationListingOverrideStore();
+    const index = store.findIndex((item) => item.id === listingId);
+    const updated = normalizeAccommodationListingEntry({
+      ...current,
+      ...patch,
+      id: listingId,
+      institutionName: patch?.institutionName || patch?.university || current.institutionName,
+      listingState: String(patch?.listingState || current.listingState || 'draft').trim().toLowerCase() || 'draft',
+      updatedAt: nowISO()
+    }, store.length + 1);
+
+    if (index >= 0) store[index] = { ...store[index], ...updated };
+    else store.push(updated);
+
+    saveAccommodationListingOverrideStore(store);
+    return getMergedAccommodationListingRecords().find((item) => item.id === listingId) || updated;
+  }
+
+  function deleteAccommodationListingByAdmin(listingId) {
+    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+
+    const current = getMergedAccommodationListingRecords().find((item) => item.id === listingId);
+    if (!current) throw new Error('Accommodation listing not found.');
+
+    const store = getAccommodationListingOverrideStore();
+    const index = store.findIndex((item) => item.id === listingId);
+    const existsInBase = safeArray(getKagieData().accommodationListings).some((item) => String(item?.id || '') === listingId);
+
+    if (!existsInBase) {
+      const filtered = index >= 0 ? store.filter((item) => item.id !== listingId) : store;
+      saveAccommodationListingOverrideStore(filtered);
+      return true;
+    }
+
+    const tombstone = {
+      ...(index >= 0 ? store[index] : current),
+      id: listingId,
+      _deleted: true,
+      updatedAt: nowISO()
+    };
+    if (index >= 0) store[index] = tombstone;
+    else store.push(tombstone);
+
+    saveAccommodationListingOverrideStore(store);
+    return true;
+  }
+
+  function validateHousingImageFile(file) {
+    if (!file) return '';
+    const name = String(file.name || '').toLowerCase();
+    if (!String(file.type || '').toLowerCase().startsWith('image/') && !/\.(png|jpe?g|webp|gif)$/i.test(name)) {
+      return 'Housing pictures must be image files.';
+    }
+    if (Number(file.size || 0) > 8 * 1024 * 1024) {
+      return 'Keep each housing picture under 8 MB.';
+    }
+    return '';
+  }
+
+  async function materializeHousingListingImages(client, payloadArg, existingArg) {
+    const payload = payloadArg || {};
+    const existing = existingArg || {};
+    const existingPaths = parseImageList(payload.imagePaths || payload.image_paths || existing.imagePaths);
+    const existingImages = parseImageList(payload.images || existing.images);
+    const files = safeArray(payload.imageFiles || payload.files).filter(Boolean);
+    const invalid = files.map(validateHousingImageFile).find(Boolean);
+    if (invalid) throw new Error(invalid);
+    if (!files.length) return { imagePaths: existingPaths, images: existingImages };
+
+    if (client) {
+      const uploadedPaths = [];
+      for (const file of files) {
+        const extension = sanitizePathPart(extensionFromMime(file.type) || String(file.name || '').split('.').pop() || 'jpg');
+        const remotePath = `housing-listings/${Date.now()}__${sanitizePathPart(file.name || 'housing-image')}.${extension}`;
+        const uploaded = await client.storage.from('kagie-documents').upload(remotePath, file, {
+          cacheControl: '3600',
+          contentType: file.type || 'image/jpeg',
+          upsert: false
+        });
+        if (uploaded.error) throw new Error(uploaded.error.message || 'Could not upload a housing picture.');
+        uploadedPaths.push(remotePath);
+      }
+      return {
+        imagePaths: existingPaths.concat(uploadedPaths),
+        images: existingImages.concat(await signHousingListingImages(client, uploadedPaths))
+      };
+    }
+
+    const localImages = [];
+    for (const file of files) localImages.push(await readFileAsDataUrl(file));
+    return { imagePaths: existingPaths, images: existingImages.concat(localImages) };
+  }
+
+  function housingListingRowFromEntry(entryArg) {
+    const entry = normalizeAccommodationListingEntry(entryArg);
+    return {
+      title: entry.propertyName,
+      short_description: entry.shortDescription,
+      description: entry.description || entry.propertyDetails,
+      institution_name: entry.institutionName,
+      province: entry.province,
+      city: entry.city,
+      location: entry.location,
+      address: entry.address,
+      price: Number(entry.price || 0),
+      price_range: entry.priceRange,
+      room_type: entry.roomType,
+      availability_status: entry.availabilityStatus,
+      listing_state: entry.listingState === 'published' ? 'published' : 'draft',
+      is_active: entry.isActive !== false,
+      contact_phone: entry.contactPhone,
+      contact_email: entry.contactEmail,
+      images: entry.imagePaths?.length ? entry.imagePaths : entry.images
+    };
+  }
+
+  async function getAccommodationListingsForAdminAsync(filtersArg) {
+    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const local = filterAccommodationListingRecords(getMergedAccommodationListingRecords(), {
+      ...(filtersArg || {}),
+      includeDrafts: true
+    });
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const remote = await fetchRemoteAccommodationListings({ ...(filtersArg || {}), includeDrafts: true });
+      const localOnly = getAccommodationListingOverrideStore().filter((item) => !isUuid(item?.id));
+      if (remote.length) {
+        saveAccommodationListingOverrideStore(localOnly.concat(remote));
+      }
+      return filterAccommodationListingRecords(remote.concat(localOnly), { ...(filtersArg || {}), includeDrafts: true });
+    } catch (error) {
+      console.warn('Housing admin listings fell back to local storage.', error);
+      return local;
+    }
+  }
+
+  async function saveAccommodationListingByAdminAsync(payloadArg) {
+    const beforeSave = getAccommodationListingOverrideStore();
+    requireRole([ROLES.MASTER]);
+    const payload = payloadArg && typeof payloadArg === 'object' ? payloadArg : {};
+    const listingId = String(payload.id || '').trim();
+    const current = listingId ? getMergedAccommodationListingRecords().find((item) => item.id === listingId) : null;
+    const client = isSupabaseEnabled() ? initSupabaseClient() : null;
+    const images = await materializeHousingListingImages(client, payload, current);
+    const next = normalizeAccommodationListingEntry({
+      ...current,
+      ...payload,
+      id: current?.id || listingId || uid('acclisting'),
+      images: images.images,
+      imagePaths: images.imagePaths,
+      listingState: payload.listingState || current?.listingState || 'draft',
+      isActive: payload.isActive ?? current?.isActive ?? true,
+      createdAt: current?.createdAt || nowISO(),
+      updatedAt: nowISO()
+    });
+    if (!next.propertyName) throw new Error('Accommodation title is required.');
+    if (!next.province) throw new Error('Accommodation province is required.');
+    if (!next.city && !next.location) throw new Error('Add a city or location for the accommodation.');
+    if (!next.description && !next.shortDescription) throw new Error('Add a short or full accommodation description.');
+
+    const savedLocal = current
+      ? updateAccommodationListingByAdmin(current.id, next)
+      : addAccommodationListingByAdmin({
+          ...next,
+          institutionName: next.institutionName || 'Nearby institution pending',
+          location: next.location || next.city
+        });
+    if (!client) { if (isSupabaseEnabled()) { saveAccommodationListingOverrideStore(beforeSave); throw new Error('Live content could not connect. Please sign in again.'); } return clone(savedLocal); }
+
+    try {
+      const row = housingListingRowFromEntry({ ...savedLocal, imagePaths: images.imagePaths, images: images.images });
+      const result = current && isUuid(current.id)
+        ? await client.from('housing_listings').update(row).eq('id', current.id).select('*').single()
+        : await client.from('housing_listings').insert(row).select('*').single();
+      if (result.error) {
+
+        throw new Error(result.error.message || 'Could not save the housing listing.');
+      }
+      const remote = (await fetchRemoteAccommodationListings({ includeDrafts: true })).find((item) => item.id === result.data?.id)
+        || normalizeAccommodationListingEntry({ ...savedLocal, id: result.data?.id || savedLocal.id, imagePaths: images.imagePaths }, 1);
+      saveAccommodationListingOverrideStore([remote].concat(getAccommodationListingOverrideStore().filter((item) => item.id !== savedLocal.id && item.id !== remote.id)));
+      return clone(remote);
+    } catch (error) {
+      saveAccommodationListingOverrideStore(beforeSave);
+      throw error;
+    }
+  }
+
+  async function deleteAccommodationListingByAdminAsync(listingIdArg) {
+    const beforeDelete = getAccommodationListingOverrideStore();
+    requireRole([ROLES.MASTER]);
+    const listingId = String(listingIdArg || '').trim();
+    if (!listingId) throw new Error('Accommodation listing id is required.');
+    deleteAccommodationListingByAdmin(listingId);
+    if (isUuid(listingId) && isSupabaseEnabled()) {
+      try {
+        const client = initSupabaseClient();
+        if (!client) throw new Error('Live content could not connect.');
+        const result = await client.from('housing_listings').delete().eq('id', listingId);
+        if (result?.error) throw new Error(result.error.message || 'Could not delete housing listing.');
+      } catch (error) {
+        saveAccommodationListingOverrideStore(beforeDelete);
+        throw error;
+      }
+    }
+    return true;
+  }
+
   function ensureInstitutionAvailableForApplication(institution) {
     const match = getInstitutionByNameAndYear(institution?.institutionName || institution?.name, institution?.year);
     if (match && !match.canApply) {
-      throw new Error('Applications for this institution are closed.');
+      throw new Error('Applications for this institution are currently closed.');
     }
     return match;
   }
 
   function getHighSchoolCatalog(filters) {
     const options = filters || {};
-    return getKagieData()
-      .highSchools
+    const baseSchools = safeArray(getKagieData().highSchools);
+    const nationalSchools = safeArray(window.KAGIE_HIGH_SCHOOLS);
+    const seen = new Set();
+    const merged = baseSchools.concat(nationalSchools).filter((school) => {
+      const id = String(school?.id || '').trim();
+      const key = id || [school?.name, school?.province, school?.district, school?.town].map((part) => String(part || '').trim().toLowerCase()).join('|');
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    const phaseGroup = String(options.phaseGroup || '').trim().toLowerCase();
+    const filtered = merged
       .filter((school) => {
         if (options.province && school.province !== options.province) return false;
+        if (phaseGroup === 'senior') {
+          const phase = String(school.phase || '').trim().toLowerCase();
+          if (!(/secondary|senior|high|combined/.test(phase))) return false;
+        }
         if (options.search) {
           const query = String(options.search).trim().toLowerCase();
           const haystack = [
             school.name,
             school.province,
             school.district,
-            school.town
+            school.town,
+            school.address,
+            school.phase,
+            school.schoolType
           ]
             .join(' ')
             .toLowerCase();
@@ -1344,7 +4920,8 @@
         }
         return true;
       })
-      .map(clone);
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    return filtered.map(clone);
   }
 
   function getSubjectCatalog(board) {
@@ -1367,8 +4944,1494 @@
       summary: institution.faculties?.length
         ? `${institution.name} offers ${institution.faculties.length} major study areas through Kagie's curated prospectus guide.`
         : `${institution.name} is available in Kagie with manual faculty and course capture while the full prospectus catalogue is being expanded.`,
-      applicationDeadline: institution.closingDate || institution.applicationDeadline || ''
+      applicationDeadline: institution.closingDate || institution.applicationDeadline || '',
+      applicationFee: Number(institution.applicationFee || 0),
+      applicationFeeLabel: Number(institution.applicationFee || 0) > 0
+        ? `Institution fee: ${formatMoneyLabel(institution.applicationFee)}`
+        : 'Institution fee: Free'
     }));
+  }
+
+  function deriveProspectusTitleFromName(name) {
+    const raw = String(name || '')
+      .replace(/\.[^.]+$/, '')
+      .replace(/^\d+__/, '')
+      .replace(/[_-]+/g, ' ')
+      .trim();
+    return raw ? raw.replace(/\b\w/g, (letter) => letter.toUpperCase()) : 'Prospectus PDF';
+  }
+
+  function normalizeProspectusDocumentRecord(record, fallbackInstitutionArg) {
+    const fallbackInstitution = fallbackInstitutionArg || null;
+    const institutionId = String(record?.institutionId || fallbackInstitution?.id || '').trim();
+    const institution = fallbackInstitution || (institutionId ? getInstitutionById(institutionId) : null);
+    const fileName = String(record?.fileName || record?.name || '').trim();
+    const createdAt = String(record?.createdAt || nowISO());
+    const updatedAt = String(record?.updatedAt || createdAt);
+    const title = String(record?.title || deriveProspectusTitleFromName(fileName)).trim() || 'Prospectus PDF';
+    return {
+      id: String(record?.id || uid('pros')).trim(),
+      institutionId,
+      institutionName: String(record?.institutionName || institution?.name || '').trim(),
+      institutionShortName: String(record?.institutionShortName || institution?.shortName || '').trim(),
+      institutionProvince: String(record?.institutionProvince || institution?.province || '').trim(),
+      institutionType: String(record?.institutionType || institution?.type || '').trim(),
+      title,
+      description: String(record?.description || '').trim(),
+      fileName: fileName || `${title}.pdf`,
+      mimeType: String(record?.mimeType || 'application/pdf').trim(),
+      fileUrl: String(record?.fileUrl || record?.dataUrl || '').trim(),
+      remotePath: String(record?.remotePath || '').trim(),
+      uploadedById: String(record?.uploadedById || '').trim(),
+      uploadedByName: String(record?.uploadedByName || '').trim(),
+      uploadedByRole: String(record?.uploadedByRole || '').trim(),
+      createdAt,
+      updatedAt,
+      fileSize: Number(record?.fileSize || 0),
+      source: String(record?.source || 'local').trim() || 'local'
+    };
+  }
+
+  function getProspectusDocumentStore() {
+    return safeArray(read(KEYS.prospectusLibrary, []))
+      .map((item) => normalizeProspectusDocumentRecord(item))
+      .filter((item) => item.institutionId && item.fileName);
+  }
+
+  function saveProspectusDocumentStore(items) {
+    const normalized = safeArray(items)
+      .map((item) => normalizeProspectusDocumentRecord(item))
+      .filter((item) => item.institutionId && item.fileName);
+    write(KEYS.prospectusLibrary, normalized);
+    return normalized;
+  }
+
+  function getProspectusDocuments(institutionIdArg) {
+    requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const institutionId = String(institutionIdArg || '').trim();
+    return getProspectusDocumentStore()
+      .filter((item) => !institutionId || item.institutionId === institutionId)
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))
+      .map(clone);
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      if (!file) {
+        reject(new Error('No file was selected.'));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Could not read the selected file.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function createSignedProspectusUrl(client, bucket, remotePath) {
+    try {
+      const signed = await client.storage.from(bucket).createSignedUrl(remotePath, 60 * 60 * 12);
+      if (!signed.error && signed.data?.signedUrl) return signed.data.signedUrl;
+    } catch (error) {
+      console.warn('Could not create a signed prospectus URL.', error);
+    }
+    try {
+      const publicUrl = client.storage.from(bucket).getPublicUrl(remotePath);
+      return String(publicUrl?.data?.publicUrl || '').trim();
+    } catch (error) {
+      console.warn('Could not create a public prospectus URL.', error);
+    }
+    return '';
+  }
+
+  async function listRemoteProspectusDocuments() {
+    if (!isSupabaseEnabled()) return [];
+    const client = initSupabaseClient();
+    if (!client) return [];
+
+    const bucket = 'kagie-documents';
+    const root = await client.storage.from(bucket).list('prospectus', { limit: 200 });
+    if (root.error) throw new Error(root.error.message || 'Could not load prospectus folders.');
+
+    const folders = safeArray(root.data)
+      .map((entry) => String(entry?.name || '').trim())
+      .filter(Boolean);
+
+    if (!folders.length) return [];
+
+    const fileRows = [];
+    for (const folder of folders) {
+      const folderInstitution = getInstitutionById(folder);
+      const listed = await client.storage.from(bucket).list(`prospectus/${folder}`, { limit: 200, sortBy: { column: 'name', order: 'asc' } });
+      if (listed.error) {
+        console.warn(`Could not load remote prospectus files for ${folder}.`, listed.error.message || listed.error);
+        continue;
+      }
+
+      safeArray(listed.data).forEach((file) => {
+        const fileName = String(file?.name || '').trim();
+        if (!fileName || !/\.pdf$/i.test(fileName)) return;
+        fileRows.push({
+          id: `remote_${folder}_${fileName}`,
+          institutionId: folder,
+          institutionName: folderInstitution?.name || '',
+          institutionShortName: folderInstitution?.shortName || '',
+          institutionProvince: folderInstitution?.province || '',
+          institutionType: folderInstitution?.type || '',
+          title: deriveProspectusTitleFromName(fileName),
+          description: '',
+          fileName,
+          mimeType: 'application/pdf',
+          remotePath: `prospectus/${folder}/${fileName}`,
+          uploadedById: '',
+          uploadedByName: 'Kagie staff',
+          uploadedByRole: '',
+          createdAt: String(file?.created_at || nowISO()),
+          updatedAt: String(file?.updated_at || file?.created_at || nowISO()),
+          fileSize: Number(file?.metadata?.size || file?.metadata?.length || 0),
+          source: 'remote'
+        });
+      });
+    }
+
+    const urls = await Promise.all(fileRows.map((row) => createSignedProspectusUrl(client, bucket, row.remotePath)));
+    return fileRows.map((row, index) => normalizeProspectusDocumentRecord({ ...row, fileUrl: urls[index] }, getInstitutionById(row.institutionId)));
+  }
+
+  async function getProspectusDocumentsAsync(institutionIdArg) {
+    const institutionId = String(institutionIdArg || '').trim();
+    const local = getProspectusDocuments(institutionId);
+    if (!isSupabaseEnabled()) return local;
+
+    try {
+      const remote = await listRemoteProspectusDocuments();
+      const combined = [];
+      const seen = new Set();
+      [...remote, ...local].forEach((item) => {
+        const normalized = normalizeProspectusDocumentRecord(item, item?.institutionId ? getInstitutionById(item.institutionId) : null);
+        if (institutionId && normalized.institutionId !== institutionId) return;
+        const key = normalized.remotePath || normalized.id;
+        if (seen.has(key)) return;
+        seen.add(key);
+        combined.push(normalized);
+      });
+
+      const localOnly = getProspectusDocumentStore().filter((item) => !item.remotePath);
+      const remoteNormalized = remote.map((item) => normalizeProspectusDocumentRecord(item));
+      saveProspectusDocumentStore(
+        localOnly.concat(
+          remoteNormalized.map((item) => ({
+            ...item,
+            fileUrl: ''
+          }))
+        )
+      );
+
+      return combined.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+    } catch (error) {
+      console.warn('Falling back to local prospectus library because remote storage could not be listed.', error);
+      return local;
+    }
+  }
+
+  async function saveProspectusDocumentByStaffAsync(payload) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const institutionId = String(payload?.institutionId || '').trim();
+    const institution = getInstitutionById(institutionId);
+    if (!institution) throw new Error('Choose the institution that this prospectus belongs to.');
+
+    const title = String(payload?.title || payload?.fileName || payload?.name || '').trim();
+    const file = payload?.file || null;
+    const mimeType = String(payload?.mimeType || payload?.type || file?.type || 'application/pdf').trim() || 'application/pdf';
+    const fileName = String(payload?.fileName || payload?.name || file?.name || `${title || institution.shortName || institution.name} prospectus.pdf`).trim();
+    if (!fileName) throw new Error('Select a PDF to upload.');
+    if (!/pdf/i.test(mimeType) && !/\.pdf$/i.test(fileName)) throw new Error('Upload a PDF prospectus file.');
+
+    const baseRecord = normalizeProspectusDocumentRecord({
+      id: String(payload?.id || uid('pros')).trim(),
+      institutionId: institution.id,
+      institutionName: institution.name,
+      institutionShortName: institution.shortName,
+      institutionProvince: institution.province,
+      institutionType: institution.type,
+      title: title || deriveProspectusTitleFromName(fileName),
+      description: String(payload?.description || '').trim(),
+      fileName,
+      mimeType,
+      uploadedById: actor.id,
+      uploadedByName: actor.fullName || actor.email || 'Kagie staff',
+      uploadedByRole: actor.role,
+      createdAt: nowISO(),
+      updatedAt: nowISO(),
+      fileSize: Number(payload?.fileSize || file?.size || 0),
+      source: 'local'
+    }, institution);
+
+    let nextRecord = { ...baseRecord };
+
+    if (file && isSupabaseEnabled()) {
+      try {
+        const client = initSupabaseClient();
+        if (client) {
+          const safeTitle = sanitizePathPart(baseRecord.title || fileName) || 'prospectus';
+          const extension = extensionFromMime(mimeType) || 'pdf';
+          const remotePath = `prospectus/${institution.id}/${Date.now()}__${safeTitle}.${sanitizePathPart(extension)}`;
+          const upload = await client.storage.from('kagie-documents').upload(remotePath, file, {
+            cacheControl: '3600',
+            contentType: mimeType || 'application/pdf',
+            upsert: false
+          });
+          if (upload.error) throw new Error(upload.error.message || 'Could not upload the prospectus PDF.');
+
+          nextRecord = normalizeProspectusDocumentRecord({
+            ...baseRecord,
+            remotePath,
+            fileUrl: await createSignedProspectusUrl(client, 'kagie-documents', remotePath),
+            source: 'remote'
+          }, institution);
+        }
+      } catch (error) {
+        console.warn('Prospectus upload fell back to local storage.', error);
+      }
+    }
+
+    if (!nextRecord.remotePath) {
+      const dataUrl = String(payload?.dataUrl || '').trim() || await readFileAsDataUrl(file);
+      nextRecord = normalizeProspectusDocumentRecord({
+        ...baseRecord,
+        fileUrl: dataUrl,
+        source: 'local'
+      }, institution);
+    }
+
+    const store = getProspectusDocumentStore().filter((item) => item.id !== nextRecord.id && (!nextRecord.remotePath || item.remotePath !== nextRecord.remotePath));
+    saveProspectusDocumentStore([nextRecord].concat(store));
+    return clone(nextRecord);
+  }
+
+  async function deleteProspectusDocumentByStaffAsync(documentIdArg) {
+    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const documentId = String(documentIdArg || '').trim();
+    const store = getProspectusDocumentStore();
+    const current = store.find((item) => item.id === documentId || item.remotePath === documentId);
+    if (!current) throw new Error('Prospectus PDF not found.');
+
+    if (current.remotePath && isSupabaseEnabled()) {
+      try {
+        const client = initSupabaseClient();
+        if (client) {
+          const removed = await client.storage.from('kagie-documents').remove([current.remotePath]);
+          if (removed.error) throw new Error(removed.error.message || 'Could not remove the PDF from storage.');
+        }
+      } catch (error) {
+        throw new Error(error?.message || 'Could not remove the prospectus PDF from shared storage.');
+      }
+    }
+
+    saveProspectusDocumentStore(store.filter((item) => item.id !== current.id && (!current.remotePath || item.remotePath !== current.remotePath)));
+    return true;
+  }
+
+  const QUESTION_PAPER_GRADES = ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"];
+  const QUESTION_PAPER_PROVINCES = [
+    "National",
+    "Eastern Cape",
+    "Free State",
+    "Gauteng",
+    "KwaZulu-Natal",
+    "Limpopo",
+    "Mpumalanga",
+    "North West",
+    "Northern Cape",
+    "Western Cape"
+  ];
+  const QUESTION_PAPER_TYPES = ["Question Paper", "Memo", "Study Guide"];
+  const QUESTION_PAPER_STATUSES = ["Published", "Draft", "Disabled"];
+
+  function normalizeQuestionPaperType(value) {
+    const lowered = String(value || "").trim().toLowerCase();
+    if (lowered === "memo") return "Memo";
+    if (lowered === "study guide" || lowered === "study_guide" || lowered === "guide") return "Study Guide";
+    return "Question Paper";
+  }
+
+  function normalizeQuestionPaperStatus(value) {
+    const lowered = String(value || "").trim().toLowerCase();
+    if (lowered === "published") return "Published";
+    if (lowered === "disabled") return "Disabled";
+    return "Draft";
+  }
+
+  function normalizeQuestionPaperRecord(recordArg) {
+    const record = recordArg && typeof recordArg === "object" ? recordArg : {};
+    const grade = String(record.grade || "").trim() || "Grade 12";
+    const subject = String(record.subject || "").trim();
+    const title = String(record.title || record.paperTitle || record.fileName || "Question paper").trim();
+    const year = Math.max(2010, Math.min(2026, Number(record.year || new Date().getFullYear()) || new Date().getFullYear()));
+    const term = String(record.term || "").trim() || "November";
+    const province = String(record.province || "National").trim() || "National";
+    const paperType = normalizeQuestionPaperType(record.paperType || record.paper_type);
+    const status = normalizeQuestionPaperStatus(record.status);
+    const fileName = String(record.fileName || record.file_name || record.name || "").trim();
+    return {
+      id: String(record.id || uid("qpaper")).trim(),
+      grade,
+      subject,
+      title,
+      year,
+      term,
+      province,
+      paperType,
+      paper_type: paperType,
+      status,
+      fileName,
+      file_name: fileName,
+      fileUrl: String(record.fileUrl || record.file_url || "").trim(),
+      file_url: String(record.fileUrl || record.file_url || "").trim(),
+      remotePath: String(record.remotePath || record.remote_path || "").trim(),
+      remote_path: String(record.remotePath || record.remote_path || "").trim(),
+      uploadedById: String(record.uploadedById || record.uploaded_by || "").trim(),
+      uploadedByName: String(record.uploadedByName || "").trim(),
+      uploadedByRole: String(record.uploadedByRole || "").trim(),
+      createdAt: String(record.createdAt || record.created_at || nowISO()).trim(),
+      updatedAt: String(record.updatedAt || record.updated_at || record.createdAt || record.created_at || nowISO()).trim()
+    };
+  }
+
+  function getQuestionPaperStore() {
+    return safeArray(read(KEYS.questionPaperLibrary, []))
+      .map((entry) => normalizeQuestionPaperRecord(entry))
+      .sort((left, right) => new Date(right.updatedAt || right.createdAt || 0) - new Date(left.updatedAt || left.createdAt || 0));
+  }
+
+  function saveQuestionPaperStore(recordsArg) {
+    const byId = new Map();
+    safeArray(recordsArg).forEach((entry) => {
+      const normalized = normalizeQuestionPaperRecord(entry);
+      byId.set(normalized.id, normalized);
+    });
+    const normalized = Array.from(byId.values())
+      .sort((left, right) => new Date(right.updatedAt || right.createdAt || 0) - new Date(left.updatedAt || left.createdAt || 0));
+    write(KEYS.questionPaperLibrary, normalized);
+    return normalized.map(clone);
+  }
+
+  function isMissingQuestionPapersTableError(error) {
+    const message = String(error?.message || error || "").toLowerCase();
+    return (message.includes("relation") && message.includes("question_papers"))
+      || message.includes("could not find the table")
+      || message.includes("does not exist");
+  }
+
+  function filterQuestionPaperRecords(recordsArg, filtersArg, includeAllStatusesArg) {
+    const filters = filtersArg || {};
+    const includeAllStatuses = !!includeAllStatusesArg;
+    const query = String(filters.search || "").trim().toLowerCase();
+    const grade = String(filters.grade || "").trim();
+    const subject = String(filters.subject || "").trim();
+    const year = String(filters.year || "").trim();
+    const term = String(filters.term || "").trim();
+    const province = String(filters.province || "").trim();
+    const paperType = String(filters.paperType || filters.paper_type || "").trim();
+    const status = String(filters.status || "").trim();
+    return safeArray(recordsArg)
+      .map((entry) => normalizeQuestionPaperRecord(entry))
+      .filter((entry) => {
+        if (!includeAllStatuses && entry.status !== "Published") return false;
+        if (grade && entry.grade !== grade) return false;
+        if (subject && entry.subject !== subject) return false;
+        if (year && String(entry.year) !== year) return false;
+        if (term && entry.term !== term) return false;
+        if (province && entry.province !== province) return false;
+        if (paperType && entry.paperType !== paperType) return false;
+        if (status && entry.status !== status) return false;
+        if (query) {
+          const haystack = [
+            entry.grade,
+            entry.subject,
+            entry.title,
+            entry.term,
+            entry.province,
+            entry.paperType,
+            entry.status,
+            entry.fileName,
+            entry.year
+          ].join(" ").toLowerCase();
+          if (!haystack.includes(query)) return false;
+        }
+        return true;
+      })
+      .sort((left, right) => new Date(right.updatedAt || right.createdAt || 0) - new Date(left.updatedAt || left.createdAt || 0))
+      .map(clone);
+  }
+
+  async function fetchRemoteQuestionPaperCatalog() {
+    if (!isSupabaseEnabled()) return [];
+    const client = initSupabaseClient();
+    if (!client) return [];
+    const result = await client.from("question_papers").select("*").order("updated_at", { ascending: false });
+    if (result.error) {
+      if (isMissingQuestionPapersTableError(result.error)) return [];
+      throw new Error(result.error.message || "Could not load question papers.");
+    }
+    const rows = safeArray(result.data);
+    const urls = await Promise.all(rows.map((row) => (
+      row?.remote_path
+        ? createSignedProspectusUrl(client, "kagie-documents", row.remote_path)
+        : Promise.resolve(String(row?.file_url || "").trim())
+    )));
+    return rows.map((row, index) => normalizeQuestionPaperRecord({
+      ...row,
+      fileUrl: urls[index]
+    }));
+  }
+
+  function getQuestionPapers(filtersArg) {
+    const viewer = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const includeAllStatuses = viewer.role === ROLES.MASTER && !!filtersArg?.includeAllStatuses;
+    return filterQuestionPaperRecords(getQuestionPaperStore(), filtersArg, includeAllStatuses);
+  }
+
+  async function getQuestionPapersAsync(filtersArg) {
+    const viewer = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const includeAllStatuses = viewer.role === ROLES.MASTER && !!filtersArg?.includeAllStatuses;
+    const local = filterQuestionPaperRecords(getQuestionPaperStore(), filtersArg, includeAllStatuses);
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const remote = await fetchRemoteQuestionPaperCatalog();
+      const localOnly = getQuestionPaperStore().filter((item) => !item.remotePath);
+      saveQuestionPaperStore(localOnly.concat(remote.map((item) => ({ ...item, fileUrl: "" }))));
+      return filterQuestionPaperRecords(remote.concat(localOnly), filtersArg, includeAllStatuses);
+    } catch (error) {
+      console.warn("Falling back to local question paper catalog because the remote records could not be listed.", error);
+      return local;
+    }
+  }
+
+  function getQuestionPapersForAdmin(filtersArg) {
+    requireRole([ROLES.MASTER]);
+    return filterQuestionPaperRecords(getQuestionPaperStore(), filtersArg, true);
+  }
+
+  async function getQuestionPapersForAdminAsync(filtersArg) {
+    requireRole([ROLES.MASTER]);
+    const local = getQuestionPapersForAdmin(filtersArg);
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const remote = await fetchRemoteQuestionPaperCatalog();
+      const localOnly = getQuestionPaperStore().filter((item) => !item.remotePath);
+      saveQuestionPaperStore(localOnly.concat(remote.map((item) => ({ ...item, fileUrl: "" }))));
+      return filterQuestionPaperRecords(remote.concat(localOnly), filtersArg, true);
+    } catch (error) {
+      console.warn("Falling back to local admin question paper catalog because remote records are unavailable.", error);
+      return local;
+    }
+  }
+
+  async function saveQuestionPaperByAdminAsync(payloadArg) {
+    const actor = requireRole([ROLES.MASTER]);
+    const payload = payloadArg || {};
+    const file = payload.file || null;
+    const grade = String(payload.grade || "").trim();
+    const subject = String(payload.subject || "").trim();
+    const title = String(payload.title || payload.paperTitle || payload.fileName || "").trim();
+    const year = Number(payload.year || 0);
+    const term = String(payload.term || "").trim();
+    const province = String(payload.province || "").trim();
+    const paperType = normalizeQuestionPaperType(payload.paperType || payload.paper_type);
+    const status = normalizeQuestionPaperStatus(payload.status);
+    const mimeType = String(payload.mimeType || payload.type || file?.type || "application/pdf").trim() || "application/pdf";
+    const fileName = String(payload.fileName || payload.name || file?.name || `${title || subject || "question-paper"}.pdf`).trim();
+
+    if (!grade || !subject || !title || !year || !term || !province) throw new Error("Complete the grade, subject, title, year, term, and province first.");
+    if (year < 2010 || year > 2026) throw new Error("Question papers must be between 2010 and 2026.");
+    if (!fileName) throw new Error("Choose a PDF question paper first.");
+    if (!/pdf/i.test(mimeType) && !/\.pdf$/i.test(fileName)) throw new Error("Upload a PDF file for the question paper.");
+
+    const baseRecord = normalizeQuestionPaperRecord({
+      id: String(payload.id || uid("qpaper")).trim(),
+      grade,
+      subject,
+      title,
+      year,
+      term,
+      province,
+      paperType,
+      status,
+      fileName,
+      uploadedById: actor.supabaseUserId || actor.id || "",
+      uploadedByName: actor.fullName || actor.email || "Kagie master admin",
+      uploadedByRole: actor.role,
+      createdAt: nowISO(),
+      updatedAt: nowISO()
+    });
+
+    let nextRecord = { ...baseRecord };
+    let remoteRow = null;
+
+    if (file && isSupabaseEnabled()) {
+      try {
+        const client = initSupabaseClient();
+        if (client) {
+          const safeTitle = sanitizePathPart(`${grade}-${subject}-${title}-${paperType}-${year}`) || "question-paper";
+          const extension = extensionFromMime(mimeType) || "pdf";
+          const remotePath = `question-papers/${sanitizePathPart(grade)}/${year}/${Date.now()}__${safeTitle}.${sanitizePathPart(extension)}`;
+          const upload = await client.storage.from("kagie-documents").upload(remotePath, file, {
+            cacheControl: "3600",
+            contentType: mimeType || "application/pdf",
+            upsert: false
+          });
+          if (upload.error) throw new Error(upload.error.message || "Could not upload the question paper PDF.");
+
+          const payloadRow = {
+            grade,
+            subject,
+            title,
+            year,
+            term,
+            province,
+            paper_type: paperType,
+            file_name: fileName,
+            file_url: "",
+            remote_path: remotePath,
+            status,
+            uploaded_by: actor.supabaseUserId || actor.id || null
+          };
+          const stored = await client.from("question_papers").insert(payloadRow).select("*").single();
+          if (stored.error) throw new Error(stored.error.message || "Could not save the question paper record.");
+          remoteRow = stored.data || null;
+          nextRecord = normalizeQuestionPaperRecord({
+            ...stored.data,
+            fileUrl: await createSignedProspectusUrl(client, "kagie-documents", remotePath),
+            uploadedByName: actor.fullName || actor.email || "Kagie master admin",
+            uploadedByRole: actor.role
+          });
+        }
+      } catch (error) {
+        console.warn("Question paper upload fell back to local storage.", error);
+      }
+    }
+
+    if (!remoteRow) {
+      const dataUrl = String(payload.dataUrl || "").trim() || await readFileAsDataUrl(file);
+      nextRecord = normalizeQuestionPaperRecord({
+        ...baseRecord,
+        fileUrl: dataUrl
+      });
+    }
+
+    const store = getQuestionPaperStore().filter((item) => item.id !== nextRecord.id && item.remotePath !== nextRecord.remotePath);
+    saveQuestionPaperStore([nextRecord].concat(store));
+    return clone(nextRecord);
+  }
+
+  async function updateQuestionPaperByAdminAsync(questionPaperIdArg, patchArg) {
+    requireRole([ROLES.MASTER]);
+    const questionPaperId = String(questionPaperIdArg || "").trim();
+    const current = getQuestionPaperStore().find((item) => item.id === questionPaperId || item.remotePath === questionPaperId);
+    if (!current) throw new Error("Question paper not found.");
+    const patch = patchArg || {};
+    const file = patch.file || null;
+    const merged = normalizeQuestionPaperRecord({
+      ...current,
+      ...patch,
+      id: current.id,
+      paperType: patch.paperType || patch.paper_type || current.paperType,
+      status: patch.status || current.status,
+      updatedAt: nowISO()
+    });
+
+    let nextRecord = { ...merged };
+    if (current.remotePath && isSupabaseEnabled()) {
+      try {
+        const client = initSupabaseClient();
+        if (client) {
+          let remotePath = current.remotePath;
+          let fileName = merged.fileName;
+          if (file) {
+            const mimeType = String(patch.mimeType || patch.type || file?.type || "application/pdf").trim() || "application/pdf";
+            if (!/pdf/i.test(mimeType) && !/\.pdf$/i.test(String(file?.name || fileName || ""))) throw new Error("Upload a PDF file for the question paper.");
+            const safeTitle = sanitizePathPart(`${merged.grade}-${merged.subject}-${merged.title}-${merged.paperType}-${merged.year}`) || "question-paper";
+            const extension = extensionFromMime(mimeType) || "pdf";
+            remotePath = `question-papers/${sanitizePathPart(merged.grade)}/${merged.year}/${Date.now()}__${safeTitle}.${sanitizePathPart(extension)}`;
+            const upload = await client.storage.from("kagie-documents").upload(remotePath, file, {
+              cacheControl: "3600",
+              contentType: mimeType || "application/pdf",
+              upsert: false
+            });
+            if (upload.error) throw new Error(upload.error.message || "Could not replace the question paper PDF.");
+            fileName = String(patch.fileName || patch.name || file?.name || merged.fileName).trim();
+          }
+          const result = await client.from("question_papers").update({
+            grade: merged.grade,
+            subject: merged.subject,
+            title: merged.title,
+            year: merged.year,
+            term: merged.term,
+            province: merged.province,
+            paper_type: merged.paperType,
+            file_name: fileName,
+            remote_path: remotePath,
+            status: merged.status
+          }).eq("id", current.id).select("*").single();
+          if (result.error) throw new Error(result.error.message || "Could not update the question paper.");
+          nextRecord = normalizeQuestionPaperRecord({
+            ...result.data,
+            fileUrl: remotePath ? await createSignedProspectusUrl(client, "kagie-documents", remotePath) : merged.fileUrl,
+            uploadedByName: current.uploadedByName,
+            uploadedByRole: current.uploadedByRole
+          });
+        }
+      } catch (error) {
+        console.warn("Question paper update fell back to local storage.", error);
+      }
+    } else if (file) {
+      nextRecord = normalizeQuestionPaperRecord({
+        ...merged,
+        fileUrl: await readFileAsDataUrl(file),
+        fileName: String(patch.fileName || patch.name || file?.name || merged.fileName).trim()
+      });
+    }
+
+    const store = getQuestionPaperStore().filter((item) => item.id !== current.id && item.remotePath !== current.remotePath);
+    saveQuestionPaperStore([nextRecord].concat(store));
+    return clone(nextRecord);
+  }
+
+  async function deleteQuestionPaperByAdminAsync(questionPaperIdArg) {
+    requireRole([ROLES.MASTER]);
+    const questionPaperId = String(questionPaperIdArg || "").trim();
+    const store = getQuestionPaperStore();
+    const current = store.find((item) => item.id === questionPaperId || item.remotePath === questionPaperId);
+    if (!current) throw new Error("Question paper not found.");
+    if (current.remotePath && isSupabaseEnabled()) {
+      try {
+        const client = initSupabaseClient();
+        if (client) {
+          const removed = await client.storage.from("kagie-documents").remove([current.remotePath]);
+          if (removed.error) throw new Error(removed.error.message || "Could not remove the question paper PDF.");
+          const deleted = await client.from("question_papers").delete().eq("id", current.id);
+          if (deleted.error) throw new Error(deleted.error.message || "Could not remove the question paper record.");
+        }
+      } catch (error) {
+        console.warn("Question paper delete fell back to local cleanup only.", error);
+      }
+    }
+    saveQuestionPaperStore(store.filter((item) => item.id !== current.id && item.remotePath !== current.remotePath));
+    return true;
+  }
+
+  function slugifyPastPaperKey(value) {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  function getPastPaperBlueprint() {
+    const data = getKagieData();
+    const fallback = {
+      grades: [],
+      years: [],
+      provinces: [],
+      subjectsByGrade: {},
+      sessions: [],
+      paperNumbers: {}
+    };
+    return clone(data.pastPaperBlueprint || fallback);
+  }
+
+  function getPastPaperSessionConfig(sessionIdArg) {
+    const sessionId = String(sessionIdArg || '').trim();
+    return getPastPaperBlueprint().sessions.find((item) => item.id === sessionId) || null;
+  }
+
+  function getPastPaperNumberConfig(paperNumberIdArg) {
+    const paperNumberId = String(paperNumberIdArg || '').trim();
+    const paperNumbers = getPastPaperBlueprint().paperNumbers || {};
+    return paperNumbers[paperNumberId] ? clone(paperNumbers[paperNumberId]) : null;
+  }
+
+  function matchPastPaperValueBySlug(itemsArg, slug) {
+    const items = safeArray(itemsArg);
+    const target = slugifyPastPaperKey(slug);
+    return items.find((item) => slugifyPastPaperKey(item) === target) || '';
+  }
+
+  function flattenPastPaperSubjects(subjectsByGradeArg) {
+    return [...new Set(Object.values(subjectsByGradeArg || {}).flatMap((items) => safeArray(items)))];
+  }
+
+  function buildPastPaperSignature(metaArg) {
+    const meta = metaArg || {};
+    return [
+      slugifyPastPaperKey(meta.grade),
+      String(meta.year || '').trim(),
+      slugifyPastPaperKey(meta.province),
+      slugifyPastPaperKey(meta.subject),
+      slugifyPastPaperKey(meta.session),
+      slugifyPastPaperKey(meta.paperNumber)
+    ].filter(Boolean).join('__');
+  }
+
+  function parsePastPaperSignature(signatureArg) {
+    const signature = String(signatureArg || '').trim();
+    if (!signature) return null;
+
+    const parts = signature.split('__');
+    if (parts.length < 6) return null;
+
+    const blueprint = getPastPaperBlueprint();
+    const grade = matchPastPaperValueBySlug(blueprint.grades, parts[0]);
+    const year = Number(parts[1] || 0);
+    const province = matchPastPaperValueBySlug(blueprint.provinces, parts[2]);
+    const subject = matchPastPaperValueBySlug(flattenPastPaperSubjects(blueprint.subjectsByGrade), parts[3]);
+    const session = safeArray(blueprint.sessions).find((item) => slugifyPastPaperKey(item.id) === slugifyPastPaperKey(parts[4]))?.id || '';
+    const paperNumber = Object.keys(blueprint.paperNumbers || {}).find((key) => slugifyPastPaperKey(key) === slugifyPastPaperKey(parts[5])) || '';
+    if (!grade || !year || !province || !subject || !session || !paperNumber) return null;
+    return { grade, year, province, subject, session, paperNumber };
+  }
+
+  function getPastPaperTopicTemplate(subjectArg, paperNumberIdArg) {
+    const subject = String(subjectArg || '').toLowerCase();
+    const paperNumberId = String(paperNumberIdArg || '').toLowerCase();
+
+    if (subject.includes('mathematics') && !subject.includes('literacy')) {
+      return paperNumberId === 'paper_2'
+        ? ['Analytical geometry', 'Euclidean geometry', 'Probability', 'Data handling', 'Trigonometry', 'Problem solving']
+        : ['Algebra and equations', 'Functions and graphs', 'Number patterns', 'Finance and growth', 'Trigonometry basics', 'Calculus or advanced reasoning'];
+    }
+    if (subject.includes('mathematical literacy')) return ['Finances and budgets', 'Data handling', 'Measurement', 'Maps and scale', 'Probability', 'Interpretation of real-life contexts'];
+    if (subject.includes('physical sciences')) {
+      return paperNumberId === 'paper_2'
+        ? ['Organic chemistry', 'Rates and equilibrium', 'Acids and bases', 'Electrochemistry', 'Energy and heat', 'Scientific interpretation']
+        : ['Mechanics', 'Waves and sound', 'Electricity and magnetism', 'Matter and materials', 'Practical investigation', 'Mixed concept revision'];
+    }
+    if (subject.includes('life sciences')) return ['Cells and tissues', 'Genetics', 'Evolution', 'Biodiversity', 'Ecology', 'Data interpretation'];
+    if (subject.includes('accounting')) return ['Ledger concepts', 'Manufacturing', 'Cash flow', 'Budgeting', 'Interpretation of statements', 'Ethics and controls'];
+    if (subject.includes('business studies') || subject.includes('economics')) return ['Theory and concepts', 'Case study analysis', 'Business environments', 'Strategy and planning', 'Essay structure', 'Data response'];
+    if (subject.includes('geography')) return ['Mapwork', 'Climate and weather', 'Geomorphology', 'Rural and urban settlement', 'Economic geography', 'Interpretation of resources'];
+    if (subject.includes('history')) return ['Source-based questions', 'Essay planning', 'South African history', 'Global history', 'Evidence analysis', 'Argument structure'];
+    if (subject.includes('english') || subject.includes('afrikaans') || subject.includes('language')) {
+      return paperNumberId === 'paper_2'
+        ? ['Poetry analysis', 'Drama interpretation', 'Novel study', 'Language structures', 'Contextual response', 'Extended writing']
+        : ['Comprehension', 'Summary writing', 'Language use', 'Visual literacy', 'Transaction writing', 'Editing and grammar'];
+    }
+    if (subject.includes('tourism')) return ['Tourism terms', 'Map and route planning', 'Foreign exchange', 'Customer care', 'Travel trends', 'Data response'];
+    if (subject.includes('computer') || subject.includes('information technology')) return ['Theory concepts', 'Systems and hardware', 'Programming or applications', 'Networks', 'Data management', 'Problem solving'];
+    return ['Question 1 topic', 'Question 2 topic', 'Question 3 topic', 'Question 4 topic', 'Question 5 topic', 'Question 6 topic'];
+  }
+
+  function estimatePastPaperMarks(subjectArg, paperNumberIdArg) {
+    const subject = String(subjectArg || '').toLowerCase();
+    const paperNumberId = String(paperNumberIdArg || '').toLowerCase();
+    if (paperNumberId === 'guide') return 60;
+    if (subject.includes('mathematics') && !subject.includes('literacy')) return 150;
+    if (subject.includes('english') || subject.includes('afrikaans') || subject.includes('language')) return 80;
+    if (subject.includes('physical sciences')) return 150;
+    return 100;
+  }
+
+  function estimatePastPaperDuration(subjectArg, paperNumberIdArg) {
+    const subject = String(subjectArg || '').toLowerCase();
+    const paperNumberId = String(paperNumberIdArg || '').toLowerCase();
+    if (paperNumberId === 'guide') return 90;
+    if (subject.includes('mathematics') || subject.includes('physical sciences')) return 180;
+    if (subject.includes('english') || subject.includes('afrikaans') || subject.includes('language')) return 180;
+    return 150;
+  }
+
+  function buildPastPaperQuestionSet(subjectArg, paperNumberIdArg, sessionLabelArg) {
+    const topics = getPastPaperTopicTemplate(subjectArg, paperNumberIdArg);
+    const totalMarks = estimatePastPaperMarks(subjectArg, paperNumberIdArg);
+    const baseMarks = Math.max(5, Math.round(totalMarks / Math.max(1, topics.length)));
+    return topics.map((topic, index) => ({
+      id: `q_${index + 1}`,
+      label: `Question ${index + 1}`,
+      topic: String(topic || '').trim(),
+      sessionHint: String(sessionLabelArg || '').trim(),
+      maxMarks: index === topics.length - 1 ? Math.max(5, totalMarks - (baseMarks * (topics.length - 1))) : baseMarks
+    }));
+  }
+
+  function normalizePastPaperQuestionSet(questionsArg, subjectArg, paperNumberIdArg, sessionLabelArg) {
+    const base = safeArray(questionsArg).length
+      ? safeArray(questionsArg).map((item, index) => ({
+          id: String(item?.id || `q_${index + 1}`),
+          label: String(item?.label || `Question ${index + 1}`),
+          topic: String(item?.topic || item?.label || '').trim(),
+          maxMarks: Math.max(1, Number(item?.maxMarks || item?.marks || 10))
+        }))
+      : buildPastPaperQuestionSet(subjectArg, paperNumberIdArg, sessionLabelArg);
+    return base.map((item, index) => ({
+      id: String(item?.id || `q_${index + 1}`),
+      label: String(item?.label || `Question ${index + 1}`),
+      topic: String(item?.topic || item?.label || '').trim(),
+      maxMarks: Math.max(1, Number(item?.maxMarks || 10))
+    }));
+  }
+
+  function buildGeneratedPastPaperRecord(metaArg) {
+    const meta = metaArg || {};
+    const sessionConfig = getPastPaperSessionConfig(meta.session) || { label: meta.session, description: '' };
+    const paperNumberConfig = getPastPaperNumberConfig(meta.paperNumber) || { label: meta.paperNumber };
+    const paperSignature = buildPastPaperSignature(meta);
+    return {
+      id: paperSignature,
+      paperSignature,
+      grade: String(meta.grade || ''),
+      year: Number(meta.year || 0),
+      province: String(meta.province || ''),
+      subject: String(meta.subject || ''),
+      session: String(meta.session || ''),
+      sessionLabel: String(sessionConfig.label || meta.session || ''),
+      sessionDescription: String(sessionConfig.description || ''),
+      paperNumber: String(meta.paperNumber || ''),
+      paperNumberLabel: String(paperNumberConfig.label || meta.paperNumber || ''),
+      title: `${meta.subject} ${paperNumberConfig.label || meta.paperNumber} ${sessionConfig.label || meta.session}`,
+      summary: `${meta.subject} ${paperNumberConfig.label || meta.paperNumber} for ${meta.grade}, ${meta.province}, ${sessionConfig.label || meta.session} ${meta.year}.`,
+      description: `Kagie study paper for ${meta.grade} learners using a South African revision flow.`,
+      totalMarks: estimatePastPaperMarks(meta.subject, meta.paperNumber),
+      durationMinutes: estimatePastPaperDuration(meta.subject, meta.paperNumber),
+      sourceLabel: `${meta.province} learner practice set`,
+      questions: normalizePastPaperQuestionSet([], meta.subject, meta.paperNumber, sessionConfig.label),
+      fileName: '',
+      fileUrl: '',
+      remotePath: '',
+      uploadedByName: '',
+      uploadedByRole: '',
+      uploadedById: '',
+      createdAt: '',
+      updatedAt: '',
+      source: 'generated'
+    };
+  }
+
+  function normalizePastPaperLibraryRecord(recordArg) {
+    const record = recordArg || {};
+    const parsed = parsePastPaperSignature(record.paperSignature || record.id || record.signature || '') || null;
+    const grade = String(record.grade || parsed?.grade || '').trim();
+    const year = Number(record.year || parsed?.year || 0);
+    const province = String(record.province || parsed?.province || '').trim();
+    const subject = String(record.subject || parsed?.subject || '').trim();
+    const session = String(record.session || parsed?.session || '').trim();
+    const paperNumber = String(record.paperNumber || parsed?.paperNumber || '').trim();
+    const sessionConfig = getPastPaperSessionConfig(session) || { label: session, description: '' };
+    const paperNumberConfig = getPastPaperNumberConfig(paperNumber) || { label: paperNumber };
+    const paperSignature = buildPastPaperSignature({ grade, year, province, subject, session, paperNumber });
+
+    return {
+      id: paperSignature,
+      paperSignature,
+      grade,
+      year,
+      province,
+      subject,
+      session,
+      sessionLabel: String(record.sessionLabel || sessionConfig.label || '').trim(),
+      sessionDescription: String(record.sessionDescription || sessionConfig.description || '').trim(),
+      paperNumber,
+      paperNumberLabel: String(record.paperNumberLabel || paperNumberConfig.label || '').trim(),
+      title: String(record.title || `${subject} ${paperNumberConfig.label || paperNumber}` || 'Past paper').trim(),
+      summary: String(record.summary || `${subject} ${paperNumberConfig.label || paperNumber} for ${grade}, ${province}, ${sessionConfig.label || session} ${year}.`).trim(),
+      description: String(record.description || '').trim(),
+      totalMarks: Math.max(1, Number(record.totalMarks || estimatePastPaperMarks(subject, paperNumber))),
+      durationMinutes: Math.max(30, Number(record.durationMinutes || estimatePastPaperDuration(subject, paperNumber))),
+      sourceLabel: String(record.sourceLabel || `${province} uploaded paper`).trim(),
+      questions: normalizePastPaperQuestionSet(record.questions, subject, paperNumber, sessionConfig.label),
+      fileName: String(record.fileName || record.name || '').trim(),
+      fileUrl: String(record.fileUrl || record.dataUrl || '').trim(),
+      remotePath: String(record.remotePath || '').trim(),
+      uploadedByName: String(record.uploadedByName || '').trim(),
+      uploadedByRole: String(record.uploadedByRole || '').trim(),
+      uploadedById: String(record.uploadedById || '').trim(),
+      createdAt: String(record.createdAt || nowISO()).trim(),
+      updatedAt: String(record.updatedAt || record.createdAt || nowISO()).trim(),
+      source: String(record.source || 'local').trim() || 'local'
+    };
+  }
+
+  function getPastPaperLibraryStore() {
+    return safeArray(read(KEYS.pastPaperLibrary, []))
+      .map((item) => normalizePastPaperLibraryRecord(item))
+      .filter((item) => item.paperSignature && item.subject);
+  }
+
+  function savePastPaperLibraryStore(itemsArg) {
+    const normalized = safeArray(itemsArg)
+      .map((item) => normalizePastPaperLibraryRecord(item))
+      .filter((item) => item.paperSignature && item.subject);
+    write(KEYS.pastPaperLibrary, normalized);
+    return normalized;
+  }
+
+  function matchesPastPaperFilters(paper, filtersArg) {
+    const filters = filtersArg || {};
+    if (filters.grade && paper.grade !== filters.grade) return false;
+    if (filters.year && Number(paper.year) !== Number(filters.year)) return false;
+    if (filters.province && paper.province !== filters.province) return false;
+    if (filters.subject && paper.subject !== filters.subject) return false;
+    if (filters.session && paper.session !== filters.session) return false;
+    if (filters.paperNumber && paper.paperNumber !== filters.paperNumber) return false;
+    if (filters.search) {
+      const query = String(filters.search).trim().toLowerCase();
+      const haystack = [paper.title, paper.subject, paper.province, paper.grade, paper.sessionLabel, paper.paperNumberLabel].join(' ').toLowerCase();
+      if (!haystack.includes(query)) return false;
+    }
+    return true;
+  }
+
+  function buildGeneratedPastPaperCatalog(filtersArg) {
+    const filters = filtersArg || {};
+    const hasFocusedSelection = Boolean(filters.grade && filters.year && filters.province && filters.subject && filters.session);
+    if (!hasFocusedSelection) return [];
+    const sessionConfig = getPastPaperSessionConfig(filters.session);
+    if (!sessionConfig) return [];
+    return safeArray(sessionConfig.paperNumbers).map((paperNumber) => buildGeneratedPastPaperRecord({
+      grade: filters.grade,
+      year: filters.year,
+      province: filters.province,
+      subject: filters.subject,
+      session: filters.session,
+      paperNumber
+    }));
+  }
+
+  const PAST_PAPER_MANIFEST_REMOTE_PATH = 'past-papers/catalog.json';
+
+  function serializePastPaperManifestRecords(recordsArg) {
+    return safeArray(recordsArg)
+      .map((item) => normalizePastPaperLibraryRecord(item))
+      .filter((item) => item.paperSignature && item.remotePath)
+      .map((item) => ({
+        id: item.id,
+        paperSignature: item.paperSignature,
+        grade: item.grade,
+        year: item.year,
+        province: item.province,
+        subject: item.subject,
+        session: item.session,
+        sessionLabel: item.sessionLabel,
+        sessionDescription: item.sessionDescription,
+        paperNumber: item.paperNumber,
+        paperNumberLabel: item.paperNumberLabel,
+        title: item.title,
+        summary: item.summary,
+        description: item.description,
+        totalMarks: item.totalMarks,
+        durationMinutes: item.durationMinutes,
+        sourceLabel: item.sourceLabel,
+        questions: item.questions,
+        fileName: item.fileName,
+        remotePath: item.remotePath,
+        uploadedByName: item.uploadedByName,
+        uploadedByRole: item.uploadedByRole,
+        uploadedById: item.uploadedById,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        source: 'remote'
+      }));
+  }
+
+  async function readPastPaperManifest(clientArg) {
+    const client = clientArg || initSupabaseClient();
+    if (!client) return [];
+    const manifestUrl = await createSignedProspectusUrl(client, 'kagie-documents', PAST_PAPER_MANIFEST_REMOTE_PATH);
+    if (!manifestUrl) return [];
+
+    try {
+      const response = await fetch(manifestUrl, { method: 'GET' });
+      if (!response.ok) return [];
+      const payload = await response.json().catch(() => null);
+      const records = safeArray(payload?.records || payload);
+      if (!records.length) return [];
+
+      const urls = await Promise.all(records.map((record) => (
+        record?.remotePath
+          ? createSignedProspectusUrl(client, 'kagie-documents', record.remotePath)
+          : Promise.resolve('')
+      )));
+
+      return records.map((record, index) => normalizePastPaperLibraryRecord({
+        ...record,
+        fileUrl: urls[index] || record?.fileUrl || '',
+        source: 'remote'
+      }));
+    } catch (error) {
+      console.warn('Could not read the remote past-paper manifest.', error);
+      return [];
+    }
+  }
+
+  async function writePastPaperManifest(clientArg, recordsArg) {
+    const client = clientArg || initSupabaseClient();
+    if (!client) return false;
+    const payload = JSON.stringify({
+      updatedAt: nowISO(),
+      records: serializePastPaperManifestRecords(recordsArg)
+    }, null, 2);
+    const file = new Blob([payload], { type: 'application/json' });
+    const upload = await client.storage.from('kagie-documents').upload(PAST_PAPER_MANIFEST_REMOTE_PATH, file, {
+      cacheControl: '120',
+      contentType: 'application/json',
+      upsert: true
+    });
+    if (upload.error) throw new Error(upload.error.message || 'Could not update the shared past-paper manifest.');
+    return true;
+  }
+
+  function parsePastPaperRemoteFileName(fileNameArg) {
+    const fileName = String(fileNameArg || '').trim();
+    if (!/\.pdf$/i.test(fileName)) return null;
+    const stem = fileName.replace(/\.pdf$/i, '');
+    const parts = stem.split('__');
+    if (parts.length < 7) return null;
+    const parsed = parsePastPaperSignature(parts.slice(0, 6).join('__'));
+    if (!parsed) return null;
+    return { ...parsed, title: deriveProspectusTitleFromName(parts.slice(6).join(' ')) };
+  }
+
+  function mergePastPaperCatalog(filtersArg, uploadedItemsArg) {
+    const generated = buildGeneratedPastPaperCatalog(filtersArg);
+    const uploadedItems = safeArray(uploadedItemsArg).filter((item) => matchesPastPaperFilters(item, filtersArg));
+    const bySignature = new Map();
+    generated.forEach((paper) => bySignature.set(paper.paperSignature, paper));
+    uploadedItems.forEach((paper) => {
+      const existing = bySignature.get(paper.paperSignature) || {};
+      bySignature.set(paper.paperSignature, {
+        ...existing,
+        ...paper,
+        questions: normalizePastPaperQuestionSet(paper.questions, paper.subject || existing.subject, paper.paperNumber || existing.paperNumber, paper.sessionLabel || existing.sessionLabel),
+        source: paper.fileUrl || paper.remotePath ? 'uploaded' : (paper.source || existing.source || 'local')
+      });
+    });
+    return [...bySignature.values()]
+      .filter((paper) => matchesPastPaperFilters(paper, filtersArg))
+      .sort((a, b) => String(a.paperNumberLabel || '').localeCompare(String(b.paperNumberLabel || '')));
+  }
+
+  function getPastPaperCatalog(filtersArg) {
+    requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    return mergePastPaperCatalog(filtersArg, getPastPaperLibraryStore()).map(clone);
+  }
+
+  async function listRemotePastPaperDocuments() {
+    if (!isSupabaseEnabled()) return [];
+    const client = initSupabaseClient();
+    if (!client) return [];
+
+    const bucket = 'kagie-documents';
+    const listed = await client.storage.from(bucket).list('past-papers', { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
+    if (listed.error) throw new Error(listed.error.message || 'Could not load past paper files.');
+
+    const files = safeArray(listed.data).filter((file) => /\.pdf$/i.test(String(file?.name || '')));
+    if (!files.length) return [];
+
+    const urls = await Promise.all(files.map((file) => createSignedProspectusUrl(client, bucket, `past-papers/${file.name}`)));
+    return files
+      .map((file, index) => {
+        const parsed = parsePastPaperRemoteFileName(file.name);
+        if (!parsed) return null;
+        return normalizePastPaperLibraryRecord({
+          ...parsed,
+          title: parsed.title || `${parsed.subject} ${getPastPaperNumberConfig(parsed.paperNumber)?.label || parsed.paperNumber}`,
+          remotePath: `past-papers/${file.name}`,
+          fileUrl: urls[index],
+          fileName: file.name,
+          source: 'remote',
+          createdAt: String(file?.created_at || nowISO()),
+          updatedAt: String(file?.updated_at || file?.created_at || nowISO()),
+          sourceLabel: `${parsed.province} uploaded paper`
+        });
+      })
+      .filter(Boolean);
+  }
+
+  async function getPastPaperCatalogAsync(filtersArg) {
+    requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const local = getPastPaperCatalog(filtersArg);
+    if (!isSupabaseEnabled()) return local;
+    try {
+      const client = initSupabaseClient();
+      const manifestRecords = await readPastPaperManifest(client);
+      const existingStore = getPastPaperLibraryStore();
+      const existingBySignature = new Map(existingStore.map((item) => [item.paperSignature, item]));
+      const remoteSource = manifestRecords.length ? manifestRecords : await listRemotePastPaperDocuments();
+      const remoteNormalized = remoteSource.map((item) => {
+        const existing = existingBySignature.get(item.paperSignature) || {};
+        return normalizePastPaperLibraryRecord({
+          ...existing,
+          ...item,
+          title: item.title || existing.title,
+          summary: item.summary || existing.summary,
+          description: item.description || existing.description,
+          questions: safeArray(item.questions).length ? item.questions : existing.questions,
+          uploadedByName: item.uploadedByName || existing.uploadedByName,
+          uploadedByRole: item.uploadedByRole || existing.uploadedByRole,
+          uploadedById: item.uploadedById || existing.uploadedById,
+          createdAt: item.createdAt || existing.createdAt,
+          updatedAt: item.updatedAt || existing.updatedAt || nowISO(),
+          source: item.source || existing.source || 'remote'
+        });
+      });
+      const localOnly = existingStore.filter((item) => !item.remotePath);
+      savePastPaperLibraryStore(localOnly.concat(remoteNormalized.map((item) => ({ ...item, fileUrl: '' }))));
+      return mergePastPaperCatalog(filtersArg, remoteNormalized.concat(localOnly)).map(clone);
+    } catch (error) {
+      console.warn('Falling back to local past paper catalog because remote paper storage could not be listed.', error);
+      return local;
+    }
+  }
+
+  function findPastPaperById(paperIdArg) {
+    const paperId = String(paperIdArg || '').trim();
+    if (!paperId) return null;
+    const parsed = parsePastPaperSignature(paperId);
+    if (!parsed) return null;
+    const uploaded = getPastPaperLibraryStore().find((item) => item.paperSignature === paperId);
+    return uploaded ? normalizePastPaperLibraryRecord(uploaded) : buildGeneratedPastPaperRecord(parsed);
+  }
+
+  async function savePastPaperByStaffAsync(payloadArg) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const payload = payloadArg || {};
+    const grade = String(payload.grade || '').trim();
+    const year = Number(payload.year || 0);
+    const province = String(payload.province || '').trim();
+    const subject = String(payload.subject || '').trim();
+    const session = String(payload.session || '').trim();
+    const paperNumber = String(payload.paperNumber || '').trim();
+    const title = String(payload.title || '').trim();
+    const file = payload.file || null;
+    const mimeType = String(payload.mimeType || payload.type || file?.type || 'application/pdf').trim() || 'application/pdf';
+    const fileName = String(payload.fileName || payload.name || file?.name || `${title || subject || 'paper'}.pdf`).trim();
+
+    if (!grade || !year || !province || !subject || !session || !paperNumber) throw new Error('Complete the grade, year, province, subject, session, and paper type first.');
+    if (!fileName) throw new Error('Choose a PDF past paper first.');
+    if (!/pdf/i.test(mimeType) && !/\.pdf$/i.test(fileName)) throw new Error('Upload a PDF file for the past paper.');
+
+    const paperSignature = buildPastPaperSignature({ grade, year, province, subject, session, paperNumber });
+    const baseRecord = normalizePastPaperLibraryRecord({
+      id: paperSignature,
+      paperSignature,
+      grade,
+      year,
+      province,
+      subject,
+      session,
+      paperNumber,
+      title: title || `${subject} ${getPastPaperNumberConfig(paperNumber)?.label || paperNumber}`,
+      description: String(payload.description || '').trim(),
+      questions: safeArray(payload.questions),
+      fileName,
+      uploadedById: actor.id,
+      uploadedByName: actor.fullName || actor.email || 'Kagie staff',
+      uploadedByRole: actor.role,
+      createdAt: nowISO(),
+      updatedAt: nowISO(),
+      source: 'local'
+    });
+
+    let nextRecord = { ...baseRecord };
+    if (file && isSupabaseEnabled()) {
+      try {
+        const client = initSupabaseClient();
+        if (client) {
+          const safeTitle = sanitizePathPart(baseRecord.title || fileName) || 'paper';
+          const remoteFileName = `${paperSignature}__${safeTitle}.pdf`;
+          const remotePath = `past-papers/${remoteFileName}`;
+          const upload = await client.storage.from('kagie-documents').upload(remotePath, file, {
+            cacheControl: '3600',
+            contentType: mimeType || 'application/pdf',
+            upsert: true
+          });
+          if (upload.error) throw new Error(upload.error.message || 'Could not upload the past paper PDF.');
+          nextRecord = normalizePastPaperLibraryRecord({
+            ...baseRecord,
+            remotePath,
+            fileUrl: await createSignedProspectusUrl(client, 'kagie-documents', remotePath),
+            source: 'remote'
+          });
+          const manifestSeed = await readPastPaperManifest(client);
+          const manifestNext = manifestSeed
+            .filter((item) => item.paperSignature !== nextRecord.paperSignature)
+            .concat([nextRecord]);
+          await writePastPaperManifest(client, manifestNext);
+        }
+      } catch (error) {
+        console.warn('Past paper upload fell back to local storage.', error);
+      }
+    }
+
+    if (!nextRecord.remotePath) {
+      const dataUrl = String(payload.dataUrl || '').trim() || await readFileAsDataUrl(file);
+      nextRecord = normalizePastPaperLibraryRecord({
+        ...baseRecord,
+        fileUrl: dataUrl,
+        source: 'local'
+      });
+    }
+
+    const store = getPastPaperLibraryStore().filter((item) => item.paperSignature !== nextRecord.paperSignature);
+    savePastPaperLibraryStore([nextRecord].concat(store));
+    return clone(nextRecord);
+  }
+
+  async function deletePastPaperByStaffAsync(paperIdArg) {
+    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const paperId = String(paperIdArg || '').trim();
+    const store = getPastPaperLibraryStore();
+    const current = store.find((item) => item.paperSignature === paperId || item.id === paperId || item.remotePath === paperId);
+    if (!current) throw new Error('Past paper not found.');
+    if (current.remotePath && isSupabaseEnabled()) {
+      try {
+        const client = initSupabaseClient();
+        if (client) {
+          const removed = await client.storage.from('kagie-documents').remove([current.remotePath]);
+          if (removed.error) throw new Error(removed.error.message || 'Could not remove the past paper from storage.');
+          const manifestSeed = await readPastPaperManifest(client);
+          await writePastPaperManifest(client, manifestSeed.filter((item) => item.paperSignature !== current.paperSignature));
+        }
+      } catch (error) {
+        console.warn('Past paper delete fell back to local cleanup only.', error);
+      }
+    }
+    savePastPaperLibraryStore(store.filter((item) => {
+      const sameSignature = item.paperSignature === current.paperSignature;
+      const sameRemotePath = current.remotePath && item.remotePath === current.remotePath;
+      const sameId = String(item.id || '').trim() === paperId;
+      return !(sameSignature || sameRemotePath || sameId);
+    }));
+    return true;
+  }
+
+  function getPastPaperPracticeHistory(userIdArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const userId = String(userIdArg || actor.id).trim();
+    return safeArray(read(KEYS.pastPaperProgress, []))
+      .filter((entry) => String(entry?.userId || '').trim() === userId)
+      .map((entry) => normalizePastPaperPracticeEntry(entry, userId))
+      .filter((entry) => entry.paperId)
+      .sort((a, b) => new Date(b.lastPractisedAt || 0) - new Date(a.lastPractisedAt || 0));
+  }
+
+  function normalizePastPaperQuestionProgressList(progressArg, paperArg) {
+    const paper = paperArg || null;
+    const baseQuestions = normalizePastPaperQuestionSet(paper?.questions, paper?.subject, paper?.paperNumber, paper?.sessionLabel);
+    const progressMap = new Map(safeArray(progressArg).map((item) => [String(item?.id || item?.questionId || '').trim(), item]));
+    return baseQuestions.map((question) => {
+      const progress = progressMap.get(question.id) || {};
+      const score = progress.score === '' || progress.score === null || progress.score === undefined ? null : Number(progress.score);
+      return {
+        id: question.id,
+        label: question.label,
+        topic: question.topic,
+        maxMarks: question.maxMarks,
+        completed: Boolean(progress.completed),
+        score: Number.isFinite(score) ? score : null,
+        note: String(progress.note || '').trim(),
+        updatedAt: String(progress.updatedAt || '').trim(),
+        attempts: Math.max(0, Number(progress.attempts || 0)),
+        failedAttempts: Math.max(0, Number(progress.failedAttempts || 0)),
+        solvedOnAttempt: progress.solvedOnAttempt === '' || progress.solvedOnAttempt === null || progress.solvedOnAttempt === undefined ? null : Math.max(1, Number(progress.solvedOnAttempt || 0)),
+        lastAttemptAt: String(progress.lastAttemptAt || '').trim()
+      };
+    });
+  }
+
+  function getPastPaperQuestionPassMark(questionArg) {
+    return Math.max(1, Math.ceil(Number(questionArg?.maxMarks || 0) * 0.6));
+  }
+
+  function isPastPaperQuestionSolved(questionArg) {
+    const question = questionArg || {};
+    const score = question.score === '' || question.score === null || question.score === undefined ? null : Number(question.score);
+    if (!question.completed || !Number.isFinite(score)) return false;
+    return score >= getPastPaperQuestionPassMark(question);
+  }
+
+  function normalizePastPaperPracticeEntry(entryArg, userIdArg) {
+    const entry = entryArg || {};
+    const paperId = String(entry.paperId || entry.paperSignature || '').trim();
+    const paper = paperId ? findPastPaperById(paperId) : null;
+    const questionProgress = normalizePastPaperQuestionProgressList(entry.questionProgress, paper);
+    const totalQuestions = questionProgress.length;
+    const completedQuestions = questionProgress.filter((item) => item.completed).length;
+    const solvedQuestions = questionProgress.filter((item) => isPastPaperQuestionSolved(item)).length;
+    const totalMarks = questionProgress.reduce((sum, item) => sum + Number(item.maxMarks || 0), 0);
+    const earnedMarks = questionProgress.reduce((sum, item) => sum + Math.max(0, Math.min(Number(item.score || 0), Number(item.maxMarks || 0))), 0);
+    const calculatedPerformance = totalMarks ? Math.round((earnedMarks / totalMarks) * 100) : null;
+    const score = entry.score === '' || entry.score === null || entry.score === undefined ? calculatedPerformance : Number(entry.score);
+    const troubleQuestions = questionProgress
+      .filter((item) => Number(item.failedAttempts || 0) > 0 || (item.completed && !isPastPaperQuestionSolved(item)))
+      .sort((a, b) => {
+        const failDiff = Number(b.failedAttempts || 0) - Number(a.failedAttempts || 0);
+        if (failDiff) return failDiff;
+        const scoreA = Number.isFinite(Number(a.score)) ? Number(a.score) : -1;
+        const scoreB = Number.isFinite(Number(b.score)) ? Number(b.score) : -1;
+        return scoreA - scoreB;
+      })
+      .map((item) => ({
+        id: item.id,
+        label: item.label,
+        topic: item.topic,
+        failedAttempts: Number(item.failedAttempts || 0),
+        solvedOnAttempt: item.solvedOnAttempt,
+        score: Number.isFinite(Number(item.score)) ? Number(item.score) : null,
+        maxMarks: Number(item.maxMarks || 0)
+      }));
+
+    return {
+      id: String(entry.id || uid('paper')).trim(),
+      userId: String(userIdArg || entry.userId || '').trim(),
+      paperId,
+      paperSignature: paperId,
+      paperMeta: paper ? {
+        grade: paper.grade,
+        year: paper.year,
+        province: paper.province,
+        subject: paper.subject,
+        session: paper.session,
+        sessionLabel: paper.sessionLabel,
+        paperNumber: paper.paperNumber,
+        paperNumberLabel: paper.paperNumberLabel,
+        title: paper.title
+      } : clone(entry.paperMeta || {}),
+      startedAt: String(entry.startedAt || entry.createdAt || nowISO()).trim(),
+      lastPractisedAt: String(entry.lastPractisedAt || entry.updatedAt || entry.startedAt || nowISO()).trim(),
+      completedAt: String(entry.completedAt || '').trim(),
+      attempts: Math.max(0, Number(entry.attempts || 0)),
+      status: String(entry.status || (completedQuestions ? 'in_progress' : 'new')).trim(),
+      score: Number.isFinite(score) ? score : null,
+      note: String(entry.note || '').trim(),
+      totalQuestions,
+      completedQuestions,
+      solvedQuestions,
+      firstAttemptSolvedQuestions: questionProgress.filter((item) => Number(item.solvedOnAttempt || 0) === 1).length,
+      troubleQuestionCount: troubleQuestions.length,
+      troubleQuestions: troubleQuestions.slice(0, 5),
+      performance: Number.isFinite(calculatedPerformance) ? calculatedPerformance : (Number.isFinite(score) ? score : null),
+      questionProgress
+    };
+  }
+
+  function upsertPastPaperProgressEntry(paperIdArg, mutateFn, userIdArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const userId = String(userIdArg || actor.id).trim();
+    const paperId = String(paperIdArg || '').trim();
+    if (!paperId) throw new Error('Choose a paper first.');
+
+    const store = safeArray(read(KEYS.pastPaperProgress, []));
+    const index = store.findIndex((entry) => String(entry?.userId || '').trim() === userId && String(entry?.paperId || entry?.paperSignature || '').trim() === paperId);
+    const existing = index >= 0 ? normalizePastPaperPracticeEntry(store[index], userId) : normalizePastPaperPracticeEntry({
+      id: uid('paper'),
+      userId,
+      paperId,
+      paperSignature: paperId,
+      attempts: 0,
+      startedAt: nowISO(),
+      lastPractisedAt: nowISO(),
+      questionProgress: []
+    }, userId);
+
+    const next = normalizePastPaperPracticeEntry(mutateFn(clone(existing)) || existing, userId);
+    if (index >= 0) store[index] = next;
+    else store.push(next);
+    write(KEYS.pastPaperProgress, store);
+    return clone(next);
+  }
+
+  function markPastPaperPractised(paperIdArg, detailsArg, userIdArg) {
+    const details = detailsArg || {};
+    return upsertPastPaperProgressEntry(paperIdArg, (entry) => {
+      const shouldIncrementAttempt = details.incrementAttempt !== false;
+      const nextAttempt = Math.max(0, Number(entry.attempts || 0) + (shouldIncrementAttempt ? 1 : 0));
+      const questions = normalizePastPaperQuestionProgressList(entry.questionProgress, findPastPaperById(paperIdArg)).map((question) => {
+        if (!shouldIncrementAttempt) return question;
+        if (isPastPaperQuestionSolved(question)) {
+          return {
+            ...question,
+            attempts: Math.max(Number(question.attempts || 0), Number(question.solvedOnAttempt || nextAttempt || 0))
+          };
+        }
+        if (nextAttempt <= 1) {
+          return {
+            ...question,
+            attempts: Math.max(Number(question.attempts || 0), 1)
+          };
+        }
+        return {
+          ...question,
+          attempts: Math.max(Number(question.attempts || 0), nextAttempt),
+          failedAttempts: Math.max(Number(question.failedAttempts || 0), nextAttempt - 1),
+          lastAttemptAt: nowISO()
+        };
+      });
+      entry.lastPractisedAt = nowISO();
+      entry.attempts = nextAttempt;
+      entry.status = String(details.status || (details.completed ? 'completed' : entry.status || 'started')).trim() || 'started';
+      entry.note = String(details.note || entry.note || '').trim();
+      if (details.score !== '' && details.score !== null && details.score !== undefined) entry.score = Number(details.score);
+      if (details.completed) {
+        entry.completedAt = nowISO();
+        entry.status = 'completed';
+      }
+      entry.questionProgress = Array.isArray(details.questionProgress) ? details.questionProgress : questions;
+      return entry;
+    }, userIdArg);
+  }
+
+  function setPastPaperQuestionProgress(paperIdArg, questionIdArg, patchArg, userIdArg) {
+    const patch = patchArg || {};
+    return upsertPastPaperProgressEntry(paperIdArg, (entry) => {
+      const questions = normalizePastPaperQuestionProgressList(entry.questionProgress, findPastPaperById(paperIdArg));
+      const questionId = String(questionIdArg || '').trim();
+      const index = questions.findIndex((item) => item.id === questionId);
+      if (index === -1) throw new Error('Question not found for this paper.');
+      const currentAttempt = Math.max(1, Number(entry.attempts || 1));
+      const nextQuestion = {
+        ...questions[index],
+        completed: typeof patch.completed === 'boolean' ? patch.completed : questions[index].completed,
+        score: patch.score === '' || patch.score === null || patch.score === undefined ? questions[index].score : Number(patch.score),
+        note: patch.note === undefined ? questions[index].note : String(patch.note || '').trim(),
+        updatedAt: nowISO(),
+        lastAttemptAt: nowISO(),
+        attempts: Math.max(Number(questions[index].attempts || 0), currentAttempt)
+      };
+      const meaningfulAttempt = Number.isFinite(Number(nextQuestion.score)) || Boolean(nextQuestion.completed);
+      if (meaningfulAttempt) {
+        if (isPastPaperQuestionSolved(nextQuestion)) {
+          const solvedOnAttempt = Math.max(1, Number(nextQuestion.solvedOnAttempt || currentAttempt));
+          nextQuestion.solvedOnAttempt = solvedOnAttempt;
+          nextQuestion.failedAttempts = Math.max(Number(nextQuestion.failedAttempts || 0), Math.max(0, solvedOnAttempt - 1));
+        } else {
+          nextQuestion.failedAttempts = Math.max(Number(nextQuestion.failedAttempts || 0), currentAttempt);
+        }
+      }
+      questions[index] = nextQuestion;
+      entry.questionProgress = questions;
+      entry.lastPractisedAt = nowISO();
+      entry.attempts = Math.max(1, Number(entry.attempts || 0));
+      entry.status = questions.every((item) => item.completed) ? 'completed' : 'in_progress';
+      entry.completedAt = questions.every((item) => item.completed) ? nowISO() : String(entry.completedAt || '').trim();
+      return entry;
+    }, userIdArg);
+  }
+
+  function savePastPaperPerformance(paperIdArg, patchArg, userIdArg) {
+    const patch = patchArg || {};
+    return upsertPastPaperProgressEntry(paperIdArg, (entry) => {
+      entry.lastPractisedAt = nowISO();
+      entry.attempts = Math.max(1, Number(entry.attempts || 0));
+      entry.note = patch.note === undefined ? entry.note : String(patch.note || '').trim();
+      if (patch.score !== '' && patch.score !== null && patch.score !== undefined) entry.score = Number(patch.score);
+      if (patch.completed) {
+        entry.completedAt = nowISO();
+        entry.status = 'completed';
+      }
+      return entry;
+    }, userIdArg);
   }
 
   function getInstitutionForSelection(choice) {
@@ -1552,6 +6615,9 @@
             institutionName: institution.name,
             institutionType: institution.type,
             province: institution.province,
+            applicationFee: roundMoney(institution.applicationFee || 0),
+            applicationFeeLabel: institution.applicationFeeLabel || '',
+            applicationFeeNote: institution.applicationFeeNote || '',
             faculty: faculty.name,
             course,
             year: institution.year,
@@ -1644,6 +6710,62 @@
     ];
     const completed = checks.filter(Boolean).length;
     return Math.round((completed / checks.length) * 100);
+  }
+
+  function getApplicationCompletionIssues(applicationArg) {
+    const app = applicationArg || {};
+    const forms = app.forms && typeof app.forms === 'object' ? app.forms : {};
+    const learner = forms.learner || {};
+    const parent = forms.parent || {};
+    const school = forms.school || {};
+    const marks = safeArray(forms.marks?.subjects || forms.marks || app.marks);
+    const issues = [];
+    const applicationType = normalizeApplicationTypeKey(
+      app.applicationType ||
+      forms.applicationType?.type ||
+      app.applicationEngine?.type ||
+      ''
+    ) || 'undergraduate';
+    const hasPackage = Boolean(app.package || app.selectedPackage || forms.packageSelection?.package);
+    const parentName = parent.fullNames || parent.guardianFullNames || parent.guardianName || parent.fullName;
+    const parentPhone = parent.phone1 || parent.guardianCell1 || parent.guardianPhone || parent.phone;
+
+    if (['bridging', 'postgraduate', 'transfer'].includes(applicationType)) {
+      const specialisedValues = unwrapSpecialisedApplicationValues(
+        forms.dynamicApplications?.[applicationType]?.values ||
+        forms.dynamicApplications?.[applicationType] ||
+        forms.specialisedApplication?.values ||
+        app.applicationEngine?.formData ||
+        {}
+      );
+      if (!hasPackage) issues.push('Selected package is required.');
+      if (!hasUsefulApplicationValues(specialisedValues)) issues.push(`${applicationTypeLabelForKey(applicationType)} details are required.`);
+      return issues;
+    }
+
+    if (applicationType === 'late') {
+      const lateData = objectRecord(
+        app.lateApplication?.data ||
+        forms.dynamicApplications?.late ||
+        app.applicationEngine?.formData ||
+        forms.current ||
+        {}
+      );
+      if (!hasPackage) issues.push('Selected package is required.');
+      if (!hasUsefulApplicationValues(lateData.details) && !hasUsefulApplicationValues(lateData.personal)) issues.push('Late application details are required.');
+      return issues;
+    }
+
+    if (!learner.fullNames && !learner.fullName) issues.push('Learner full names are required.');
+    if (!learner.surname) issues.push('Learner surname is required.');
+    if (!learner.email && !learner.cellphone && !learner.phone) issues.push('Learner email or cellphone is required.');
+    if (!parentName || !parentPhone) issues.push('Parent or guardian details are required.');
+    if (!school.schoolName || !school.schoolProvince || !school.completionYear) issues.push('School information is required.');
+    if (marks.length < 5) issues.push('Capture at least 5 academic subjects.');
+    if (!hasPackage) issues.push('Selected package is required.');
+    if (!safeArray(app.institutions).length) issues.push('At least one institution choice is required.');
+
+    return issues;
   }
 
   function getUpdateFeed(userIdArg) {
@@ -1829,6 +6951,77 @@
     }
   }
 
+  function createEphemeralSupabaseClient(suffixArg) {
+    const config = getSettings().supabase;
+    const sdk = window.supabase;
+    if (!config?.enabled || isPlaceholderSupabaseConfig(config)) return null;
+    if (!sdk || typeof sdk.createClient !== 'function') return null;
+    if (!config.url || !config.anonKey) return null;
+    const suffix = String(suffixArg || 'temp').replace(/[^a-z0-9_-]/gi, '').toLowerCase() || 'temp';
+    return sdk.createClient(config.url, config.anonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        storageKey: `kagie-${suffix}-${Date.now()}`
+      }
+    });
+  }
+
+  async function awaitRuntimeSupabaseConfig() {
+    const pendingConfig = typeof window !== 'undefined' ? window.__kagieRuntimeConfigPromise : null;
+    if (!pendingConfig || typeof pendingConfig.then !== 'function') return null;
+    try {
+      return await pendingConfig;
+    } catch (error) {
+      console.warn('Kagie runtime config load fallback used:', error);
+      return null;
+    }
+  }
+
+  async function getLiveAdminSetupStatus() {
+    const settings = getSettings();
+    const endpoint = String(settings?.supabase?.adminConfigStatusEndpoint || '').trim();
+
+    if (!endpoint) {
+      return {
+        hasSupabaseUrl: Boolean(settings?.supabase?.url),
+        hasServiceRoleKey: false,
+        secureAdminProvisioningReady: false,
+        message: 'Live admin status endpoint is not configured on this site yet.'
+      };
+    }
+
+    try {
+      requireRole([ROLES.MASTER]);
+      const session = await getSupabaseSession();
+      if (!session?.access_token) throw new Error('Sign in with your live master admin account to check server setup.');
+      const response = await fetch(endpoint, { method: 'GET', headers: { Authorization: `Bearer ${session.access_token}` } });
+      if (!response.ok) throw new Error('Could not verify live admin setup. Sign in again or contact support.');
+      const payload = await response.json().catch(() => null);
+      const data = payload?.data || payload || {};
+      return {
+        hasSupabaseUrl: Boolean(data?.hasSupabaseUrl),
+        hasServiceRoleKey: Boolean(data?.hasServiceRoleKey),
+        secureAdminProvisioningReady: Boolean(data?.secureAdminProvisioningReady),
+        message: data?.secureAdminProvisioningReady
+          ? 'Secure live admin creation is ready.'
+          : 'Secure live admin creation is waiting for the server-side Supabase service role key.'
+      };
+    } catch (error) {
+      return {
+        hasSupabaseUrl: Boolean(settings?.supabase?.url),
+        hasServiceRoleKey: false,
+        secureAdminProvisioningReady: false,
+        message: error?.message || 'Could not check live admin setup status.'
+      };
+    }
+  }
+
+  async function signUpPrivilegedUserViaSupabase() {
+    throw new Error('Staff accounts must be created through the authenticated Kagie admin service.');
+  }
+
   const REMOTE_APPLICATION_SELECT = [
     'id',
     'user_id',
@@ -1841,11 +7034,80 @@
     'payment_method',
     'payment_note',
     'payment_amount',
+    'application_type',
+    'selected_package_id',
+    'selected_addons',
+    'package_price',
+    'addons_total',
+    'final_total',
+    'application_reference',
+    'institution_choice_1',
+    'institution_choice_2',
+    'programme_choice',
+    'application_payload',
     'submitted_at',
     'created_at',
     'updated_at',
-    'package:application_packs(id,code,name,price,institution_limit,is_unlimited,description,highlight)'
+    'package:application_packs(id,code,name,price,institution_limit,is_unlimited,description,highlight,application_type,package_level,features,is_popular,is_premium)'
   ].join(',');
+
+  const REMOTE_PAGE_SIZE = 1000;
+  const REMOTE_MAX_PAGES = 120;
+  const REMOTE_IN_FILTER_CHUNK_SIZE = 150;
+
+  function uniqueNonEmptyStrings(values) {
+    return [...new Set(safeArray(values).map((value) => String(value || '').trim()).filter(Boolean))];
+  }
+
+  function chunkArray(values, chunkSizeArg) {
+    const chunkSize = Math.max(1, Number(chunkSizeArg || REMOTE_IN_FILTER_CHUNK_SIZE));
+    const items = safeArray(values);
+    const chunks = [];
+    for (let index = 0; index < items.length; index += chunkSize) {
+      chunks.push(items.slice(index, index + chunkSize));
+    }
+    return chunks;
+  }
+
+  async function fetchPagedSupabaseRows(buildQuery, options = {}) {
+    const pageSize = Math.max(1, Number(options.pageSize || REMOTE_PAGE_SIZE));
+    const maxPages = Math.max(1, Number(options.maxPages || REMOTE_MAX_PAGES));
+    const rows = [];
+
+    for (let page = 0; page < maxPages; page += 1) {
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      const result = await buildQuery().range(from, to);
+      if (result.error) return { data: rows, error: result.error };
+
+      const pageRows = safeArray(result.data);
+      rows.push(...pageRows);
+      if (pageRows.length < pageSize) break;
+    }
+
+    return { data: rows, error: null };
+  }
+
+  async function fetchPagedRowsByIn(client, tableName, selectColumns, columnName, idsArg, options = {}) {
+    const ids = uniqueNonEmptyStrings(idsArg);
+    if (!ids.length) return { data: [], error: null };
+
+    const rows = [];
+    for (const chunk of chunkArray(ids, options.chunkSize)) {
+      const result = await fetchPagedSupabaseRows(() => {
+        let query = client.from(tableName).select(selectColumns).in(columnName, chunk);
+        if (options.order?.column) {
+          query = query.order(options.order.column, { ascending: options.order.ascending === true });
+        }
+        return query;
+      }, options);
+
+      if (result.error) return { data: rows, error: result.error };
+      rows.push(...safeArray(result.data));
+    }
+
+    return { data: rows, error: null };
+  }
 
   function isUuid(value) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
@@ -1863,8 +7125,34 @@
     return Number.isFinite(parsed) ? parsed : null;
   }
 
-  function toDateOrNull(value) {
+  function normalizeLooseDateToIso(value) {
     const text = String(value || '').trim();
+    if (!text) return '';
+
+    let year = '';
+    let month = '';
+    let day = '';
+    let match = text.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+    if (match) {
+      year = match[1];
+      month = match[2];
+      day = match[3];
+    } else {
+      match = text.match(/^(\d{1,2})\s*[-/]\s*(\d{1,2})\s*[-/]\s*(\d{4})$/);
+      if (!match) return text;
+      day = match[1];
+      month = match[2];
+      year = match[3];
+    }
+
+    const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const parsed = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== iso) return text;
+    return iso;
+  }
+
+  function toDateOrNull(value) {
+    const text = normalizeLooseDateToIso(value);
     return text || null;
   }
 
@@ -1873,7 +7161,101 @@
     return message.includes('stack depth limit exceeded')
       || message.includes('infinite recursion')
       || message.includes('policy')
-      || message.includes('row-level security');
+      || message.includes('schema cache')
+      || message.includes('could not find')
+      || message.includes('live profile policy conflict blocked assistant creation')
+      || message.includes('row-level security')
+      || message.includes('profiles_id_fkey')
+      || (message.includes('foreign key constraint') && message.includes('profiles'))
+      || (message.includes('update or delete on table') && message.includes('users') && message.includes('profiles'));
+  }
+
+  function isProfileSchemaCacheColumnError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return message.includes('profiles')
+      && (message.includes('schema cache') || message.includes('could not find'))
+      && (
+        message.includes('email')
+        || message.includes('phone')
+        || message.includes('user_id')
+        || message.includes('id_number')
+        || message.includes('province')
+        || message.includes('city')
+      );
+  }
+
+  function isMissingAssignmentAuditColumnsError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return message.includes('assigned_by')
+      || message.includes('assigned_at')
+      || message.includes('assignment_status');
+  }
+
+  function isRecoverableRemoteSyncError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return isRecoverableProfileSyncError(error)
+      || message.includes('failed to fetch')
+      || message.includes('networkerror')
+      || message.includes('load failed')
+      || message.includes('network request failed');
+  }
+
+  function isCartUserForeignKeyError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return message.includes('carts_user_id_fkey')
+      || (message.includes('foreign key constraint') && message.includes('cart') && message.includes('user'))
+      || (message.includes('foreign key constraint') && message.includes('profiles'));
+  }
+
+  function isMissingUserIdConflictConstraintError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return message.includes('user_id')
+      && message.includes('on conflict')
+      && (
+        message.includes('no unique or exclusion constraint')
+        || message.includes('there is no unique or exclusion constraint')
+        || message.includes('42p10')
+      );
+  }
+
+  async function writeUserScopedSupabaseRow(client, table, remoteUserId, payload) {
+    const rowPayload = {
+      user_id: remoteUserId,
+      ...(payload || {})
+    };
+    let result = await client.from(table).upsert(rowPayload, { onConflict: 'user_id' });
+    let strategy = 'upsert';
+
+    if (result.error && isMissingUserIdConflictConstraintError(result.error)) {
+      console.warn(`[Kagie] ${table} could not use onConflict=user_id. Retrying a select/update/insert fallback so learner details still reach staff dashboards.`, result.error);
+      const existing = await client
+        .from(table)
+        .select('user_id')
+        .eq('user_id', remoteUserId)
+        .limit(1)
+        .maybeSingle();
+      if (existing.error) {
+        return {
+          ...existing,
+          strategy: 'select'
+        };
+      }
+      if (existing.data?.user_id) {
+        result = await client
+          .from(table)
+          .update(payload || {})
+          .eq('user_id', remoteUserId);
+        strategy = 'update';
+      } else {
+        result = await client.from(table).insert(rowPayload);
+        strategy = 'insert';
+      }
+    }
+
+    return {
+      ...result,
+      strategy
+    };
   }
 
   function toRemoteUserId(user) {
@@ -1904,17 +7286,25 @@
       packPrice: displayPrice,
       institutionLimit,
       description: localPack?.description || remotePack.description || '',
-      highlight: localPack?.highlight || remotePack.highlight || ''
+      highlight: localPack?.highlight || remotePack.highlight || '',
+      applicationType: normalizeApplicationTypeKey(remotePack.application_type || localPack?.applicationType || ''),
+      level: String(remotePack.package_level || localPack?.level || '').toUpperCase(),
+      features: safeArray(remotePack.features || localPack?.features),
+      badge: remotePack.is_popular ? 'Most Popular' : remotePack.is_premium ? 'Best Support' : ''
     };
   }
 
   function mapRemoteInstitutionRow(item) {
     return {
       id: item?.id || uid('inst'),
+      institutionId: item?.institution_id || item?.institutionId || '',
       institutionName: item?.institution_name || item?.institutionName || item?.institution || '',
       institution: item?.institution_name || item?.institutionName || item?.institution || '',
       province: item?.province || '',
       institutionType: item?.institution_type || item?.institutionType || item?.type || '',
+      applicationFee: Number(item?.application_fee ?? item?.applicationFee ?? 0),
+      applicationFeeLabel: item?.application_fee_label || item?.applicationFeeLabel || '',
+      applicationFeeNote: item?.application_fee_note || item?.applicationFeeNote || '',
       faculty: item?.faculty || '',
       choice1: item?.choice_1 || item?.choice1 || '',
       choice2: item?.choice_2 || item?.choice2 || '',
@@ -1936,7 +7326,11 @@
       dob: profile?.dob || '',
       gender: profile?.gender || '',
       homeLanguage: profile?.homeLanguage || '',
-      address: profile?.address || ''
+      address: profile?.address || '',
+      needsBursary: normalizeYesNoValue(profile?.needsBursary || profile?.bursaryRequired || '', ''),
+      needsResidence: normalizeYesNoValue(profile?.needsResidence || profile?.residenceRequired || '', ''),
+      hasDisability: normalizeYesNoValue(profile?.hasDisability || '', ''),
+      disabilityDescription: profile?.disabilityDescription || ''
     };
   }
 
@@ -2027,7 +7421,7 @@
   function mirrorRemoteApplication(app, localUserIdArg) {
     if (!app?.id) return null;
     const acting = currentUserRaw();
-    const localUserId = localUserIdArg || acting?.id || app.userId;
+    const localUserId = localUserIdArg || app.userId || acting?.id || '';
     if (!localUserId) return clone(app);
 
     const apps = getAllApplications();
@@ -2074,13 +7468,20 @@
     if (!localItems.length) return remoteItems;
 
     const remoteKeys = new Set(remoteItems.map((item) => getCartMatchKey(item)).filter(Boolean));
-    const pendingLocal = localItems.filter((item) => {
-      const syncState = String(item?.syncState || '').trim().toLowerCase();
-      if (!['syncing', 'local_only'].includes(syncState)) return false;
-      return !remoteKeys.has(getCartMatchKey(item));
+    const combined = [...remoteItems];
+    localItems.forEach((item) => {
+      const key = getCartMatchKey(item);
+      if (key && remoteKeys.has(key)) return;
+      combined.push(item);
     });
 
-    return remoteItems.concat(pendingLocal);
+    const seen = new Set();
+    return combined.filter((item) => {
+      const key = getCartMatchKey(item) || `idx:${seen.size}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   async function resolveSupabaseContext(userIdArg) {
@@ -2094,6 +7495,7 @@
       viewer = currentUserRaw();
     }
     if (!viewer) return null;
+    if (isLocalStaffSession(viewer)) return null;
 
     let verified = null;
     try {
@@ -2137,7 +7539,7 @@
     return {
       client,
       viewer,
-      targetLocalUser: targetLocalUser || viewer,
+      targetLocalUser: targetLocalUser || ((!userIdArg || userIdArg === viewer.id || userIdArg === viewer.supabaseUserId) ? viewer : null),
       remoteSelfId,
       targetRemoteId
     };
@@ -2156,12 +7558,18 @@
   }
 
   async function fetchRemoteUsersByIds(remoteIds, clientArg) {
-    const ids = [...new Set(safeArray(remoteIds).filter(Boolean))];
+    const ids = uniqueNonEmptyStrings(remoteIds);
     if (!ids.length) return [];
     const client = clientArg || initSupabaseClient();
     if (!client) return [];
-    const query = await client.from('profiles').select('*').in('id', ids);
-    if (query.error) throw new Error(query.error.message || 'Could not load profile records.');
+    const query = await fetchPagedRowsByIn(client, 'profiles', '*', 'id', ids);
+    if (query.error) {
+      if (isRecoverableProfileSyncError(query.error)) {
+        console.warn('Falling back to local profile cache because the remote profiles lookup is unavailable.', query.error);
+        return [];
+      }
+      throw new Error(query.error.message || 'Could not load profile records.');
+    }
     return syncRemoteUsersFromProfiles(query.data || []);
   }
 
@@ -2172,18 +7580,29 @@
     if (!client) return [];
     const { data, error } = await client
       .from('application_packs')
-      .select('id,code,name,price,institution_limit,is_unlimited,description,highlight')
-      .eq('is_active', true)
+      .select('id,code,name,price,institution_limit,is_unlimited,description,highlight,application_type,package_level,features,is_popular,is_premium,is_active,updated_at')
       .order('price', { ascending: true });
     if (error) throw new Error(error.message || 'Could not load application packs.');
     remotePackCache = data || [];
+    packCatalogCache = null;
     return clone(remotePackCache);
+  }
+
+  async function getPackCatalogAsync(force = false) {
+    await fetchRemotePacks(force).catch(() => []);
+    return getPackCatalog();
+  }
+
+  async function getPacksForAdminAsync(force = false) {
+    requireRole([ROLES.MASTER]);
+    await fetchRemotePacks(force).catch(() => []);
+    return getPacksForAdmin();
   }
 
   async function findRemotePackRecord(packArg) {
     if (!packArg) return null;
     const packs = await fetchRemotePacks();
-    const remoteId = String(packArg.remoteId || '').trim();
+    const remoteId = String(packArg.remoteId || packArg.refId || '').trim();
     const code = String(packArg.code || packArg.id || '').trim().toLowerCase();
     const name = String(packArg.name || packArg.packName || '').trim().toLowerCase();
     return (
@@ -2196,17 +7615,253 @@
     );
   }
 
+  async function updatePackByAdminAsync(packId, patch) {
+    requireRole([ROLES.MASTER]);
+
+    const previousStore = getPackOverrideStore();
+    const updatedLocal = updatePackByAdmin(packId, patch);
+    const ctx = await resolveSupabaseContext().catch(() => null);
+    if (!ctx) { if (isSupabaseEnabled()) { savePackOverrideStore(previousStore); throw new Error('Live package settings were not saved. Reconnect and try again.'); } return updatedLocal; }
+
+    try {
+      const current = getPackById(packId) || updatedLocal;
+      const payload = {
+        name: current.name,
+        price: Number(current.price || 0),
+        institution_limit: current.institutionLimit === 'unlimited' ? null : Number(current.institutionLimit || 0),
+        is_unlimited: current.institutionLimit === 'unlimited' || current.isUnlimited === true,
+        description: current.description || '',
+        highlight: current.highlight || '',
+        is_active: current.isActive !== false
+      };
+
+      const result = await ctx.client
+        .from('application_packs')
+        .update(payload)
+        .eq('code', current.code || current.id)
+        .select('id,code,name,price,institution_limit,is_unlimited,description,highlight,application_type,package_level,features,is_popular,is_premium,is_active,updated_at')
+        .single();
+
+      if (result.error) throw new Error(result.error.message || 'Could not update the package.');
+
+      remotePackCache = safeArray(remotePackCache)
+        .filter((item) => String(item?.code || item?.id || '') !== String(current.code || current.id))
+        .concat(result.data || []);
+      packCatalogCache = null;
+      return getPackById(current.id) || updatedLocal;
+    } catch (error) {
+      savePackOverrideStore(previousStore);
+      throw error;
+    }
+  }
+
+  async function fetchRemotePromos(force = false) {
+    if (!isSupabaseEnabled()) return [];
+    if (remotePromoCache && !force) return clone(remotePromoCache);
+    const client = initSupabaseClient();
+    if (!client) return [];
+    const { data, error } = await client
+      .from(getCurrentUser()?.role === ROLES.MASTER ? 'promo_campaigns' : 'promo_catalog')
+      .select(getCurrentUser()?.role === ROLES.MASTER ? 'id,code,title,description,discount_kind,discount_value,offer_note,max_uses,used_count,redeemed_user_ids,is_active,share_path,created_at,updated_at' : 'id,code,title,description,discount_kind,discount_value,offer_note,max_uses,used_count,is_active,share_path,created_at,updated_at')
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message || 'Could not load promo campaigns.');
+    remotePromoCache = data || [];
+    promoCatalogCache = null;
+    return clone(remotePromoCache);
+  }
+
+  async function getPromoCampaignsAsync(force = false, optionsArg) {
+    await fetchRemotePromos(force).catch(() => []);
+    return getPromoCampaigns(optionsArg);
+  }
+
+  async function getPromoCodesForAdminAsync(force = false) {
+    requireRole([ROLES.MASTER]);
+    await fetchRemotePromos(force).catch(() => []);
+    return getPromoCodesForAdmin();
+  }
+
+  async function getPromoCampaignByCodeAsync(codeArg, optionsArg) {
+    await fetchRemotePromos().catch(() => []);
+    return getPromoCampaignByCode(codeArg, optionsArg);
+  }
+
+  async function createPromoCampaignByAdminAsync(input) {
+    requireRole([ROLES.MASTER]);
+    const previousStore = getPromoOverrideStore();
+
+    const local = createPromoCampaignByAdmin(input);
+    const ctx = await resolveSupabaseContext().catch(() => null);
+    if (!ctx) { if (isSupabaseEnabled()) { savePromoOverrideStore(previousStore); throw new Error('Live promotion settings were not saved. Reconnect and try again.'); } return local; }
+
+    try {
+      const current = getPromoCampaignByCode(local.code, { includeInactive: true }) || local;
+      const payload = {
+        code: current.code,
+        title: current.title,
+        description: current.description || '',
+        discount_kind: current.discountKind,
+        discount_value: Number(current.discountValue || 0),
+        offer_note: current.offerNote || '',
+        max_uses: Number(current.maxUses || 0),
+        used_count: Number(current.usedCount || 0),
+        redeemed_user_ids: current.redeemedUserIds || [],
+        is_active: current.isActive !== false,
+        share_path: current.sharePath || `signup.html?promo=${encodeURIComponent(current.code)}`
+      };
+
+      const result = await ctx.client
+        .from('promo_campaigns')
+        .upsert(payload, { onConflict: 'code' })
+        .select('id,code,title,description,discount_kind,discount_value,offer_note,max_uses,used_count,redeemed_user_ids,is_active,share_path,created_at,updated_at')
+        .single();
+
+      if (result.error) throw new Error(result.error.message || 'Could not save the promo code.');
+
+      remotePromoCache = safeArray(remotePromoCache)
+        .filter((entry) => normalizePromoCodeValue(entry?.code) !== current.code)
+        .concat(result.data || []);
+      promoCatalogCache = null;
+      return getPromoCampaignByCode(current.code, { includeInactive: true }) || local;
+    } catch (error) {
+      savePromoOverrideStore(previousStore);
+      throw error;
+    }
+  }
+
+  async function updatePromoCampaignByAdminAsync(codeArg, patch) {
+    requireRole([ROLES.MASTER]);
+
+    const previousStore = getPromoOverrideStore();
+    const local = updatePromoCampaignByAdmin(codeArg, patch);
+    const ctx = await resolveSupabaseContext().catch(() => null);
+    if (!ctx) { if (isSupabaseEnabled()) { savePromoOverrideStore(previousStore); throw new Error('Live promotion settings were not saved. Reconnect and try again.'); } return local; }
+
+    try {
+      const current = getPromoCampaignByCode(local.code, { includeInactive: true }) || local;
+      const result = await ctx.client
+        .from('promo_campaigns')
+        .upsert({
+          code: current.code,
+          title: current.title,
+          description: current.description || '',
+          discount_kind: current.discountKind,
+          discount_value: Number(current.discountValue || 0),
+          offer_note: current.offerNote || '',
+          max_uses: Number(current.maxUses || 0),
+          used_count: Number(current.usedCount || 0),
+          redeemed_user_ids: current.redeemedUserIds || [],
+          is_active: current.isActive !== false,
+          share_path: current.sharePath || `signup.html?promo=${encodeURIComponent(current.code)}`
+        }, { onConflict: 'code' })
+        .select('id,code,title,description,discount_kind,discount_value,offer_note,max_uses,used_count,redeemed_user_ids,is_active,share_path,created_at,updated_at')
+        .single();
+
+      if (result.error) throw new Error(result.error.message || 'Could not update the promo code.');
+
+      remotePromoCache = safeArray(remotePromoCache)
+        .filter((entry) => normalizePromoCodeValue(entry?.code) !== current.code)
+        .concat(result.data || []);
+      promoCatalogCache = null;
+      return getPromoCampaignByCode(current.code, { includeInactive: true }) || local;
+    } catch (error) {
+      savePromoOverrideStore(previousStore);
+      throw error;
+    }
+  }
+
+  async function deletePromoCampaignByAdminAsync(codeArg) {
+    requireRole([ROLES.MASTER]);
+    const previousStore = getPromoOverrideStore();
+
+    const code = normalizePromoCodeValue(codeArg);
+    deletePromoCampaignByAdmin(code);
+    const ctx = await resolveSupabaseContext().catch(() => null);
+    if (!ctx) { if (isSupabaseEnabled()) { savePromoOverrideStore(previousStore); throw new Error('Live promotion settings were not saved. Reconnect and try again.'); } return true; }
+
+    try {
+      const result = await ctx.client.from('promo_campaigns').delete().eq('code', code);
+      if (result.error) throw new Error(result.error.message || 'Could not delete the promo code.');
+      remotePromoCache = safeArray(remotePromoCache).filter((entry) => normalizePromoCodeValue(entry?.code) !== code);
+      promoCatalogCache = null;
+      return true;
+    } catch (error) {
+      savePromoOverrideStore(previousStore);
+      throw error;
+    }
+  }
+
+  function markPromoCampaignRedeemed(codeArg, userIdArg) {
+    const userId = String(userIdArg || requireRole([ROLES.USER]).id || '').trim();
+    const code = normalizePromoCodeValue(codeArg);
+    const current = getPromoCampaignByCode(code, { includeInactive: true });
+    if (!current || !userId) return current;
+    if (safeArray(current.redeemedUserIds).includes(userId)) return current;
+    return updatePromoCampaignByAdmin(code, {
+      redeemedUserIds: safeArray(current.redeemedUserIds).concat(userId),
+      usedCount: Math.max(Number(current.usedCount || 0) + 1, safeArray(current.redeemedUserIds).length + 1)
+    });
+  }
+
+  async function markPromoCampaignRedeemedAsync(codeArg, userIdArg) {
+    const userId = String(userIdArg || requireRole([ROLES.USER]).id || '').trim();
+    const local = markPromoCampaignRedeemed(codeArg, userId);
+    const ctx = await resolveSupabaseContext().catch(() => null);
+    if (!ctx || !local) return local;
+
+    try {
+      const result = await ctx.client
+        .from('promo_campaigns')
+        .update({
+          redeemed_user_ids: safeArray(local.redeemedUserIds),
+          used_count: Number(local.usedCount || safeArray(local.redeemedUserIds).length)
+        })
+        .eq('code', local.code);
+      if (result.error) throw new Error(result.error.message || 'Could not update promo redemption.');
+      await fetchRemotePromos(true).catch(() => []);
+      return getPromoCampaignByCode(local.code, { includeInactive: true }) || local;
+    } catch (error) {
+      console.warn('Promo redemption stayed local because remote sync failed.', error);
+      return local;
+    }
+  }
+
   async function getOrCreateRemoteCart(userIdArg) {
     const ctx = await resolveSupabaseContext(userIdArg);
     if (!ctx) return null;
 
     let query = await ctx.client.from('carts').select('*').eq('user_id', ctx.targetRemoteId).maybeSingle();
-    if (query.error) throw new Error(query.error.message || 'Could not load cart.');
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) {
+        console.warn('Falling back to local cart because the remote cart lookup is unavailable.', query.error);
+        return null;
+      }
+      throw new Error(query.error.message || 'Could not load cart.');
+    }
 
     let cart = query.data || null;
     if (!cart) {
-      const created = await ctx.client.from('carts').insert({ user_id: ctx.targetRemoteId }).select('*').single();
-      if (created.error) throw new Error(created.error.message || 'Could not create cart.');
+      let created = await ctx.client.from('carts').insert({ user_id: ctx.targetRemoteId }).select('*').single();
+      if (created.error && isCartUserForeignKeyError(created.error)) {
+        const profileSnapshot = await getRemoteProfileSnapshot(ctx.targetRemoteId, ctx.client).catch(() => null);
+        if (!profileSnapshot?.id && String(ctx.targetLocalUser?.supabaseUserId || '').trim() === String(ctx.targetRemoteId || '').trim()) {
+          await syncSupabaseProfile({
+            ...ctx.targetLocalUser,
+            supabaseUserId: ctx.targetRemoteId,
+            source: 'supabase'
+          }).catch((error) => {
+            console.warn('Could not repair the missing live profile before creating the cart.', error);
+          });
+          created = await ctx.client.from('carts').insert({ user_id: ctx.targetRemoteId }).select('*').single();
+        }
+      }
+      if (created.error) {
+        if (isRecoverableRemoteSyncError(created.error) || isCartUserForeignKeyError(created.error)) {
+          console.warn('Falling back to local cart because the remote cart creation is unavailable.', created.error);
+          return null;
+        }
+        throw new Error(created.error.message || 'Could not create cart.');
+      }
       cart = created.data;
     }
 
@@ -2296,7 +7951,7 @@
   }
 
   function normalizeRemoteNotificationRow(row, localUserId) {
-    return {
+    return normalizeStoredNotificationEntry({
       id: row?.id || uid('noti'),
       userId: row?.user_id ? (localUserId || row.user_id) : 'all',
       title: row?.title || '',
@@ -2305,7 +7960,85 @@
       read: !!row?.is_read,
       createdAt: row?.created_at || nowISO(),
       source: 'supabase'
+    }, localUserId);
+  }
+
+  function normalizeStoredNotificationEntry(entryArg, fallbackUserId) {
+    const entry = entryArg || {};
+    const userIdValue = entry.userId ?? entry.user_id;
+    const normalizedUserId =
+      userIdValue === null || userIdValue === undefined || String(userIdValue).trim() === ''
+        ? (fallbackUserId ? String(fallbackUserId).trim() : 'all')
+        : String(userIdValue).trim();
+    const createdAt = String(entry.createdAt || entry.created_at || nowISO()).trim() || nowISO();
+    const updatedAt = String(entry.updatedAt || entry.updated_at || createdAt).trim() || createdAt;
+    const type = String(entry.type || entry.notification_type || 'info').trim().toLowerCase() || 'info';
+    return {
+      id: String(entry.id || '').trim() || uid('noti'),
+      userId: normalizedUserId || 'all',
+      title: String(entry.title || '').trim() || 'Notification',
+      message: String(entry.message || '').trim(),
+      type,
+      read: Boolean(entry.read ?? entry.is_read),
+      createdAt,
+      updatedAt,
+      source: String(entry.source || '').trim() || 'local'
     };
+  }
+
+  function notificationIdentityKey(entryArg) {
+    const entry = normalizeStoredNotificationEntry(entryArg);
+    return [
+      entry.userId,
+      entry.type,
+      entry.title.toLowerCase(),
+      entry.message.toLowerCase()
+    ].join('|');
+  }
+
+  function isRecentNotificationDuplicate(existingArg, incomingArg) {
+    const existing = normalizeStoredNotificationEntry(existingArg);
+    const incoming = normalizeStoredNotificationEntry(incomingArg);
+    if (notificationIdentityKey(existing) !== notificationIdentityKey(incoming)) return false;
+    const existingAt = new Date(existing.createdAt).getTime();
+    const incomingAt = new Date(incoming.createdAt).getTime();
+    if (!Number.isFinite(existingAt) || !Number.isFinite(incomingAt)) return false;
+    return Math.abs(incomingAt - existingAt) <= 3 * 60 * 1000;
+  }
+
+  function normalizeNotificationStore(itemsArg) {
+    const byId = new Map();
+    const recentEntries = [];
+    safeArray(itemsArg).forEach((item) => {
+      const normalized = normalizeStoredNotificationEntry(item);
+      const existingById = byId.get(normalized.id);
+      if (existingById) {
+        byId.set(normalized.id, {
+          ...existingById,
+          ...normalized,
+          read: Boolean(existingById.read || normalized.read)
+        });
+        return;
+      }
+
+      const duplicate = recentEntries.find((entry) => isRecentNotificationDuplicate(entry, normalized));
+      if (duplicate) {
+        duplicate.read = Boolean(duplicate.read || normalized.read);
+        duplicate.updatedAt = normalized.updatedAt || duplicate.updatedAt;
+        if (new Date(normalized.createdAt).getTime() > new Date(duplicate.createdAt).getTime()) {
+          duplicate.createdAt = normalized.createdAt;
+        }
+        return;
+      }
+
+      recentEntries.push(normalized);
+      byId.set(normalized.id, normalized);
+    });
+
+    return [...byId.values()]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 400)
+      .map(clone);
   }
 
   function normalizeRemoteDocumentRow(row, localUserId, extraMeta) {
@@ -2315,8 +8048,8 @@
       applicationId: extraMeta?.applicationId || row?.application_id || null,
       name: row?.file_name || 'Document',
       fileName: row?.file_name || 'Document',
-      type: extraMeta?.type || guessDocumentType(row?.file_name),
-      size: Number(extraMeta?.size || 0),
+      type: extraMeta?.type || row?.mime_type || guessDocumentType(row?.file_name),
+      size: Number(extraMeta?.size || row?.file_size || 0),
       dataUrl: extraMeta?.dataUrl || '',
       category: row?.document_type || 'general',
       fileUrl: row?.file_url || '',
@@ -2360,7 +8093,8 @@
 
   function normalizeRemoteUserRow(row) {
     const existing = getUsers().find((user) => (row?.id && user.supabaseUserId === row.id) || normalizeEmail(user.email) === normalizeEmail(row?.email));
-    const prefix = row?.role === ROLES.ASSISTANT ? 'assistant' : row?.role === ROLES.MASTER ? 'master' : 'user';
+    const normalizedRole = normalizeKagieRole(row?.role, existing?.role || ROLES.USER);
+    const prefix = normalizedRole === ROLES.ASSISTANT ? 'assistant' : normalizedRole === ROLES.MASTER ? 'master' : 'user';
     const stableLocalId = row?.id ? `${prefix}_${String(row.id).replace(/[^a-z0-9_-]/gi, '')}` : uid(prefix);
     const localUser = {
       ...(existing || {}),
@@ -2370,7 +8104,7 @@
       email: normalizeEmail(row?.email || existing?.email || ''),
       password: existing?.password || '',
       phone: row?.phone || existing?.phone || '',
-      role: row?.role || existing?.role || ROLES.USER,
+      role: normalizedRole,
       profileImage: row?.profile_image || existing?.profileImage || '',
       source: 'supabase',
       profile: existing?.profile || {},
@@ -2434,13 +8168,20 @@
   }
 
   function mirrorRemoteNotifications(items) {
-    const existing = read(KEYS.notifications, []);
+    const existing = normalizeNotificationStore(read(KEYS.notifications, []));
     const byId = new Map(existing.map((item) => [item.id, item]));
     safeArray(items).forEach((item) => {
-      byId.set(item.id, clone(item));
+      const normalized = normalizeStoredNotificationEntry(item);
+      const current = byId.get(normalized.id);
+      byId.set(normalized.id, {
+        ...(current || {}),
+        ...clone(normalized),
+        read: Boolean(current?.read || normalized.read)
+      });
     });
-    write(KEYS.notifications, Array.from(byId.values()));
-    return safeArray(items).map(clone);
+    const merged = normalizeNotificationStore(Array.from(byId.values()));
+    write(KEYS.notifications, merged);
+    return merged.map(clone);
   }
 
   function mirrorRemoteDocuments(items, localUserIdArg) {
@@ -2458,6 +8199,39 @@
     const merged = preserved.concat(safeArray(items).map((item) => ({ ...clone(item), threadId: localThreadId })));
     write(KEYS.supportChats, merged);
     return merged;
+  }
+
+  function mirrorRemoteSupportThreads(items) {
+    const existing = read(KEYS.supportThreads, []);
+    const byId = new Map(existing.map((item) => [item.id, item]));
+    safeArray(items).forEach((item) => {
+      byId.set(item.id, normalizeSupportThread({ ...item, source: item.source || 'supabase' }));
+    });
+    const merged = Array.from(byId.values()).sort((a, b) => new Date(b.lastMessageAt || b.updatedAt || 0) - new Date(a.lastMessageAt || a.updatedAt || 0));
+    write(KEYS.supportThreads, merged);
+    return merged.map(clone);
+  }
+
+  function mirrorRemoteApplicationUpdates(items) {
+    const existing = read(KEYS.applicationUpdates, []);
+    const byId = new Map(existing.map((item) => [item.id, item]));
+    safeArray(items).forEach((item) => {
+      byId.set(item.id, normalizeApplicationUpdate({ ...item, source: item.source || 'supabase' }));
+    });
+    const merged = Array.from(byId.values()).sort((a, b) => new Date(b.updateAt || b.createdAt || 0) - new Date(a.updateAt || a.createdAt || 0));
+    write(KEYS.applicationUpdates, merged);
+    return merged.map(clone);
+  }
+
+  function mirrorRemoteAssistantFormPermissions(items, assistantId) {
+    const existing = read(KEYS.assistantFormPermissions, []);
+    const targetId = String(assistantId || '').trim();
+    const preserved = targetId
+      ? existing.filter((item) => String(item.assistantAdminId || '').trim() !== targetId)
+      : existing;
+    const merged = preserved.concat(safeArray(items).map((item) => normalizeAssistantFormPermission(item)));
+    write(KEYS.assistantFormPermissions, merged);
+    return merged.map(clone);
   }
 
   function mirrorRemoteCallRequests(items, localUserId) {
@@ -2503,10 +8277,16 @@
       .from('support_threads')
       .select('*')
       .eq('user_id', ctx.targetRemoteId)
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (found.error) throw new Error(found.error.message || 'Could not load support thread.');
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (found.error) {
+        if (isRecoverableRemoteSyncError(found.error)) {
+          console.warn('Falling back to local support thread because the remote thread query is unavailable.', found.error);
+          return null;
+        }
+        throw new Error(found.error.message || 'Could not load support thread.');
+      }
 
     let thread = found.data || null;
     if (!thread) {
@@ -2515,7 +8295,13 @@
         .insert({ user_id: ctx.targetRemoteId, status: 'open' })
         .select('*')
         .single();
-      if (created.error) throw new Error(created.error.message || 'Could not create support thread.');
+      if (created.error) {
+        if (isRecoverableRemoteSyncError(created.error)) {
+          console.warn('Falling back to local support thread because the remote thread creation is unavailable.', created.error);
+          return null;
+        }
+        throw new Error(created.error.message || 'Could not create support thread.');
+      }
       thread = created.data;
     }
 
@@ -2532,16 +8318,20 @@
     const client = initSupabaseClient();
     if (!client) return [];
 
-    const appIds = list.map((item) => item.id);
-    const [marksResult, institutionsResult, paymentsResult] = await Promise.all([
-      client.from('application_marks').select('*').in('application_id', appIds),
-      client.from('application_institutions').select('*').in('application_id', appIds),
-      client.from('payments').select('*').in('application_id', appIds).order('created_at', { ascending: false })
+    const appIds = uniqueNonEmptyStrings(list.map((item) => item?.id));
+    const [marksResult, institutionsResult, paymentsResult, assignmentResult] = await Promise.all([
+      fetchPagedRowsByIn(client, 'application_marks', '*', 'application_id', appIds),
+      fetchPagedRowsByIn(client, 'application_institutions', '*', 'application_id', appIds),
+      fetchPagedRowsByIn(client, 'payments', '*', 'application_id', appIds, { order: { column: 'created_at', ascending: false } }),
+      fetchPagedRowsByIn(client, 'applications', 'id,assistant_id,assigned_by,assigned_at,assignment_status', 'id', appIds)
     ]);
 
     if (marksResult.error) throw new Error(marksResult.error.message || 'Could not load marks.');
     if (institutionsResult.error) throw new Error(institutionsResult.error.message || 'Could not load institutions.');
     if (paymentsResult.error) throw new Error(paymentsResult.error.message || 'Could not load payments.');
+    if (assignmentResult.error && !isMissingAssignmentAuditColumnsError(assignmentResult.error)) {
+      throw new Error(assignmentResult.error.message || 'Could not load assignment details.');
+    }
 
     const marksByApp = new Map();
     (marksResult.data || []).forEach((mark) => {
@@ -2571,34 +8361,122 @@
       paymentsByApp.set(payment.application_id, bucket);
     });
 
+    const assignmentByApp = new Map();
+    if (!assignmentResult.error) {
+      safeArray(assignmentResult.data).forEach((assignment) => {
+        assignmentByApp.set(assignment.id, assignment || {});
+      });
+    }
+    const assignedByUsers = await fetchRemoteUsersByIds(
+      safeArray(assignmentResult.error ? [] : assignmentResult.data)
+        .map((assignment) => assignment?.assigned_by)
+        .filter(Boolean),
+      client
+    ).catch(() => []);
+    const assignedByMap = new Map();
+    assignedByUsers.forEach((user) => {
+      assignedByMap.set(user.supabaseUserId, user);
+    });
+
     return list.map((row) => {
       const resolvedProfile = profileArg instanceof Map
         ? (profileArg.get(row.user_id) || getUsers().find((user) => user.supabaseUserId === row.user_id) || {})
         : (profileArg || {});
-      const localUserId = resolvedProfile?.id || getUsers().find((user) => user.supabaseUserId === row.user_id)?.id || userIdArg || row.user_id;
-      const localAssistantId = getUsers().find((user) => user.supabaseUserId === row.assistant_id)?.id || row.assistant_id || null;
+      const localUserId = resolvedProfile?.id || getUsers().find((user) => user.supabaseUserId === row.user_id)?.id || row.user_id || userIdArg;
+      const assignmentRow = assignmentByApp.get(row.id) || row || {};
+      const localAssistantId = getUsers().find((user) => user.supabaseUserId === assignmentRow.assistant_id)?.id || assignmentRow.assistant_id || null;
+      const resolvedAssignedBy = assignedByMap.get(assignmentRow.assigned_by)
+        || getUsers().find((user) => user.supabaseUserId === assignmentRow.assigned_by)
+        || null;
       const localExistingApp = getApplicationById(row.id) || null;
-      const marks = safeArray(marksByApp.get(row.id));
-      const institutions = safeArray(institutionsByApp.get(row.id));
+      const remoteMarks = safeArray(marksByApp.get(row.id));
+      const remoteInstitutions = safeArray(institutionsByApp.get(row.id));
       const paymentRow = safeArray(paymentsByApp.get(row.id))[0] || null;
-      const paymentNote = parsePaymentNoteState(paymentRow?.note || row.payment_note || '');
+      const paymentNote = mergePaymentNoteStates(paymentRow?.note || '', row.payment_note || '');
+      const applicationPayload = row.application_payload && typeof row.application_payload === 'object'
+        ? clone(row.application_payload)
+        : {};
+      const payloadForms = applicationPayload.forms && typeof applicationPayload.forms === 'object'
+        ? applicationPayload.forms
+        : {};
+      const payloadSelectedPackage = applicationPayload.selectedPackage || null;
+      const payloadMarks = safeArray(
+        payloadForms?.marks?.subjects || applicationPayload.marks?.subjects || applicationPayload.marks
+      ).map((mark) => {
+        const percent = Math.max(0, Math.min(100, Number(mark?.percent ?? mark?.mark ?? 0)));
+        return {
+          id: mark?.id || uid('mark'),
+          subject: mark?.subject || mark?.name || '',
+          percent,
+          mark: percent,
+          level: Math.max(1, Math.min(7, Number(mark?.level || calculateNscLevel(percent)))),
+          createdAt: mark?.createdAt || nowISO(),
+          updatedAt: mark?.updatedAt || mark?.createdAt || nowISO()
+        };
+      }).filter((mark) => mark.subject);
+      const marks = remoteMarks.length ? remoteMarks : payloadMarks;
+      const payloadInstitutionSource = safeArray(payloadForms?.institutions).length
+        ? safeArray(payloadForms.institutions)
+        : safeArray(applicationPayload.institutions);
+      const payloadInstitutions = payloadInstitutionSource.map(normalizeInstitutionRecord);
+      const institutions = remoteInstitutions.length ? remoteInstitutions : payloadInstitutions;
 
       const app = {
         id: row.id,
         userId: localUserId,
         assistantId: localAssistantId,
+        assignedAssistantId: localAssistantId || localExistingApp?.assignedAssistantId || null,
+        assignedById: resolvedAssignedBy?.id || localExistingApp?.assignedById || assignmentRow.assigned_by || '',
+        assignedByName: resolvedAssignedBy?.fullName || resolvedAssignedBy?.fullNames || localExistingApp?.assignedByName || '',
+        assignedAt: assignmentRow.assigned_at || localExistingApp?.assignedAt || '',
+        reassignedAt: localExistingApp?.reassignedAt || '',
+        assignmentStatus: assignmentRow.assignment_status || localExistingApp?.assignmentStatus || (localAssistantId ? 'Assigned' : 'Unassigned'),
         applicant: resolvedProfile?.fullName || resolvedProfile?.fullNames || '',
         status: row.status || STATUS.application.DRAFT,
         paymentStatus: row.payment_status || STATUS.payment.PENDING,
+        applicationType: normalizeApplicationTypeKey(
+          row.application_type
+          || applicationPayload.applicationType
+          || localExistingApp?.applicationType
+          || localExistingApp?.forms?.applicationType?.type
+          || ''
+        ),
+        applicationTypeLabel: applicationPayload.applicationTypeLabel
+          || localExistingApp?.applicationTypeLabel
+          || payloadForms?.applicationType?.label
+          || localExistingApp?.forms?.applicationType?.label
+          || '',
+        applicationEngine: localExistingApp?.applicationEngine ? clone(localExistingApp.applicationEngine) : null,
+        institutionName: row.institution_choice_1 || applicationPayload.institutionChoice1 || localExistingApp?.institutionName || '',
+        institutionChoice1: row.institution_choice_1 || applicationPayload.institutionChoice1 || '',
+        institutionChoice2: row.institution_choice_2 || applicationPayload.institutionChoice2 || '',
+        programme: row.programme_choice || applicationPayload.programmeChoice || localExistingApp?.programme || localExistingApp?.program || '',
+        programmeChoice: row.programme_choice || applicationPayload.programmeChoice || '',
+        selectedPackage: payloadSelectedPackage || localExistingApp?.selectedPackage || null,
+        selectedAddons: safeArray(row.selected_addons || applicationPayload.selectedAddons || localExistingApp?.selectedAddons),
+        packagePrice: Number(row.package_price ?? applicationPayload.packagePrice ?? localExistingApp?.packagePrice ?? 0),
+        addonsTotal: Number(row.addons_total ?? applicationPayload.addonsTotal ?? localExistingApp?.addonsTotal ?? 0),
+        finalTotal: Number(row.final_total ?? applicationPayload.finalTotal ?? localExistingApp?.finalTotal ?? 0),
+        applicationReference: row.application_reference || applicationPayload.applicationReference || localExistingApp?.applicationReference || '',
+        applicationPayload,
         forms: {
-          learner: profileToLearnerForm(resolvedProfile),
-          parent: profileToParentForm(resolvedProfile),
-          school: profileToSchoolForm(resolvedProfile),
-          marks: { subjects: marks }
+          ...clone(payloadForms),
+          applicationType: payloadForms?.applicationType || localExistingApp?.forms?.applicationType || null,
+          dynamicApplications: payloadForms?.dynamicApplications || localExistingApp?.forms?.dynamicApplications || {},
+          learner: mergeDeep(profileToLearnerForm(resolvedProfile), payloadForms?.learner || localExistingApp?.forms?.learner || {}),
+          parent: mergeDeep(profileToParentForm(resolvedProfile), payloadForms?.parent || localExistingApp?.forms?.parent || {}),
+          school: mergeDeep(profileToSchoolForm(resolvedProfile), payloadForms?.school || localExistingApp?.forms?.school || {}),
+          marks: { subjects: marks },
+          institutions: safeArray(payloadForms?.institutions).length
+            ? safeArray(payloadForms.institutions).map(normalizeInstitutionRecord)
+            : institutions,
+          portalAccess: safeArray(payloadForms?.portalAccess || localExistingApp?.forms?.portalAccess)
+            .map((entry, index) => normalizePortalAccessEntry(entry, index + 1))
+            .filter(portalAccessHasData)
         },
         institutions,
-        package: mapRemotePackage(row.package || null),
-        services: safeArray(localExistingApp?.services).map(clone),
+        package: payloadSelectedPackage || mapRemotePackage(row.package || null),
+        services: safeArray(applicationPayload.services || localExistingApp?.services).map(clone),
         payment: (paymentRow || row.payer_name || row.payment_reference)
           ? {
               payerName: paymentRow?.payer_name || row.payer_name || '',
@@ -2615,6 +8493,13 @@
               proofUploadedAt: paymentNote.proofUploadedAt || '',
               reviewedAt: paymentNote.reviewedAt || '',
               verifiedAt: paymentNote.verifiedAt || '',
+              gatewayProvider: paymentRow?.provider || paymentNote.gatewayProvider || '',
+              gatewayCheckoutId: paymentRow?.gateway_checkout_id || paymentNote.gatewayCheckoutId || '',
+              gatewayPaymentId: paymentRow?.gateway_payment_id || paymentNote.gatewayPaymentId || '',
+              gatewayStatus: paymentRow?.gateway_status || paymentNote.gatewayStatus || '',
+              currency: paymentRow?.currency || 'ZAR',
+              paidAt: paymentRow?.paid_at || '',
+              failureReason: paymentRow?.failure_reason || '',
               submittedAt: paymentRow?.created_at || row.submitted_at || null
             }
           : null,
@@ -2631,6 +8516,8 @@
   }
 
   function currentUserRaw() {
+    const sessionUser = readSession(KEYS.current, null);
+    if (sessionUser) return sessionUser;
     return read(KEYS.current, null);
   }
 
@@ -2638,23 +8525,39 @@
     return sanitizeUser(currentUserRaw());
   }
 
-  function setCurrentUser(user) {
-    write(KEYS.current, user || null);
-    return sanitizeUser(user);
+  function setCurrentUser(user, options) {
+    if (user) clearLogoutIntent();
+    const persist = typeof options?.persist === 'boolean' ? options.persist : shouldRememberLogin();
+    if (!user) {
+      write(KEYS.current, null);
+      writeSession(KEYS.current, null);
+      writeSession(KEYS.activeSession, { active: false, updatedAt: Date.now() });
+      return sanitizeUser(user);
+    }
+    const normalizedUser = normalizeUserRecord(user);
+    if (persist) {
+      write(KEYS.current, normalizedUser);
+      writeSession(KEYS.current, null);
+    } else {
+      write(KEYS.current, null);
+      writeSession(KEYS.current, normalizedUser);
+    }
+    writeSession(KEYS.activeSession, { active: true, updatedAt: Date.now() });
+    return sanitizeUser(normalizedUser);
   }
 
   function getUsers() {
-    return read(KEYS.users, []);
+    return read(KEYS.users, []).map(normalizeUserRecord);
   }
 
   function saveUsers(users) {
-    return write(KEYS.users, users);
+    return write(KEYS.users, safeArray(users).map(normalizeUserRecord));
   }
 
   function sanitizeStoredUsers() {
     const users = getUsers();
     const cleaned = users.map((user) => {
-      const next = { ...(user || {}) };
+      const next = normalizeUserRecord(user || {});
       if (next.profile) next.profile = sanitizeProfileObject(next.profile);
       return next;
     });
@@ -2681,45 +8584,82 @@
     return `${KEYS.cartPrefix}${userId}`;
   }
 
+  const LEGACY_MASTER_SEED = {
+    id: 'master_seed',
+    email: 'admin@kagie.app',
+    password: '123456'
+  };
+
+  const MASTER_SEED_MIGRATION_EMAILS = [
+    'kagisowitness79@gmail.com'
+  ];
+
+  const CURRENT_MASTER_SEED = {
+    id: 'master_seed',
+    fullName: 'Kagie Master Admin',
+    email: 'masteradmin@kagie.app',
+    password: 'Kagiso@05',
+    role: ROLES.MASTER,
+    phone: '',
+    profileImage: '',
+    profile: {},
+    source: 'local'
+  };
+
+  function getMasterSeedIdentity(emailArg) {
+    const normalizedEmail = normalizeEmail(emailArg);
+    if (isMasterSeedMigrationEmail(normalizedEmail)) {
+      return {
+        ...CURRENT_MASTER_SEED,
+        email: normalizedEmail
+      };
+    }
+    return {
+      ...CURRENT_MASTER_SEED
+    };
+  }
+
   function getSeedAdminDefaults() {
     return [
       {
-        id: 'assistant_seed',
-        fullName: 'Kagie Assistant',
-        email: 'assistant@kagie.app',
-        password: '123456',
-        role: ROLES.ASSISTANT,
-        phone: '',
-        profileImage: '',
-        profile: {},
-        source: 'local',
-        createdAt: nowISO(),
-        updatedAt: nowISO()
-      },
-      {
-        id: 'master_seed',
-        fullName: 'Kagie Master Admin',
-        email: 'admin@kagie.app',
-        password: '123456',
-        role: ROLES.MASTER,
-        phone: '',
-        profileImage: '',
-        profile: {},
-        source: 'local',
+        ...CURRENT_MASTER_SEED,
         createdAt: nowISO(),
         updatedAt: nowISO()
       }
     ];
   }
 
+  function isMasterSeedMigrationEmail(email) {
+    const normalizedEmail = normalizeEmail(email);
+    return MASTER_SEED_MIGRATION_EMAILS.some((item) => normalizeEmail(item) === normalizedEmail);
+  }
+
+  function isReservedAdminEmail(email) {
+    const normalizedEmail = normalizeEmail(email);
+    return (
+      normalizedEmail === normalizeEmail(CURRENT_MASTER_SEED.email) ||
+      normalizedEmail === normalizeEmail(LEGACY_MASTER_SEED.email)
+    );
+  }
+
   function isDefaultSeedAdmin(user) {
     if (!user) return false;
     const normalizedEmail = normalizeEmail(user.email);
+    const normalizedPassword = String(user.password || '');
     return (
       (user.id === 'assistant_seed' || user.id === 'master_seed') ||
       (
-        (normalizedEmail === 'assistant@kagie.app' || normalizedEmail === 'admin@kagie.app') &&
-        String(user.password || '') === '123456' &&
+        (
+          normalizedEmail === 'assistant@kagie.app' ||
+          normalizedEmail === normalizeEmail(LEGACY_MASTER_SEED.email) ||
+          normalizedEmail === normalizeEmail(CURRENT_MASTER_SEED.email) ||
+          (String(user.role || '') === ROLES.MASTER && isMasterSeedMigrationEmail(normalizedEmail))
+        ) &&
+        (
+          normalizedPassword === '123456' ||
+          normalizedPassword === LEGACY_MASTER_SEED.password ||
+          normalizedPassword === CURRENT_MASTER_SEED.password
+        ) &&
         String(user.source || 'local') === 'local'
       )
     );
@@ -2735,19 +8675,102 @@
     if (isDefaultSeedAdmin(current)) setCurrentUser(null);
   }
 
+  function purgeLocalAssistantDrafts() {
+    const users = getUsers();
+    const localAssistantIds = users
+      .filter((user) => user?.role === ROLES.ASSISTANT && String(user?.source || '').toLowerCase() === 'local')
+      .map((user) => String(user.id || '').trim())
+      .filter(Boolean);
+
+    if (!localAssistantIds.length) return;
+
+    localAssistantIds.forEach((assistantId) => clearAssistantReferencesLocally(assistantId));
+    const filtered = users.filter((user) => !localAssistantIds.includes(String(user?.id || '').trim()));
+    saveUsers(filtered);
+
+    const current = currentUserRaw();
+    if (current && localAssistantIds.includes(String(current.id || '').trim())) {
+      setCurrentUser(null);
+    }
+  }
+
   function ensureSeedAdmins() {
     if (!shouldSeedLocalStaffAccounts()) return;
     const users = getUsers();
     let changed = false;
 
     getSeedAdminDefaults().forEach((seed) => {
-      if (!users.find((u) => normalizeEmail(u.email) === normalizeEmail(seed.email))) {
+      const existingIndex = users.findIndex((u) => {
+        const normalizedEmail = normalizeEmail(u?.email);
+        return (
+          String(u?.id || '').trim() === seed.id ||
+          normalizedEmail === normalizeEmail(seed.email) ||
+          normalizedEmail === normalizeEmail(LEGACY_MASTER_SEED.email) ||
+          isMasterSeedMigrationEmail(normalizedEmail)
+        );
+      });
+
+      if (existingIndex === -1) {
         users.push(seed);
+        changed = true;
+        return;
+      }
+
+      const existing = users[existingIndex] || {};
+      const next = {
+        ...existing,
+        ...seed,
+        id: seed.id,
+        role: seed.role,
+        source: 'local',
+        createdAt: existing.createdAt || seed.createdAt,
+        updatedAt: nowISO()
+      };
+
+      if (JSON.stringify(existing) !== JSON.stringify(next)) {
+        users[existingIndex] = next;
         changed = true;
       }
     });
 
     if (changed) saveUsers(users);
+
+    const current = currentUserRaw();
+    if (current && isDefaultSeedAdmin(current)) {
+      const freshSeed = users.find((user) => String(user?.id || '').trim() === CURRENT_MASTER_SEED.id) || null;
+      if (freshSeed) setCurrentUser(freshSeed);
+    }
+  }
+
+  function ensureCurrentMasterSeedAccount() {
+    ensureSeedAdmins();
+    const normalizedSeedEmail = normalizeEmail(CURRENT_MASTER_SEED.email);
+    const existing = getUsers().find((user) => {
+      const userEmail = normalizeEmail(user?.email);
+      return (
+        String(user?.id || '').trim() === CURRENT_MASTER_SEED.id ||
+        userEmail === normalizedSeedEmail ||
+        userEmail === normalizeEmail(LEGACY_MASTER_SEED.email) ||
+        isMasterSeedMigrationEmail(userEmail)
+      );
+    }) || null;
+
+    const next = {
+      ...(existing || {}),
+      ...CURRENT_MASTER_SEED,
+      id: CURRENT_MASTER_SEED.id,
+      role: ROLES.MASTER,
+      source: 'local',
+      createdAt: existing?.createdAt || nowISO(),
+      updatedAt: nowISO()
+    };
+
+    upsertLocalUser(next);
+    return getUserById(CURRENT_MASTER_SEED.id) || getUserByEmail(CURRENT_MASTER_SEED.email) || next;
+  }
+
+  async function tryBootstrapCurrentMasterOnLive() {
+    return { attempted: false };
   }
 
   function requireRole(allowedRoles) {
@@ -2762,8 +8785,334 @@
     return getUsers().find((u) => normalizeEmail(u.email) === normalizeEmail(email)) || null;
   }
 
+  function isValidEmailAddress(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
+  }
+
+  function isMissingSupabaseAdminConfigMessage(messageArg) {
+    return /supabase admin configuration is missing|live admin setup is not complete/i.test(String(messageArg || ''));
+  }
+
+  function isInvalidSupabaseCredentialsMessage(messageArg) {
+    return /invalid login credentials|invalid_credentials/i.test(String(messageArg || ''));
+  }
+
+  function isAlreadyRegisteredSupabaseMessage(messageArg) {
+    return /already registered|already been registered|user already exists|already exists/i.test(String(messageArg || ''));
+  }
+
+  function isSupabaseEmailConfirmationMessage(messageArg) {
+    return /email.*confirm|email_not_confirmed/i.test(String(messageArg || ''));
+  }
+
+  function isSupabaseAuthNetworkMessage(messageArg) {
+    return /failed to fetch|networkerror|network request failed|load failed|timeout|dns|could not reach/i.test(String(messageArg || ''));
+  }
+
+  function isSupabaseAuthKeyMessage(messageArg) {
+    return /invalid api key|jwt|anon key|api key/i.test(String(messageArg || ''));
+  }
+
+  function describeLiveLocalAccountBlock(localUserArg) {
+    const role = normalizeKagieRole(localUserArg?.role, ROLES.USER);
+    if (role === ROLES.MASTER) {
+      return 'This master admin account exists only in this browser from the old Kagie MVP storage. Open master-admin/bootstrap.html to create or repair the live Supabase master admin, then sign in again.';
+    }
+    if (role === ROLES.ASSISTANT) {
+      return 'This assistant account exists only in this browser from the old Kagie MVP storage. Ask the live master admin to create the assistant account in the dashboard, then sign in again.';
+    }
+    return 'Kagie found your older device-only learner account. Try signing in again while online so Kagie can move it to live login, or use Forgot Password if this email already has a live Kagie account.';
+  }
+
+  function buildSupabaseLearnerSignupMetadata(localUserArg) {
+    const localUser = localUserArg || {};
+    return {
+      full_name: String(localUser.fullName || localUser.profile?.fullNames || localUser.profile?.firstName || '').trim(),
+      phone: String(localUser.phone || localUser.profile?.cellphone || '').trim(),
+      role: ROLES.USER
+    };
+  }
+
+  function mergeLiveLearnerAccount(localUserArg, authUserArg) {
+    const localUser = localUserArg || {};
+    const authUser = authUserArg || {};
+    const promoted = mergeDeep(localUser, {
+      supabaseUserId: String(authUser.id || localUser.supabaseUserId || '').trim(),
+      source: 'supabase',
+      role: ROLES.USER,
+      updatedAt: nowISO()
+    });
+    upsertLocalUser(promoted);
+    return getUserBySupabaseId(promoted.supabaseUserId) || getUserByEmail(promoted.email) || promoted;
+  }
+
+  async function promoteLocalLearnerToSupabase(localUserArg, passwordArg) {
+    const localUser = localUserArg || null;
+    if (!localUser || normalizeKagieRole(localUser.role, ROLES.USER) !== ROLES.USER) return null;
+    if (!isSupabaseEnabled()) return null;
+
+    const client = initSupabaseClient();
+    if (!client) return null;
+
+    const email = normalizeEmail(localUser.email);
+    const password = String(passwordArg || '');
+    if (!email || !password) return null;
+
+    const { data, error } = await client.auth.signUp({
+      email,
+      password,
+      options: {
+        data: buildSupabaseLearnerSignupMetadata(localUser)
+      }
+    });
+
+    const message = String(error?.message || '').trim();
+    if (error) {
+      if (isAlreadyRegisteredSupabaseMessage(message)) {
+        throw new Error('A live Kagie account already exists for this email. Sign in with its live password or use Forgot Password to reset it.');
+      }
+      throw new Error(message || 'Kagie could not create the live account for this learner.');
+    }
+
+    const authUser = data?.user || null;
+    const identities = Array.isArray(authUser?.identities) ? authUser.identities : null;
+    if (!authUser?.id || (identities && identities.length === 0)) {
+      throw new Error('A live Kagie account already exists for this email. Sign in with its live password or use Forgot Password to reset it.');
+    }
+
+    const promoted = mergeLiveLearnerAccount(localUser, authUser);
+    write(KEYS.supabaseSessionCache, data?.session || null);
+
+    if (!data?.session) {
+      throw new Error('Kagie created your live account from this device. Check your email and confirm it, then sign in again.');
+    }
+
+    const materialized = await materializeSupabaseUser(authUser, promoted, data.session);
+    await syncSupabaseProfile(materialized || promoted);
+    logAuthDebug('old learner promoted to live Supabase auth', {
+      localUserId: promoted.id,
+      supabaseUserId: promoted.supabaseUserId,
+      sessionExists: true
+    });
+    return materialized || promoted;
+  }
+
+  function shouldLogAuthDebug() {
+    try {
+      return localStorage.getItem('kagie_auth_debug') === '1';
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function logAuthDebug(label, details) {
+    if (!shouldLogAuthDebug()) return;
+    try {
+      console.info(`Kagie auth debug: ${label}`, details || {});
+    } catch (_error) {
+      // Debug logging must never block auth.
+    }
+  }
+
   function getUserBySupabaseId(supabaseUserId) {
     return getUsers().find((u) => String(u.supabaseUserId || '') === String(supabaseUserId || '')) || null;
+  }
+
+  function getUserByIdentity(idArg) {
+    const id = String(idArg || '').trim();
+    if (!id) return null;
+    return getUserById(id) || getUserBySupabaseId(id) || null;
+  }
+
+  function getUserIdentityKeys(userArg) {
+    if (!userArg) return [];
+    return [
+      String(userArg.id || '').trim(),
+      String(userArg.supabaseUserId || '').trim(),
+      normalizeEmail(userArg.email)
+    ].filter(Boolean);
+  }
+
+  function userMatchesIdentity(userArg, referenceArg) {
+    const reference = String(referenceArg || '').trim().toLowerCase();
+    if (!reference) return false;
+    return getUserIdentityKeys(userArg).some((key) => String(key || '').trim().toLowerCase() === reference);
+  }
+
+  function getAssistantScopedLearnerIdentitySetLocal(actorArg) {
+    const actor = actorArg || currentUser();
+    const allowed = new Set();
+    if (!actor || actor.role !== ROLES.ASSISTANT) return allowed;
+
+    const includeLearner = (userRefArg) => {
+      const userRef = String(userRefArg || '').trim();
+      if (!userRef) return;
+      allowed.add(userRef.toLowerCase());
+      const learner = getUserByIdentity(userRef) || { id: userRef };
+      getUserIdentityKeys(learner).forEach((key) => {
+        allowed.add(String(key || '').trim().toLowerCase());
+      });
+    };
+
+    getApplicationsByAssistant(actor.id).forEach((app) => includeLearner(app?.userId));
+    read(KEYS.callRequests, []).forEach((request) => {
+      if (userMatchesIdentity(actor, request?.assignedAssistantId)) includeLearner(request?.requesterId);
+    });
+
+    return allowed;
+  }
+
+  async function loadAssistantAssignmentRowsAsync(ctxArg, assistantRemoteIdArg) {
+    const ctx = ctxArg || await resolveSupabaseContext();
+    const assistantRemoteId = assistantRemoteIdArg || ctx?.remoteSelfId || ctx?.targetRemoteId || '';
+    if (!ctx?.client || !assistantRemoteId) return [];
+
+    const preferred = await ctx.client
+      .from('assistant_assignments')
+      .select('*')
+      .eq('assistant_admin_id', assistantRemoteId);
+    if (!preferred.error) return safeArray(preferred.data);
+
+    const fallback = await ctx.client
+      .from('assignments')
+      .select('*')
+      .eq('assistant_admin_id', assistantRemoteId);
+    if (!fallback.error) return safeArray(fallback.data);
+
+    if (isRecoverableRemoteSyncError(preferred.error) || isRecoverableRemoteSyncError(fallback.error)) {
+      console.warn('Assistant assignment lookup is falling back because one live assignment table is unavailable.', preferred.error || fallback.error);
+      return [];
+    }
+    throw new Error(
+      preferred.error?.message
+      || fallback.error?.message
+      || 'Could not load assistant assignments.'
+    );
+  }
+
+  async function loadAssignedUserIdsForAssistantAsync(ctxArg, assistantRemoteIdArg) {
+    const ctx = ctxArg || await resolveSupabaseContext();
+    const assistantRemoteId = assistantRemoteIdArg || ctx?.remoteSelfId || ctx?.targetRemoteId || '';
+    const assignmentRows = await loadAssistantAssignmentRowsAsync(ctx, assistantRemoteId);
+    const collected = new Set(
+      safeArray(assignmentRows)
+        .map((row) => String(row?.user_id || '').trim())
+        .filter(Boolean)
+    );
+
+    if (!ctx?.client || !assistantRemoteId) return Array.from(collected);
+
+    const scopedQueries = await Promise.allSettled([
+      ctx.client.from('applications').select('user_id').eq('assistant_id', assistantRemoteId),
+      ctx.client.from('callback_requests').select('user_id').eq('assigned_assistant_id', assistantRemoteId),
+      ctx.client.from('support_threads').select('user_id').eq('assistant_id', assistantRemoteId)
+    ]);
+
+    const labels = ['applications', 'callback_requests', 'support_threads'];
+    scopedQueries.forEach((result, index) => {
+      if (result.status !== 'fulfilled') {
+        logDataFlowDebug(`assistant scope ${labels[index]} rejected`, {
+          assistantRemoteId,
+          message: String(result.reason?.message || result.reason || '')
+        });
+        return;
+      }
+      if (result.value.error) {
+        if (isRecoverableRemoteSyncError(result.value.error)) {
+          logDataFlowDebug(`assistant scope ${labels[index]} skipped`, {
+            assistantRemoteId,
+            message: String(result.value.error.message || result.value.error || '')
+          });
+          return;
+        }
+        throw new Error(result.value.error.message || `Could not load assistant scope from ${labels[index]}.`);
+      }
+      safeArray(result.value.data).forEach((row) => {
+        const userId = String(row?.user_id || '').trim();
+        if (userId) collected.add(userId);
+      });
+    });
+
+    logDataFlowDebug('assistant scope user ids', {
+      assistantRemoteId,
+      assignmentRows: safeArray(assignmentRows).length,
+      scopedUsers: collected.size
+    });
+    return Array.from(collected);
+  }
+
+  async function getAssistantScopedRemoteUserIds(ctxArg) {
+    const ctx = ctxArg || await resolveSupabaseContext();
+    if (!ctx?.viewer || ctx.viewer.role !== ROLES.ASSISTANT || !ctx.remoteSelfId) return [];
+
+    return loadAssignedUserIdsForAssistantAsync(ctx, ctx.remoteSelfId);
+  }
+
+  async function getAssistantScopedLearnerIdentitySetAsync(ctxArg) {
+    const ctx = ctxArg || await resolveSupabaseContext();
+    if (!ctx?.viewer || ctx.viewer.role !== ROLES.ASSISTANT) return null;
+
+    const allowed = getAssistantScopedLearnerIdentitySetLocal(ctx.viewer);
+    const remoteUserIds = await getAssistantScopedRemoteUserIds(ctx);
+    remoteUserIds.forEach((userId) => {
+      const value = String(userId || '').trim();
+      if (!value) return;
+      allowed.add(value.toLowerCase());
+      const learner = getUserBySupabaseId(value) || getUserById(value) || { id: value };
+      getUserIdentityKeys(learner).forEach((key) => {
+        allowed.add(String(key || '').trim().toLowerCase());
+      });
+    });
+    return allowed;
+  }
+
+  function filterUsersForAssistantScope(usersArg, allowedIdentitySetArg) {
+    const allowed = allowedIdentitySetArg instanceof Set ? allowedIdentitySetArg : new Set();
+    return safeArray(usersArg).filter((user) => {
+      const role = normalizeKagieRole(user?.role, String(user?.role || '').trim() || ROLES.USER);
+      if (role !== ROLES.USER) {
+        const viewerKeys = getUserIdentityKeys(currentUser());
+        return getUserIdentityKeys(user).some((key) => viewerKeys.includes(key));
+      }
+      if (!allowed.size) return false;
+      return getUserIdentityKeys(user).some((key) => allowed.has(String(key || '').trim().toLowerCase()));
+    });
+  }
+
+  function mergeUniqueUsers(...lists) {
+    const merged = [];
+    lists.flat().filter(Boolean).forEach((userArg) => {
+      const user = sanitizeUser(userArg);
+      if (!user) return;
+      const keys = getUserIdentityKeys(user);
+      const index = merged.findIndex((existing) => {
+        const existingKeys = getUserIdentityKeys(existing);
+        return keys.some((key) => existingKeys.includes(key));
+      });
+
+      if (index === -1) {
+        merged.push(user);
+        return;
+      }
+
+      const current = merged[index];
+      merged[index] = sanitizeUser({
+        ...current,
+        ...user,
+        id: current.id || user.id,
+        supabaseUserId: user.supabaseUserId || current.supabaseUserId || '',
+        fullName: user.fullName || current.fullName || '',
+        email: normalizeEmail(user.email || current.email || ''),
+        phone: user.phone || current.phone || '',
+        role: normalizeKagieRole(user.role, current.role || ROLES.USER)
+      });
+    });
+
+    return merged.sort((left, right) => {
+      const leftLabel = String(left?.fullName || left?.email || left?.id || '').trim().toLowerCase();
+      const rightLabel = String(right?.fullName || right?.email || right?.id || '').trim().toLowerCase();
+      return leftLabel.localeCompare(rightLabel, 'en-ZA');
+    });
   }
 
   function getUserById(id) {
@@ -2789,6 +9138,7 @@
     } else {
       users.push(user);
     }
+    users.forEach((entry) => { if (entry.source === 'supabase' || entry.supabaseUserId) delete entry.password; });
     saveUsers(users);
     return sanitizeUser(user);
   }
@@ -2809,7 +9159,20 @@
         profile_image: localUser.profileImage || '',
         updated_at: nowISO()
       };
-      const { data, error } = await client.from(settings.supabase.profileTable).upsert(payload).select().maybeSingle();
+      let { data, error } = await client.from(settings.supabase.profileTable).upsert(payload).select().maybeSingle();
+      if (error && isProfileSchemaCacheColumnError(error)) {
+        ({ data, error } = await client
+          .from(settings.supabase.profileTable)
+          .upsert({
+            id: localUser.supabaseUserId || localUser.id,
+            full_name: localUser.fullName,
+            role: localUser.role,
+            profile_image: localUser.profileImage || '',
+            updated_at: nowISO()
+          })
+          .select()
+          .maybeSingle());
+      }
       if (error) {
         console.warn('Supabase profile sync failed:', error.message || error);
         return null;
@@ -2825,9 +9188,14 @@
     const fallback = fallbackUser || {};
     const email = normalizeEmail(remoteProfile?.email || authUser?.email || fallback.email || '');
     const phone = normalizePhoneNumber(remoteProfile?.phone || authUser?.phone || fallback.phone || '');
+    const authRole = normalizeKagieRole(
+      authUser?.app_metadata?.role ||
+      ROLES.USER
+    , ROLES.USER);
     const fullName = String(
       remoteProfile?.full_name ||
       authUser?.user_metadata?.full_name ||
+      authUser?.user_metadata?.name ||
       fallback.fullName ||
       email ||
       phone ||
@@ -2839,10 +9207,10 @@
       supabaseUserId: authUser.id,
       fullName,
       email,
-      password: String(fallback.password || ''),
+      password: '',
       phone,
-      role: remoteProfile?.role || authUser?.user_metadata?.role || fallback.role || ROLES.USER,
-      profileImage: remoteProfile?.profile_image || fallback.profileImage || '',
+      role: authRole,
+      profileImage: remoteProfile?.profile_image || fallback.profileImage || authUser?.user_metadata?.avatar_url || '',
       source: 'supabase',
       profile: sanitizeProfileObject(fallback.profile || {}),
       createdAt: fallback.createdAt || nowISO(),
@@ -2850,17 +9218,59 @@
     };
   }
 
-  async function materializeSupabaseUser(authUser, fallbackUserArg) {
+  async function getLiveAuthRoleSnapshot(authUser, sessionArg) {
+    const settings = getSettings();
+    const endpoint = String(settings?.supabase?.authRoleEndpoint || '').trim();
+    if (!endpoint || !authUser?.id) return null;
+    const cachedSession = read(KEYS.supabaseSessionCache, null);
+    const accessToken = String(sessionArg?.access_token || cachedSession?.access_token || '').trim();
+    if (!accessToken) return null;
+
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      const message = payload?.message || payload?.error || 'Could not verify the Kagie account role.';
+      if (response.status === 401 || response.status === 403) {
+        const error = new Error(message);
+        error.status = response.status;
+        throw error;
+      }
+      throw new Error('Could not verify the Kagie account. Please try again.');
+    }
+    return payload?.data || payload || null;
+  }
+
+  async function materializeSupabaseUser(authUser, fallbackUserArg, sessionArg) {
     if (!authUser?.id) return null;
 
     const fallbackUser = fallbackUserArg || {};
-    const remoteProfile = await getRemoteProfileSnapshot(authUser.id).catch(() => null);
+    const liveRoleSnapshot = await getLiveAuthRoleSnapshot(authUser, sessionArg).catch((error) => {
+      const message = String(error?.message || '');
+      if (error?.status === 401 || error?.status === 403 || /inactive|disabled|permission|missing|token|session/i.test(message)) throw error;
+      throw error;
+    });
+    const remoteProfileSnapshot = liveRoleSnapshot?.profile || await getRemoteProfileSnapshot(authUser.id).catch(() => null);
+    const remoteProfile = liveRoleSnapshot ? {
+      ...(remoteProfileSnapshot || {}),
+      id: liveRoleSnapshot.supabaseUserId || liveRoleSnapshot.id || authUser.id,
+      email: liveRoleSnapshot.email || remoteProfileSnapshot?.email || authUser.email || '',
+      full_name: liveRoleSnapshot.fullName || remoteProfileSnapshot?.full_name || authUser?.user_metadata?.full_name || '',
+      phone: liveRoleSnapshot.phone || remoteProfileSnapshot?.phone || authUser?.user_metadata?.phone || '',
+      role: normalizeKagieRole(liveRoleSnapshot.role, remoteProfileSnapshot?.role || ROLES.USER)
+    } : remoteProfileSnapshot;
     const existing =
       getUserBySupabaseId(authUser.id) ||
       getUserByEmail(remoteProfile?.email || authUser?.email || fallbackUser.email || '') ||
       null;
 
-    const merged = buildLocalUserFromSupabaseAuth(authUser, remoteProfile, existing ? {
+    const verifiedAuthUser = liveRoleSnapshot ? { ...authUser, app_metadata: { ...authUser.app_metadata, role: liveRoleSnapshot.role } } : authUser;
+    const merged = buildLocalUserFromSupabaseAuth(verifiedAuthUser, remoteProfile, existing ? {
       ...existing,
       ...fallbackUser
     } : fallbackUser);
@@ -2876,6 +9286,7 @@
   }
 
   async function registerUser(payload) {
+    await awaitRuntimeSupabaseConfig();
     ensureSeedAdmins();
     const users = getUsers();
 
@@ -2884,14 +9295,19 @@
     const password = String(payload?.password || '');
     const phone = String(payload?.phone || '').trim();
     const role = payload?.role || ROLES.USER;
+    if (role !== ROLES.USER && isSupabaseEnabled()) throw new Error('Staff accounts must be created through the authenticated Kagie admin service.');
 
     if (!fullName) throw new Error('Full name is required.');
     if (!email) throw new Error('Email is required.');
+    if (role === ROLES.USER && isReservedAdminEmail(email)) {
+      throw new Error(`That email is reserved for Kagie admin access. Use a different learner email, or sign in as master admin with ${CURRENT_MASTER_SEED.email}.`);
+    }
     if (!password || password.length < 4) throw new Error('Password must be at least 4 characters.');
-    if (users.some((u) => normalizeEmail(u.email) === email)) throw new Error('An account with this email already exists.');
+    if (users.some((u) => normalizeEmail(u.email) === email)) throw new Error('We could not create the account with those details. If you already have a Kagie account, please log in or use Forgot Password.');
 
     let supabaseUserId = '';
     let source = 'local';
+    let emailConfirmationRequired = false;
 
     if (role === ROLES.USER && isSupabaseEnabled()) {
       const client = initSupabaseClient();
@@ -2905,9 +9321,15 @@
           }
         }
       });
-      if (error) throw new Error(error.message || 'Supabase signup failed.');
+      if (error) {
+        if (isSupabaseAlreadyRegisteredMessage(error.message)) {
+          throw new Error('We could not create the account with those details. If you already have a Kagie account, please log in or use Forgot Password.');
+        }
+        throw new Error(error.message || 'Supabase signup failed.');
+      }
       supabaseUserId = data?.user?.id || '';
       source = 'supabase';
+      emailConfirmationRequired = !data?.session;
       write(KEYS.supabaseSessionCache, data?.session || null);
     }
 
@@ -2936,69 +9358,223 @@
       updatedAt: nowISO()
     };
 
+    if (source === 'supabase' || supabaseUserId) delete user.password;
     users.push(user);
     saveUsers(users);
-    setCurrentUser(user);
+    setCurrentUser(emailConfirmationRequired ? null : user);
     ensureDraft(user.id);
     pushNotification(user.id, 'Welcome to Kagie', 'Your account was created successfully.', 'success');
+    if (emailConfirmationRequired) return { ...sanitizeUser(user), emailConfirmationRequired: true };
     await syncSupabaseProfile(user);
+    await saveProfileAsync(user.id, {
+      fullName,
+      fullNames: fullName,
+      email,
+      phone,
+      cellphone: phone,
+      dob: payload?.dob || '',
+      schoolName: payload?.schoolName || ''
+    }).catch((error) => {
+      console.warn('Signup profile detail scaffold sync skipped:', error);
+    });
     return sanitizeUser(user);
   }
 
-  async function login(email, password) {
+  async function login(email, password, options) {
+    await awaitRuntimeSupabaseConfig();
     ensureSeedAdmins();
+    const persist = typeof options?.persist === 'boolean' ? options.persist : shouldRememberLogin();
+    setLoginPersistence(persist);
     const normalized = normalizeEmail(email);
+    const liveMode = !isLocalEnvironment();
+    const tryingLiveMasterSeed = liveMode
+      && normalized === normalizeEmail(CURRENT_MASTER_SEED.email)
+      && String(password) === String(CURRENT_MASTER_SEED.password);
+    if (
+      !liveMode &&
+      normalized === normalizeEmail(CURRENT_MASTER_SEED.email) &&
+      String(password) === String(CURRENT_MASTER_SEED.password)
+    ) {
+      const forcedMaster = ensureCurrentMasterSeedAccount();
+      clearCachedSupabaseSessionTokens();
+      setCurrentUser(forcedMaster, { persist });
+      return sanitizeUser(forcedMaster);
+    }
+
+    const localMatch = getUsers().find(
+      (u) => normalizeEmail(u.email) === normalized && String(u.password) === String(password)
+    ) || null;
+
+    if (
+      !liveMode &&
+      localMatch &&
+      (localMatch.role === ROLES.ASSISTANT || localMatch.role === ROLES.MASTER)
+    ) {
+      clearCachedSupabaseSessionTokens();
+      setCurrentUser(localMatch, { persist });
+      return sanitizeUser(localMatch);
+    }
+
     let found = null;
+    let bootstrapAttempt = { attempted: false };
+    let signInError = null;
+
+    if (liveMode) {
+      bootstrapAttempt = await tryBootstrapCurrentMasterOnLive(normalized, password);
+    }
 
     if (isSupabaseEnabled()) {
-      const client = initSupabaseClient();
-      const { data, error } = await client.auth.signInWithPassword({ email: normalized, password: String(password) });
-      if (!error && data?.user) {
+      try {
+        const client = initSupabaseClient();
+        const { data, error } = await client.auth.signInWithPassword({ email: normalized, password: String(password) });
+        signInError = error || null;
+        logAuthDebug('password sign-in result', {
+          userExists: Boolean(data?.user),
+          sessionExists: Boolean(data?.session),
+          errorMessage: error?.message || ''
+        });
+        if (!error && data?.user) {
         found = await materializeSupabaseUser(data.user, {
           password: String(password),
           email: normalized
-        });
+        }, data?.session || null);
         write(KEYS.supabaseSessionCache, data?.session || null);
       }
+      } catch (error) {
+        signInError = error;
+        logAuthDebug('password sign-in exception', {
+          errorMessage: error?.message || String(error || '')
+        });
+      }
+    } else {
+      logAuthDebug('supabase not enabled for login', {
+        liveMode,
+        hasLocalMatch: Boolean(localMatch)
+      });
+    }
+
+    if (
+      !found &&
+      liveMode &&
+      localMatch &&
+      normalizeKagieRole(localMatch.role, ROLES.USER) === ROLES.USER &&
+      isSupabaseEnabled() &&
+      !isSupabaseEmailConfirmationMessage(signInError?.message)
+    ) {
+      logAuthDebug('old learner live promotion started', {
+        localUserId: localMatch.id,
+        email: normalized
+      });
+      found = await promoteLocalLearnerToSupabase(localMatch, password);
+    }
+
+    if (!found && !liveMode) {
+      found = localMatch;
     }
 
     if (!found) {
-      found = getUsers().find(
-        (u) => normalizeEmail(u.email) === normalized && String(u.password) === String(password)
-      );
+      const signInMessage = String(signInError?.message || '').trim();
+      if (liveMode && !isSupabaseEnabled()) {
+        throw new Error('Supabase authentication is not configured on this Vercel deployment. Check SUPABASE_URL and SUPABASE_ANON_KEY in Vercel, then redeploy.');
+      }
+      if (isMissingSupabaseAdminConfigMessage(signInMessage)) {
+        throw new Error('This live site still needs final admin setup. Add SUPABASE_SERVICE_ROLE_KEY to the server environment, then try again.');
+      }
+      if (isSupabaseAuthNetworkMessage(signInMessage)) {
+        throw new Error('Kagie could not reach Supabase Auth from this site. Use the Vercel app URL for testing and check the custom domain/DNS plus SUPABASE_URL.');
+      }
+      if (isSupabaseAuthKeyMessage(signInMessage)) {
+        throw new Error('Supabase rejected this site configuration. Check that Vercel uses the anon key from the same Supabase project as SUPABASE_URL, then redeploy.');
+      }
+      if (isSupabaseEmailConfirmationMessage(signInMessage)) {
+        throw new Error('Please check your email and password, then try again. If you just created an account, check your email for a confirmation link.');
+      }
+      if (liveMode && localMatch) {
+        throw new Error(describeLiveLocalAccountBlock(localMatch));
+      }
+      if (tryingLiveMasterSeed) {
+        if (signInMessage) {
+          if (isMissingSupabaseAdminConfigMessage(bootstrapAttempt?.message)) {
+            throw new Error('Live master admin setup is not complete on this site yet. Add SUPABASE_SERVICE_ROLE_KEY to the server environment or open master-admin/bootstrap.html once, then try again.');
+          }
+          throw new Error('Live master admin could not sign in. Check the live admin setup and try again.');
+        }
+        throw new Error(
+          isMissingSupabaseAdminConfigMessage(bootstrapAttempt?.message)
+            ? 'Live master admin setup is not complete on this site yet. Add SUPABASE_SERVICE_ROLE_KEY to the server environment or open master-admin/bootstrap.html once, then try again.'
+            : bootstrapAttempt?.message ||
+          'Live master admin could not sign in. Open master-admin/bootstrap.html once, or add the Supabase admin environment variables on the server first.'
+        );
+      }
+      throw new Error('Please check your email and password, then try again. If you just created an account, check your email for a confirmation link.');
     }
-
-    if (!found) throw new Error('Invalid email or password.');
-    setCurrentUser(found);
+    setCurrentUser(found, { persist });
     return sanitizeUser(found);
   }
 
   async function signInWithOAuthProvider(provider, options) {
+    await awaitRuntimeSupabaseConfig();
     if (!isSupabaseEnabled()) throw new Error('Supabase authentication is not configured.');
     const client = initSupabaseClient();
     const settings = options || {};
-    const redirectTo = getAuthRedirectUrl(settings.redirectTo || window.location.pathname.split('/').pop() || 'login.html');
+    const nativeContext = provider === 'google' && settings.skipBrowserRedirect !== true &&
+      (window.KAGIE_NATIVE_ANDROID === true || Boolean(window.KagieNativeOAuth));
+    if (nativeContext && (window.KagieNativeOAuth?.version !== 1 || typeof window.ReactNativeWebView?.postMessage !== 'function')) {
+      throw new Error('Google sign-in needs the updated Kagie app. Please update the app or sign in with your email.');
+    }
+    const callback = new URL(settings.redirectTo || window.location.href, window.location.href);
+    if (callback.origin !== window.location.origin || !/^https?:$/.test(callback.protocol) || callback.username || callback.password) {
+      throw new Error('Sign-in must return to a Kagie page on this site.');
+    }
+    callback.hash = '';
+    ['code', 'error', 'error_description', 'error_code', 'native_auth', 'native_state'].forEach((key) => callback.searchParams.delete(key));
+    callback.searchParams.set('oauth', provider);
+    if (nativeContext) {
+      const nonce = window.crypto.getRandomValues(new Uint8Array(32));
+      callback.searchParams.set('native_auth', '1');
+      callback.searchParams.set('native_state', Array.from(nonce, (value) => value.toString(16).padStart(2, '0')).join(''));
+    }
+    const redirectTo = callback.toString();
+    const persist = typeof settings.persist === 'boolean' ? settings.persist : shouldRememberLogin();
+    setLoginPersistence(persist);
+    clearLogoutIntent();
+    const intent = { provider, redirectTo, persist, startedAt: Date.now() };
+    writeSession(KEYS.oauthIntent, intent);
     const authOptions = {
       redirectTo
     };
     if (settings.queryParams) authOptions.queryParams = settings.queryParams;
     if (settings.scopes) authOptions.scopes = settings.scopes;
-    if (typeof settings.skipBrowserRedirect === 'boolean') authOptions.skipBrowserRedirect = settings.skipBrowserRedirect;
+    if (nativeContext) authOptions.skipBrowserRedirect = true;
+    else if (typeof settings.skipBrowserRedirect === 'boolean') authOptions.skipBrowserRedirect = settings.skipBrowserRedirect;
 
-    const { data, error } = await client.auth.signInWithOAuth({
-      provider,
-      options: authOptions
-    });
-    if (error) throw new Error(error.message || `Could not sign in with ${provider}.`);
-    return data || null;
+    try {
+      const { data, error } = await client.auth.signInWithOAuth({ provider, options: authOptions });
+      if (error) throw new Error(error.message || `Could not sign in with ${provider}.`);
+      if (nativeContext) {
+        const authorizationUrl = new URL(data?.url || '');
+        const supabaseOrigin = new URL(getSettings().supabase.url).origin;
+        if (authorizationUrl.origin !== supabaseOrigin || authorizationUrl.pathname !== '/auth/v1/authorize' ||
+          authorizationUrl.searchParams.get('provider') !== 'google' || authorizationUrl.searchParams.get('redirect_to') !== redirectTo) {
+          throw new Error('Could not open secure Google sign-in. Please try again.');
+        }
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'kagie:oauth:start', version: 1, authorizationUrl: authorizationUrl.toString(), ...intent
+        }));
+      }
+      return data || null;
+    } catch (error) {
+      clearOAuthIntent();
+      throw error;
+    }
   }
 
   async function signInWithGoogle(options) {
     const nextOptions = {
       ...(options || {}),
       queryParams: {
-        prompt: 'select_account',
-        ...(options?.queryParams || {})
+        ...(options?.queryParams || {}),
+        prompt: 'select_account'
       }
     };
     return signInWithOAuthProvider('google', nextOptions);
@@ -3012,6 +9588,7 @@
   }
 
   async function requestPasswordReset(email, options) {
+    await awaitRuntimeSupabaseConfig();
     const normalized = normalizeEmail(email);
     if (!normalized) throw new Error('Enter a valid email address.');
 
@@ -3029,6 +9606,7 @@
   }
 
   async function updateAuthenticatedPassword(newPassword) {
+    await awaitRuntimeSupabaseConfig();
     const password = String(newPassword || '');
     if (!password || password.length < 4) {
       throw new Error('Password must be at least 4 characters.');
@@ -3092,8 +9670,10 @@
     };
   }
 
-  async function verifyPhoneOtp(phone, token) {
+  async function verifyPhoneOtp(phone, token, options) {
     if (!isSupabaseEnabled()) throw new Error('Supabase authentication is not configured.');
+    const persist = typeof options?.persist === 'boolean' ? options.persist : shouldRememberLogin();
+    setLoginPersistence(persist);
     const normalizedPhone = normalizePhoneNumber(phone);
     const code = String(token || '').trim();
     if (!normalizedPhone) throw new Error('Enter a valid phone number.');
@@ -3108,16 +9688,22 @@
     write(KEYS.supabaseSessionCache, data?.session || null);
     const localUser = await materializeSupabaseUser(data?.user || data?.session?.user, {
       phone: normalizedPhone
-    });
+    }, data?.session || null);
     if (!localUser) throw new Error('Could not complete phone sign-in.');
-    setCurrentUser(localUser);
+    setCurrentUser(localUser, { persist });
     return sanitizeUser(localUser);
   }
 
   async function logout() {
-    const settings = getSettings();
-    const supabaseUrl = String(settings?.supabase?.url || '');
-    const projectRef = supabaseUrl ? supabaseUrl.replace(/^https?:\/\//, '').split('.')[0] : '';
+    markLogoutIntent();
+    clearOAuthIntent();
+    setCurrentUser(null);
+    try {
+      setLoginPersistence(false);
+    } catch (err) {
+      console.warn('Could not reset login persistence during logout:', err);
+    }
+    clearCachedSupabaseSessionTokens();
     if (isSupabaseEnabled()) {
       try {
         await initSupabaseClient().auth.signOut();
@@ -3125,25 +9711,20 @@
         console.warn('Supabase signOut failed:', err);
       }
     }
-    write(KEYS.current, null);
-    write(KEYS.supabaseSessionCache, null);
+    clearCachedSupabaseSessionTokens();
     try {
-      Object.keys(localStorage).forEach((key) => {
-        if (
-          key.startsWith('sb-') &&
-          (!projectRef || key.includes(`sb-${projectRef}-`))
-        ) {
-          localStorage.removeItem(key);
-        }
-      });
+      localStorage.removeItem('kagie_current_user');
+      sessionStorage.removeItem('kagie_current_user');
     } catch (err) {
-      console.warn('Supabase token cleanup failed:', err);
+      console.warn('Legacy logout storage cleanup failed:', err);
     }
     return true;
   }
 
   async function getSupabaseSession() {
+    await awaitRuntimeSupabaseConfig();
     if (!isSupabaseEnabled()) return null;
+    if (isLocalStaffSession(currentUserRaw()) && !getPendingOAuthIntent()) return null;
     const client = initSupabaseClient();
     const { data, error } = await client.auth.getSession();
     if (error) throw new Error(error.message || 'Could not get session.');
@@ -3152,7 +9733,9 @@
   }
 
   async function getSupabaseVerifiedUser() {
+    await awaitRuntimeSupabaseConfig();
     if (!isSupabaseEnabled()) return null;
+    if (isLocalStaffSession(currentUserRaw())) return null;
     const client = initSupabaseClient();
     const { data, error } = await client.auth.getUser();
     if (error) throw new Error(error.message || 'Could not get verified user.');
@@ -3160,17 +9743,120 @@
   }
 
   async function restoreSession() {
-    const active = currentUser();
-    if (active) return active;
-    if (!isSupabaseEnabled()) return null;
+    await awaitRuntimeSupabaseConfig();
+    const active = currentUserRaw();
+    const oauthIntent = getPendingOAuthIntent();
+    const oauthCallback = isOAuthCallbackForIntent(oauthIntent);
+    if (!isSupabaseEnabled()) return sanitizeUser(active);
+    if (isLocalStaffSession(active) && !oauthCallback) return sanitizeUser(active);
+    if (hasRecentLogoutIntent()) {
+      setCurrentUser(null);
+      return null;
+    }
 
-    const session = await getSupabaseSession();
-    const supaUser = session?.user;
-    if (!supaUser?.id) return null;
+    let session = null;
+    try {
+      if (oauthCallback) {
+        const { error } = await initSupabaseClient().auth.initialize();
+        if (error) throw new Error(error.message || 'Google sign-in could not be completed. Please try again.');
+      }
+      session = await getSupabaseSession();
+    } catch (error) {
+      if (oauthCallback) {
+        clearOAuthIntent();
+        throw error;
+      }
+      if (active) {
+        console.warn('Kagie session refresh fallback used:', error);
+        return sanitizeUser(active);
+      }
+      throw error;
+    }
 
-    const local = await materializeSupabaseUser(supaUser);
-    setCurrentUser(local);
+    const supaUser = session?.user || null;
+    if (!supaUser?.id) {
+      if (oauthCallback) {
+        clearOAuthIntent();
+        return null;
+      }
+      const activeSession = getActiveSessionState();
+      const sessionAgeMs = activeSession.updatedAt > 0 ? Date.now() - activeSession.updatedAt : Number.POSITIVE_INFINITY;
+      const tabSessionStillActive =
+        active &&
+        activeSession.active &&
+        sessionAgeMs >= 0 &&
+        sessionAgeMs < 1000 * 60 * 60 * 12;
+      const recentlySignedIn =
+        tabSessionStillActive &&
+        (active.supabaseUserId || String(active?.source || '').trim().toLowerCase() === 'supabase') &&
+        sessionAgeMs < 20000;
+      if (recentlySignedIn) {
+        console.warn('Kagie session is still settling after login. Keeping the current signed-in account briefly.');
+        return sanitizeUser(active);
+      }
+      if (tabSessionStillActive) {
+        console.warn('Kagie kept the current tab session active while the remote auth session was temporarily unavailable.');
+        return sanitizeUser(active);
+      }
+      if (active?.supabaseUserId || String(active?.source || '').trim().toLowerCase() === 'supabase') {
+        setCurrentUser(null);
+        return null;
+      }
+      return sanitizeUser(active);
+    }
+
+    if (!shouldRememberLogin() && !hasActiveSessionMarker() && !oauthCallback) {
+      setCurrentUser(null);
+      clearCachedSupabaseSessionTokens();
+      return null;
+    }
+
+    const sameRemoteUser = active && String(active.supabaseUserId || '').trim() === String(supaUser.id).trim();
+    let local;
+    try {
+      local = await materializeSupabaseUser(supaUser, sameRemoteUser ? active : null, session);
+    } catch (error) {
+      if (oauthCallback) clearOAuthIntent();
+      if (error?.status === 401 || error?.status === 403) {
+        setCurrentUser(null);
+        clearCachedSupabaseSessionTokens();
+      }
+      throw error;
+    }
+    setCurrentUser(local, oauthCallback ? { persist: Boolean(oauthIntent.persist) } : undefined);
+    if (oauthCallback) clearOAuthIntent();
     return sanitizeUser(local);
+  }
+
+  async function resolveSessionUser(options) {
+    const attempts = Math.max(0, Number(options?.attempts || 1));
+    const delayMs = Math.max(80, Number(options?.delayMs || 220));
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= attempts; attempt += 1) {
+      const current = sanitizeUser(currentUserRaw());
+      if (current) return current;
+
+      try {
+        const restored = await restoreSession();
+        if (restored) return sanitizeUser(restored);
+      } catch (error) {
+        lastError = error;
+        const fallbackCurrent = sanitizeUser(currentUserRaw());
+        if (fallbackCurrent) return fallbackCurrent;
+      }
+
+      if (attempt < attempts) {
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, delayMs * (attempt + 1));
+        });
+      }
+    }
+
+    if (lastError) {
+      console.warn('Kagie session resolution used its final local fallback:', lastError);
+    }
+    return sanitizeUser(currentUserRaw());
   }
 
   async function updateCurrentUserProfile(patch) {
@@ -3197,18 +9883,27 @@
     return sanitizeUser(updated);
   }
 
-  function buildDraft(userId) {
+  function buildDraft(userId, applicationTypeArg = 'undergraduate') {
+    const applicationType = normalizeApplicationTypeKey(applicationTypeArg) || 'undergraduate';
+    const applicationTypeLabel = applicationTypeLabelForKey(applicationType);
     return {
       id: uid('app'),
       userId,
       assistantId: null,
       status: STATUS.application.DRAFT,
       paymentStatus: STATUS.payment.PENDING,
+      applicationType,
+      applicationTypeLabel,
       forms: {
+        applicationType: {
+          type: applicationType,
+          label: applicationTypeLabel
+        },
         learner: {},
         parent: {},
         school: {},
-        marks: { subjects: [] }
+        marks: { subjects: [] },
+        portalAccess: []
       },
       institutions: [],
       package: null,
@@ -3245,6 +9940,31 @@
     return clone(draft);
   }
 
+  function ensureApplicationDraft(applicationTypeArg, userIdArg) {
+    const actor = userIdArg ? { id: userIdArg } : requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const userId = userIdArg || actor.id;
+    const applicationType = normalizeApplicationTypeKey(applicationTypeArg) || 'undergraduate';
+    const reusableStatuses = [
+      STATUS.application.DRAFT,
+      STATUS.application.PACKAGE_SELECTED,
+      STATUS.application.AWAITING_PAYMENT,
+      STATUS.application.MISSING_DOCUMENTS,
+      STATUS.application.DOCUMENTS_MISSING
+    ];
+    const apps = getAllApplications();
+    const existing = [...apps].reverse().find((app) =>
+      app.userId === userId
+      && normalizeApplicationTypeKey(app.applicationType || app.forms?.applicationType?.type || '') === applicationType
+      && reusableStatuses.includes(app.status)
+    );
+    if (existing) return clone(existing);
+
+    const draft = buildDraft(userId, applicationType);
+    apps.push(draft);
+    saveAllApplications(apps);
+    return clone(draft);
+  }
+
   function getApplicationById(appId) {
     return normalizeStoredApplication(getAllApplications().find((a) => a.id === appId) || null);
   }
@@ -3265,17 +9985,81 @@
       .map(normalizeStoredApplication);
   }
 
+  function getAssistantFormPermissions(assistantIdArg) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const assistantId = String(assistantIdArg || actor.id || '').trim();
+    if (actor.role === ROLES.ASSISTANT && assistantId && assistantId !== actor.id && assistantId !== actor.supabaseUserId) {
+      throw new Error('You can only view your own form permissions.');
+    }
+    const rows = read(KEYS.assistantFormPermissions, [])
+      .filter((item) => String(item.assistantAdminId || '').trim() === assistantId)
+      .map(normalizeAssistantFormPermission);
+    if (rows.length) return rows;
+    return getApplicationFormTypes().map((item) => normalizeAssistantFormPermission({
+      assistantAdminId: assistantId,
+      formType: item.formType,
+      label: item.label,
+      enabled: true
+    }));
+  }
+
+  function saveAssistantFormPermissions(assistantIdArg, permissionsArg) {
+    const actor = requireRole([ROLES.MASTER]);
+    const assistantId = String(assistantIdArg || '').trim();
+    if (!assistantId) throw new Error('Choose an assistant admin first.');
+    const assistant = getUserByIdentity(assistantId);
+    if (assistant && assistant.role !== ROLES.ASSISTANT) throw new Error('Selected account is not an assistant admin.');
+    const incoming = safeArray(permissionsArg).map((item) => normalizeAssistantFormPermission({
+      ...item,
+      assistantAdminId: assistantId,
+      grantedBy: actor.id,
+      grantedAt: nowISO()
+    }));
+    const byType = new Map(incoming.map((item) => [item.formType, item]));
+    const nextRows = getApplicationFormTypes().map((type) => byType.get(type.formType) || normalizeAssistantFormPermission({
+      assistantAdminId: assistantId,
+      formType: type.formType,
+      label: type.label,
+      enabled: false,
+      grantedBy: actor.id,
+      grantedAt: nowISO()
+    }));
+    const existing = read(KEYS.assistantFormPermissions, []);
+    const preserved = existing.filter((item) => String(item.assistantAdminId || '').trim() !== assistantId);
+    write(KEYS.assistantFormPermissions, preserved.concat(nextRows));
+    return nextRows.map(clone);
+  }
+
+  function assistantPermissionAllowsApplication(permissionsArg, appArg) {
+    const app = normalizeStoredApplication(appArg);
+    if (!app) return false;
+    const formType = normalizeApplicationTypeKey(app.applicationType || app.forms?.applicationType?.type || app.applicationTypeLabel || '') || 'undergraduate';
+    const permissions = safeArray(permissionsArg).map(normalizeAssistantFormPermission);
+    if (!permissions.length) return true;
+    const match = permissions.find((item) => item.formType === formType);
+    return match ? match.enabled !== false : false;
+  }
+
   function getApplicationsByAssistant(assistantIdArg) {
     const current = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
-    const assistantId = assistantIdArg || current.id;
+    const assistantId = String(assistantIdArg || current.id || '').trim();
+    const assistant = getUserByIdentity(assistantId) || current;
+    const assistantRefs = new Set([
+      String(assistantId || '').trim(),
+      String(assistant?.id || '').trim(),
+      String(assistant?.supabaseUserId || '').trim()
+    ].filter(Boolean));
+    const permissions = getAssistantFormPermissions(assistantId);
     return getAllApplications()
-      .filter((app) => app.assistantId === assistantId)
+      .filter((app) => assistantRefs.has(String(app.assistantId || app.assignedAssistantId || '').trim()))
+      .filter((app) => assistantPermissionAllowsApplication(permissions, app))
       .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
       .map(normalizeStoredApplication);
   }
 
   function getAllApplicationsForAdmin() {
-    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    if (actor.role === ROLES.ASSISTANT) return getApplicationsByAssistant(actor.id);
     return getAllApplications()
       .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
       .map(normalizeStoredApplication);
@@ -3304,8 +10088,48 @@
       throw new Error('You can only edit your own application.');
     }
 
+    if (Array.isArray(patch?.institutions)) {
+      patch = {
+        ...patch,
+        institutions: safeArray(patch.institutions).map((institution) => {
+          const matchedInstitution = ensureInstitutionAvailableForApplication(institution);
+          return {
+            ...institution,
+            institutionId: institution?.institutionId || matchedInstitution?.id || '',
+            year: institution?.year || matchedInstitution?.year || String(new Date().getFullYear()),
+            institutionStatus: matchedInstitution?.status || institution?.institutionStatus || '',
+            canApply: matchedInstitution ? matchedInstitution.canApply : institution?.canApply
+          };
+        })
+      };
+    }
+
     let updated = mergeDeep(current, patch || {});
     if (actingUser.role === ROLES.ASSISTANT && !updated.assistantId) updated.assistantId = actingUser.id;
+    if (Object.prototype.hasOwnProperty.call(patch || {}, 'assistantId') || Object.prototype.hasOwnProperty.call(patch || {}, 'assignedAssistantId')) {
+      const previousAssistantId = String(current?.assignedAssistantId || current?.assistantId || '').trim();
+      const nextAssistantId = String(
+        patch?.assignedAssistantId ?? patch?.assistantId ?? updated?.assignedAssistantId ?? updated?.assistantId ?? ''
+      ).trim();
+      const assignmentTimestamp = nowISO();
+      if (nextAssistantId) {
+        updated.assistantId = nextAssistantId;
+        updated.assignedAssistantId = nextAssistantId;
+        updated.assignedById = actingUser.id || updated.assignedById || '';
+        updated.assignedByName = actingUser.fullName || actingUser.email || updated.assignedByName || '';
+        updated.assignedAt = updated.assignedAt || assignmentTimestamp;
+        if (previousAssistantId && previousAssistantId !== nextAssistantId) {
+          updated.reassignedAt = assignmentTimestamp;
+          updated.assignmentStatus = 'Reassigned';
+        } else {
+          updated.assignmentStatus = 'Assigned';
+        }
+      } else {
+        updated.assistantId = null;
+        updated.assignedAssistantId = null;
+        updated.assignmentStatus = 'Unassigned';
+      }
+    }
     if (updated.payment || patch?.paymentStatus) {
       updated.payment = normalizePaymentDetails(updated.payment, patch?.paymentStatus || updated.paymentStatus || current.paymentStatus);
       if (updated.payment && patch?.paymentStatus) updated.payment.status = patch.paymentStatus;
@@ -3371,16 +10195,32 @@
 
     const entry = {
       id: institution?.id || uid('inst'),
+      institutionId: institution?.institutionId || matchedInstitution?.id || '',
       institutionName: institution?.institutionName || institution?.name || '',
       province: institution?.province || '',
       institutionType: institution?.institutionType || '',
       year: institution?.year || matchedInstitution?.year || String(new Date().getFullYear()),
+      applicationFee: roundMoney(institution?.applicationFee ?? matchedInstitution?.applicationFee ?? 0),
+      applicationFeeLabel: institution?.applicationFeeLabel || matchedInstitution?.applicationFeeLabel || '',
+      applicationFeeNote: institution?.applicationFeeNote || matchedInstitution?.applicationFeeNote || '',
       institutionStatus: institution?.institutionStatus || matchedInstitution?.status || 'open',
       closingDate: institution?.closingDate || matchedInstitution?.closingDate || matchedInstitution?.applicationDeadline || '',
       faculty: institution?.faculty || '',
+      choice1Faculty: institution?.choice1Faculty || institution?.choiceFaculties?.choice1 || '',
+      choice2Faculty: institution?.choice2Faculty || institution?.choiceFaculties?.choice2 || '',
+      choice3Faculty: institution?.choice3Faculty || institution?.choiceFaculties?.choice3 || '',
       choice1: institution?.choice1 || '',
       choice2: institution?.choice2 || '',
       choice3: institution?.choice3 || '',
+      choiceDetails: (safeArray(institution?.choiceDetails).length ? safeArray(institution?.choiceDetails) : [
+        { choice: 1, faculty: institution?.choice1Faculty || institution?.faculty || '', course: institution?.choice1 || '' },
+        { choice: 2, faculty: institution?.choice2Faculty || institution?.faculty || '', course: institution?.choice2 || '' },
+        { choice: 3, faculty: institution?.choice3Faculty || institution?.faculty || '', course: institution?.choice3 || '' }
+      ]).map((choice, index) => ({
+        choice: Number(choice?.choice || index + 1),
+        faculty: choice?.faculty || '',
+        course: choice?.course || ''
+      })),
       createdAt: nowISO()
     };
 
@@ -3407,19 +10247,179 @@
     return write(cartKey(userId), items || []);
   }
 
+  function isPromoDiscountItem(item) {
+    return !!(item && (item.isPromoDiscount || normalizePromoCodeValue(item.promoCode)));
+  }
+
+  function getCartItemsWithoutPromo(itemsArg) {
+    return safeArray(itemsArg).filter((item) => !isPromoDiscountItem(item));
+  }
+
+  function getAppliedPromoFromCartItems(itemsArg) {
+    const match = safeArray(itemsArg).find((item) => isPromoDiscountItem(item));
+    if (!match) return null;
+    const code = normalizePromoCodeValue(match.promoCode || match.code || match.id);
+    return {
+      code,
+      title: String(match.promoTitle || match.title || match.name || `Promo ${code}`).trim(),
+      offerNote: String(match.offerNote || '').trim(),
+      discountAmount: roundMoney(Math.abs(Number(match.price || 0))),
+      benefitLabel: String(match.benefitLabel || '').trim()
+    };
+  }
+
+  function calculateCartSubtotal(itemsArg) {
+    return roundMoney(getCartItemsWithoutPromo(itemsArg).reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0));
+  }
+
+  function calculatePromoDiscountAmount(promoArg, itemsArg) {
+    const promo = promoArg ? normalizePromoCampaignEntry(promoArg, 1) : null;
+    const items = getCartItemsWithoutPromo(itemsArg);
+    const subtotal = calculateCartSubtotal(items);
+    if (!promo || subtotal <= 0) return 0;
+    const leadPack = items.find((item) => item.type === 'application_pack') || null;
+
+    let discount = 0;
+    if (promo.discountKind === 'free_application_pack') {
+      discount = Number(leadPack?.price || leadPack?.packPrice || 0);
+    } else if (promo.discountKind === 'amount') {
+      discount = Number(promo.discountValue || 0);
+    } else {
+      discount = subtotal * (Math.max(0, Number(promo.discountValue || 0)) / 100);
+    }
+
+    return roundMoney(Math.max(0, Math.min(subtotal, discount)));
+  }
+
+  function buildPromoDiscountCartItem(promoArg, discountAmount) {
+    const promo = normalizePromoCampaignEntry(promoArg, 1);
+    const discount = roundMoney(discountAmount);
+    return {
+      id: `promo_${promo.code.toLowerCase()}`,
+      clientKey: `promo_${promo.code.toLowerCase()}`,
+      type: 'custom',
+      name: promo.title || `Promo ${promo.code}`,
+      price: -discount,
+      quantity: 1,
+      isPromoDiscount: true,
+      promoCode: promo.code,
+      promoTitle: promo.title,
+      offerNote: promo.offerNote,
+      benefitLabel: getPromoBenefitLabel(promo),
+      createdAt: nowISO()
+    };
+  }
+
+  function getPromoValidationMessage(promoArg, userIdArg, itemsArg) {
+    const promo = promoArg ? normalizePromoCampaignEntry(promoArg, 1) : null;
+    const userId = String(userIdArg || '').trim();
+    const items = getCartItemsWithoutPromo(itemsArg);
+    if (!promo || promo.isActive === false) return 'That promo code is not active right now.';
+    if (!items.length) return 'Add a package or service to cart before using a promo code.';
+    if (promo.maxUses > 0 && promo.usedCount >= promo.maxUses && !safeArray(promo.redeemedUserIds).includes(userId)) {
+      return 'That promo code has already reached its usage limit.';
+    }
+    if (userId && safeArray(promo.redeemedUserIds).includes(userId)) {
+      return 'That promo code has already been used on this account.';
+    }
+    if (promo.discountKind === 'free_application_pack' && !items.some((item) => item.type === 'application_pack')) {
+      return 'That code only works when an application pack is already in your cart.';
+    }
+    if (calculatePromoDiscountAmount(promo, items) <= 0) {
+      return 'That promo code does not match the items currently in your cart.';
+    }
+    return '';
+  }
+
+  function getCartPricingSummary(userIdArg, itemsArg) {
+    const items = Array.isArray(itemsArg) ? clone(itemsArg) : getCart(userIdArg);
+    const subtotal = calculateCartSubtotal(items);
+    const appliedPromo = getAppliedPromoFromCartItems(items);
+    const discount = roundMoney(appliedPromo?.discountAmount || 0);
+    const total = roundMoney(Math.max(0, subtotal - discount));
+    return {
+      subtotal,
+      discount,
+      total,
+      promo: appliedPromo
+        ? {
+            ...appliedPromo,
+            code: normalizePromoCodeValue(appliedPromo.code),
+            title: appliedPromo.title,
+            offerNote: appliedPromo.offerNote,
+            benefitLabel: appliedPromo.benefitLabel || getPromoBenefitLabel(getPromoCampaignByCode(appliedPromo.code, { includeInactive: true }) || appliedPromo)
+          }
+        : null
+    };
+  }
+
+  function clearAppliedPromoCode(userIdArg) {
+    const userId = userIdArg || requireRole([ROLES.USER]).id;
+    const nextItems = getCartItemsWithoutPromo(getCart(userId));
+    saveCart(nextItems, userId);
+    return getCartPricingSummary(userId, nextItems);
+  }
+
+  function applyPromoCode(codeArg, userIdArg) {
+    const userId = userIdArg || requireRole([ROLES.USER]).id;
+    const code = normalizePromoCodeValue(codeArg);
+    const promo = getPromoCampaignByCode(code, { includeInactive: false });
+    if (!promo) throw new Error('Promo code not found or inactive.');
+
+    const baseItems = getCartItemsWithoutPromo(getCart(userId));
+    const validationMessage = getPromoValidationMessage(promo, userId, baseItems);
+    if (validationMessage) throw new Error(validationMessage);
+
+    const discountAmount = calculatePromoDiscountAmount(promo, baseItems);
+    const nextItems = baseItems.concat(buildPromoDiscountCartItem(promo, discountAmount));
+    saveCart(nextItems, userId);
+    savePendingPromoCode('');
+    return getCartPricingSummary(userId, nextItems);
+  }
+
+  function syncAppliedPromoCode(userIdArg) {
+    const userId = userIdArg || requireRole([ROLES.USER]).id;
+    const currentItems = getCart(userId);
+    const currentPromo = getAppliedPromoFromCartItems(currentItems);
+
+    if (currentPromo?.code) {
+      try {
+        return applyPromoCode(currentPromo.code, userId);
+      } catch (_error) {
+        return clearAppliedPromoCode(userId);
+      }
+    }
+
+    const pendingCode = getPendingPromoCode();
+    if (pendingCode) {
+      try {
+        return applyPromoCode(pendingCode, userId);
+      } catch (_error) {
+        return getCartPricingSummary(userId, currentItems);
+      }
+    }
+
+    return getCartPricingSummary(userId, currentItems);
+  }
+
   function addCartItem(itemArg, userIdArg) {
     const item = typeof itemArg === 'string' ? userIdArg : itemArg;
     const userId = typeof itemArg === 'string' ? itemArg : userIdArg || requireRole([ROLES.USER]).id;
     const items = getCart(userId);
     const normalizedType = item?.type === 'service_request' ? 'service' : item?.type || 'custom';
+    const itemId = String(item?.id || uid('cart')).trim();
+    const clientKey = String(item?.clientKey || itemId).trim();
+    const syncState = String(item?.syncState || (isSupabaseEnabled() ? 'local_only' : '')).trim();
     const finalItem = {
-      id: item?.id || uid('cart'),
+      ...(item || {}),
+      id: itemId,
+      clientKey,
       type: normalizedType,
       name: item?.name || item?.serviceName || item?.packName || item?.institutionName || 'Cart item',
       price: Number(item?.price ?? item?.packPrice ?? item?.servicePrice ?? 0),
       quantity: Number(item?.quantity || 1),
-      createdAt: nowISO(),
-      ...item
+      createdAt: item?.createdAt || nowISO(),
+      syncState
     };
     const matchKey = getCartMatchKey(finalItem);
     const nextItems = matchKey
@@ -3428,6 +10428,31 @@
     nextItems.push(finalItem);
     saveCart(nextItems, userId);
     return clone(finalItem);
+  }
+
+  function updateCartItem(itemId, patchArg, userIdArg) {
+    const userId = userIdArg || requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]).id;
+    const patch = patchArg && typeof patchArg === 'object' ? clone(patchArg) : {};
+    const items = getCart(userId);
+    const index = items.findIndex((item) => String(item?.id || '') === String(itemId));
+    if (index === -1) throw new Error('Cart item not found.');
+
+    const current = clone(items[index]);
+    const updated = {
+      ...current,
+      ...patch,
+      id: current.id,
+      clientKey: patch.clientKey || current.clientKey || current.id,
+      type: patch.type || current.type || 'custom',
+      name: patch.name || patch.serviceName || patch.packName || current.name || current.serviceName || current.packName || 'Cart item',
+      price: Number(patch.price ?? current.price ?? current.packPrice ?? current.servicePrice ?? 0),
+      quantity: Number(patch.quantity ?? current.quantity ?? 1),
+      updatedAt: nowISO()
+    };
+
+    items[index] = updated;
+    saveCart(items, userId);
+    return clone(updated);
   }
 
   function removeCartItem(itemId, userIdArg) {
@@ -3444,7 +10469,7 @@
   }
 
   function getCartTotal(userIdArg) {
-    return getCart(userIdArg).reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
+    return getCartPricingSummary(userIdArg).total;
   }
 
   function buildPaymentProofState(app, proofDoc) {
@@ -3489,21 +10514,135 @@
     const next = buildPaymentProofState(app, proofDoc);
     const updated = updateApplication(app.id, next);
     pushNotification(updated.userId, 'Proof of payment uploaded', 'Your proof of payment was saved and sent for verification.', 'info');
+    notifyStaffForApplicationEvent(updated, {
+      title: 'Learner uploaded proof of payment',
+      message: `${buildLearnerAlertMessage(updated, 'A learner')} uploaded proof of payment${updated.payment?.reference ? ` for reference ${updated.payment.reference}` : ''}. Open the payment review lane to verify it.`,
+      type: 'warning'
+    });
     return updated;
   }
 
-  function submitApplicationFromCart(paymentData) {
-    const user = requireRole([ROLES.USER]);
-    const app = ensureDraft(user.id);
-    const cart = getCart(user.id);
+  function cartPackageApplicationType(packageItem) {
+    return normalizeApplicationTypeKey(
+      packageItem?.applicationType ||
+      packageItem?.forms?.applicationType?.type ||
+      packageItem?.formValues?.applicationType?.type ||
+      packageItem?.package?.applicationType ||
+      packageItem?.selectedPackage?.applicationType ||
+      ''
+    );
+  }
 
-    const packageItem = cart.find((item) => item.type === 'application_pack');
-    const serviceItems = cart.filter((item) => item.type === 'service' || item.type === 'service_request');
-    const institutionItems = cart.filter((item) => item.type === 'institution');
+  function cartPackageApplicationLabel(packageItem, applicationType) {
+    return String(
+      packageItem?.applicationTypeLabel ||
+      packageItem?.forms?.applicationType?.label ||
+      packageItem?.formValues?.applicationType?.label ||
+      applicationTypeLabelForKey(applicationType)
+    ).trim();
+  }
 
-    const institutions = [
-      ...safeArray(app.institutions),
-      ...institutionItems.map((item) => ({
+  function cartPackageSnapshot(packageItem, applicationType, applicationTypeLabel) {
+    if (!packageItem) return null;
+    const source = packageItem.package || packageItem.selectedPackage || {};
+    const id = String(source.id || packageItem.packageId || packageItem.id || '').trim();
+    const code = String(source.code || packageItem.packageCode || packageItem.code || id).trim();
+    const price = Number(source.price ?? source.packPrice ?? packageItem.packPrice ?? packageItem.price ?? 0);
+    return {
+      ...clone(source),
+      id,
+      code,
+      remoteId: source.remoteId || packageItem.remoteId || '',
+      name: source.name || source.packName || packageItem.packName || packageItem.name || 'Application Pack',
+      price,
+      packPrice: price,
+      institutionLimit: source.institutionLimit ?? packageItem.institutionLimit ?? 0,
+      applicationType,
+      applicationTypeLabel,
+      level: source.level || packageItem.level || ''
+    };
+  }
+
+  function buildCartPackageApplicationPatch(appArg, packageItemArg, institutionsArg) {
+    const app = appArg || {};
+    const packageItem = packageItemArg && typeof packageItemArg === 'object' ? packageItemArg : null;
+    if (!packageItem) {
+      return {
+        package: app.package || null,
+        institutions: safeArray(institutionsArg).map(clone)
+      };
+    }
+
+    const applicationType = cartPackageApplicationType(packageItem) || normalizeApplicationTypeKey(app.applicationType || app.forms?.applicationType?.type || '') || 'undergraduate';
+    const applicationTypeLabel = cartPackageApplicationLabel(packageItem, applicationType);
+    const selectedPackage = cartPackageSnapshot(packageItem, applicationType, applicationTypeLabel);
+    const cartForms = packageItem.forms && typeof packageItem.forms === 'object' ? clone(packageItem.forms) : {};
+    const formValues = packageItem.formValues && typeof packageItem.formValues === 'object' ? clone(packageItem.formValues) : null;
+    const specialisedValues = formValues ? unwrapSpecialisedApplicationValues(formValues) : null;
+    const forms = mergeDeep(app.forms || {}, cartForms);
+    forms.applicationType = {
+      ...(forms.applicationType || {}),
+      type: applicationType,
+      label: applicationTypeLabel
+    };
+    forms.packageSelection = {
+      ...(forms.packageSelection || {}),
+      applicationType,
+      applicationTypeLabel,
+      package: selectedPackage,
+      packagePrice: selectedPackage?.price || 0,
+      finalTotal: selectedPackage?.price || 0,
+      savedAt: nowISO()
+    };
+    if (['bridging', 'postgraduate', 'transfer'].includes(applicationType) && hasUsefulApplicationValues(specialisedValues)) {
+      forms.specialisedApplication = {
+        ...(forms.specialisedApplication || {}),
+        type: applicationType,
+        label: applicationTypeLabel,
+        values: clone(specialisedValues)
+      };
+      forms.dynamicApplications = {
+        ...(forms.dynamicApplications || {}),
+        [applicationType]: clone(specialisedValues)
+      };
+    }
+
+    return {
+      applicationType,
+      applicationTypeLabel,
+      package: selectedPackage,
+      selectedPackage,
+      packagePrice: selectedPackage?.price || 0,
+      finalTotal: selectedPackage?.price || 0,
+      forms,
+      institutions: safeArray(institutionsArg).map(clone)
+    };
+  }
+
+  function applicationForCartPackage(packageItem, userId) {
+    const appId = String(packageItem?.applicationId || '').trim();
+    const applicationType = cartPackageApplicationType(packageItem);
+    if (appId) {
+      const existing = getApplicationById(appId);
+      if (existing) return existing;
+    }
+    return applicationType ? ensureApplicationDraft(applicationType, userId) : ensureDraft(userId);
+  }
+
+  async function applicationForCartPackageAsync(packageItem, userId) {
+    const appId = String(packageItem?.applicationId || '').trim();
+    const applicationType = cartPackageApplicationType(packageItem);
+    if (appId) {
+      const existing = await getApplicationByIdAsync(appId, userId).catch(() => getApplicationById(appId));
+      if (existing) return existing;
+    }
+    return applicationType ? ensureApplicationDraftAsync(applicationType, userId) : ensureDraftAsync(userId);
+  }
+
+  function institutionItemsFromCart(cart) {
+    return safeArray(cart)
+      .filter((item) => item.type === 'institution')
+      .map((item) => ({
         id: item.id || uid('inst'),
         institutionName: item.institutionName || item.name || '',
         province: item.province || '',
@@ -3513,8 +10652,28 @@
         choice2: item.choice2 || '',
         choice3: item.choice3 || '',
         createdAt: item.createdAt || nowISO()
-      }))
-    ];
+      }));
+  }
+
+  function cartApplicationInstitutions(app, packageItem, cart) {
+    const packageInstitutions = safeArray(packageItem?.institutions);
+    return packageInstitutions.length
+      ? packageInstitutions.map(clone)
+      : safeArray(app?.institutions).map(clone).concat(institutionItemsFromCart(cart));
+  }
+
+  function submitApplicationFromCart(paymentData) {
+    const user = requireRole([ROLES.USER]);
+    const cart = getCart(user.id);
+    const packageItem = cart.find((item) => item.type === 'application_pack');
+    const app = applicationForCartPackage(packageItem, user.id);
+    const pricing = getCartPricingSummary(user.id, cart);
+    const appliedPromo = pricing.promo || null;
+
+    const serviceItems = cart
+      .filter((item) => item.type === 'service' || item.type === 'service_request')
+      .map((item) => (isTransportServiceItem(item) ? decorateTransportServiceForManualBooking(item, paymentData) : clone(item)));
+    const institutions = cartApplicationInstitutions(app, packageItem, cart);
 
     const submittedPayment = normalizePaymentDetails({
       payerName: paymentData?.payerName || '',
@@ -3522,48 +10681,85 @@
       reference: paymentData?.reference || '',
       note: paymentData?.note || '',
       method: paymentData?.method || '',
-      amount: getCartTotal(user.id),
+      amount: pricing.total,
+      promoCode: appliedPromo?.code || '',
+      promoTitle: appliedPromo?.title || '',
+      offerNote: appliedPromo?.offerNote || '',
+      discountAmount: pricing.discount,
       submittedAt: nowISO(),
       status: STATUS.payment.PENDING_VERIFICATION
     }, STATUS.payment.PENDING_VERIFICATION);
 
     const updated = updateApplication(app.id, {
-      institutions,
-      package: packageItem || app.package || null,
+      ...buildCartPackageApplicationPatch(app, packageItem, institutions),
       services: serviceItems,
       payment: submittedPayment,
-      status: STATUS.application.PROCESSING,
+      status: STATUS.application.PENDING_DETAILS,
       paymentStatus: STATUS.payment.PENDING_VERIFICATION,
       submittedAt: nowISO()
     });
+    const transportRequests = syncTransportRequestsFromPaidServices(serviceItems, user, updated, submittedPayment);
 
+    if (appliedPromo?.code) {
+      markPromoCampaignRedeemed(appliedPromo.code, user.id);
+      savePendingPromoCode('');
+    }
     clearCart(user.id);
-    pushNotification(user.id, 'Payment received', 'Your application is being processed and payment is pending verification.', 'success');
+    pushNotification(user.id, 'Payment received', 'Your payment is pending verification. Complete your application details from your Dashboard when you are ready.', 'success');
+    if (transportRequests.length) {
+      pushNotification(user.id, 'Transport request received', 'Kagie received your transport payment. The master admin and assistants will book the ticket manually and send it to your account.', 'info');
+      notifyStaffForTransportRequests(transportRequests, updated);
+    }
+    notifyStaffForApplicationEvent(updated, {
+      title: 'Learner submitted a payment',
+      message: `${buildLearnerAlertMessage(updated, 'A learner')} submitted ${submittedPayment.method || 'a payment'}${submittedPayment.reference ? ` with reference ${submittedPayment.reference}` : ''} for ${formatMoneyLabel(submittedPayment.amount)}. Kagie is waiting for verification.`,
+      type: 'warning'
+    });
     return updated;
   }
 
   function getNotifications(userIdArg) {
     const viewer = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
     const userId = userIdArg || viewer.id;
-    return read(KEYS.notifications, [])
+    const notifications = normalizeNotificationStore(read(KEYS.notifications, []));
+    write(KEYS.notifications, notifications);
+    const announcementNotices = (() => {
+      try {
+        return getAnnouncementsForUser(userId).map((entry) => announcementToNotification(entry, userId));
+      } catch (_error) {
+        return [];
+      }
+    })();
+    const byId = new Map();
+    notifications.concat(announcementNotices).forEach((item) => {
+      if (!item?.id || byId.has(item.id)) return;
+      byId.set(item.id, item);
+    });
+    return Array.from(byId.values())
       .filter((n) => n.userId === userId || n.userId === 'all')
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .map(clone);
   }
 
   function pushNotification(userId, title, message, type = 'info') {
-    const notifications = read(KEYS.notifications, []);
-    const entry = {
+    const notifications = normalizeNotificationStore(read(KEYS.notifications, []));
+    const entry = normalizeStoredNotificationEntry({
       id: uid('noti'),
       userId,
       title,
       message,
       type,
       read: false,
-      createdAt: nowISO()
-    };
-    notifications.push(entry);
-    write(KEYS.notifications, notifications);
+      createdAt: nowISO(),
+      source: 'local'
+    });
+    if (!String(entry.title || '').trim() && !String(entry.message || '').trim()) return null;
+    const duplicate = notifications.find((item) => isRecentNotificationDuplicate(item, entry));
+    if (duplicate) {
+      return clone(duplicate);
+    }
+    const updated = normalizeNotificationStore(notifications.concat(entry));
+    write(KEYS.notifications, updated);
     return clone(entry);
   }
 
@@ -3595,7 +10791,10 @@
     });
     mirrorRemoteNotifications(remote);
 
-    const combined = [...remote];
+    const announcementNotices = await getAnnouncementsForUserAsync(userId)
+      .then((items) => safeArray(items).map((entry) => announcementToNotification(entry, userId)))
+      .catch(() => []);
+    const combined = [...remote, ...announcementNotices];
     local.forEach((item) => {
       if (!combined.find((remoteItem) => remoteItem.id === item.id)) {
         combined.push(clone(item));
@@ -3633,9 +10832,324 @@
     }
   }
 
+  function prepareDirectLearnerNotification(payload) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const requestedUserId = String(payload?.userId || payload?.learnerId || '').trim();
+    if (!requestedUserId) throw new Error('Choose a learner to notify.');
+
+    const targetUser = getUserById(requestedUserId) || getUserBySupabaseId(requestedUserId);
+    if (!targetUser || targetUser.role !== ROLES.USER) {
+      throw new Error('Learner account not found.');
+    }
+
+    const title = String(payload?.title || '').trim();
+    const message = String(payload?.message || '').trim();
+    const type = String(payload?.type || 'info').trim().toLowerCase() || 'info';
+    const applicationId = String(payload?.applicationId || '').trim() || null;
+
+    if (!title) throw new Error('Notification title is required.');
+    if (!message) throw new Error('Notification message is required.');
+
+    return {
+      actor,
+      targetUser,
+      userId: targetUser.id,
+      title,
+      message,
+      type,
+      applicationId
+    };
+  }
+
+  function buildDirectLearnerNotificationResult(prepared, notification, activity) {
+    return {
+      ok: true,
+      targetUser: sanitizeUser(prepared.targetUser),
+      deliveredTo: prepared.userId,
+      title: prepared.title,
+      type: prepared.type,
+      applicationId: prepared.applicationId,
+      notification: notification ? clone(notification) : null,
+      activity: activity ? clone(activity) : null
+    };
+  }
+
+  function sendDirectLearnerNotification(payload) {
+    const prepared = prepareDirectLearnerNotification(payload);
+    const notification = pushNotification(prepared.userId, prepared.title, prepared.message, prepared.type);
+    const activity = logAssistantActivity({
+      assistantId: prepared.actor.id,
+      applicationId: prepared.applicationId,
+      action: 'send_direct_notification',
+      details: {
+        targetUserId: prepared.userId,
+        targetUserName: prepared.targetUser.fullName || '',
+        title: prepared.title,
+        type: prepared.type,
+        messagePreview: prepared.message.slice(0, 160)
+      }
+    });
+    return buildDirectLearnerNotificationResult(prepared, notification, activity);
+  }
+
+  async function sendDirectLearnerNotificationAsync(payload) {
+    const prepared = prepareDirectLearnerNotification(payload);
+    const notification = await pushNotificationAsync(prepared.userId, prepared.title, prepared.message, prepared.type);
+    let activity = null;
+    try {
+      activity = await logAssistantActivityAsync({
+        assistantId: prepared.actor.id,
+        applicationId: prepared.applicationId,
+        action: 'send_direct_notification',
+        details: {
+          targetUserId: prepared.userId,
+          targetUserName: prepared.targetUser.fullName || '',
+          title: prepared.title,
+          type: prepared.type,
+          messagePreview: prepared.message.slice(0, 160)
+        }
+      });
+    } catch (error) {
+      console.warn('Direct learner notification activity log fallback:', error);
+      activity = logAssistantActivity({
+        assistantId: prepared.actor.id,
+        applicationId: prepared.applicationId,
+        action: 'send_direct_notification',
+        details: {
+          targetUserId: prepared.userId,
+          targetUserName: prepared.targetUser.fullName || '',
+          title: prepared.title,
+          type: prepared.type,
+          messagePreview: prepared.message.slice(0, 160)
+        }
+      });
+    }
+    return buildDirectLearnerNotificationResult(prepared, notification, activity);
+  }
+
+  function formatMoneyLabel(valueArg) {
+    return `R${Number(valueArg || 0).toLocaleString('en-ZA')}`;
+  }
+
+  function getApplicationStaffRecipients(applicationArg) {
+    const app = applicationArg && typeof applicationArg === 'object' ? applicationArg : null;
+    if (!app) return [];
+
+    const seen = new Set();
+    const recipients = [];
+    const addRecipient = (user) => {
+      if (!user?.id) return;
+      const key = String(user.id || '').trim();
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      recipients.push(sanitizeUser(user));
+    };
+
+    getUsers()
+      .filter((user) => user?.role === ROLES.MASTER)
+      .forEach(addRecipient);
+
+    const assignedAssistantId = String(app.assignedAssistantId || app.assistantId || '').trim();
+    if (assignedAssistantId) {
+      const assignedAssistant = getUserById(assignedAssistantId) || getUserBySupabaseId(assignedAssistantId);
+      if (assignedAssistant?.role === ROLES.ASSISTANT) addRecipient(assignedAssistant);
+    }
+
+    return recipients;
+  }
+
+  function buildLearnerAlertMessage(applicationArg, fallbackLabel) {
+    const app = applicationArg && typeof applicationArg === 'object' ? applicationArg : null;
+    const learner = app?.userId ? getUserById(app.userId) : null;
+    return learner?.fullName || learner?.email || fallbackLabel || 'A learner';
+  }
+
+  function notifyStaffForApplicationEvent(applicationArg, eventArg) {
+    const app = applicationArg && typeof applicationArg === 'object' ? applicationArg : null;
+    if (!app) return [];
+    const event = eventArg && typeof eventArg === 'object' ? eventArg : {};
+    const title = String(event.title || '').trim();
+    const message = String(event.message || '').trim();
+    if (!title || !message) return [];
+    return getApplicationStaffRecipients(app).map((recipient) => pushNotification(recipient.id, title, message, event.type || 'info')).filter(Boolean);
+  }
+
+  async function notifyStaffForApplicationEventAsync(applicationArg, eventArg) {
+    const app = applicationArg && typeof applicationArg === 'object' ? applicationArg : null;
+    if (!app) return [];
+    const event = eventArg && typeof eventArg === 'object' ? eventArg : {};
+    const title = String(event.title || '').trim();
+    const message = String(event.message || '').trim();
+    if (!title || !message) return [];
+
+    const recipients = getApplicationStaffRecipients(app);
+    if (!recipients.length) return [];
+
+    const results = await Promise.allSettled(
+      recipients.map((recipient) => pushNotificationAsync(recipient.id, title, message, event.type || 'info'))
+    );
+    return results
+      .filter((entry) => entry.status === 'fulfilled' && entry.value)
+      .map((entry) => entry.value);
+  }
+
+  function buildMarketingBroadcastPayload(inputArg) {
+    const input = inputArg && typeof inputArg === 'object' ? inputArg : {};
+    const title = String(input.title || '').trim();
+    const message = String(input.message || '').trim();
+    const type = String(input.type || 'info').trim().toLowerCase() || 'info';
+    const category = normalizeMarketingCategory(input.category);
+    const audience = normalizeMarketingAudience(input.audience);
+    const channels = normalizeMarketingChannels(input.channels || input);
+    const ctaLabel = String(input.ctaLabel || '').trim();
+    const ctaHref = String(input.ctaHref || '').trim();
+
+    if (!title) throw new Error('Broadcast title is required.');
+    if (!message) throw new Error('Broadcast message is required.');
+    if (!channels.inApp && !channels.email && !channels.sms) {
+      throw new Error('Choose at least one delivery channel.');
+    }
+    if (ctaHref && !/^https?:\/\//i.test(ctaHref) && !/^[./]/.test(ctaHref)) {
+      throw new Error('Call-to-action link must be a web link or Kagie page path.');
+    }
+
+    return {
+      title,
+      message,
+      type,
+      category,
+      categoryLabel: getMarketingCategoryLabel(category),
+      audience,
+      channels,
+      ctaLabel,
+      ctaHref
+    };
+  }
+
+  async function sendMarketingBroadcast(inputArg) {
+    const actor = requireRole([ROLES.MASTER]);
+    const payload = buildMarketingBroadcastPayload(inputArg);
+    const users = await (getAllUsersAsync ? getAllUsersAsync() : Promise.resolve(getAllUsers())).catch(() => getAllUsers());
+    const recipientMap = new Map();
+    safeArray(users).forEach((user) => {
+      if (!user || !user.id) return;
+      if (payload.audience !== 'all_accounts' && user.role !== ROLES.USER) return;
+      const dedupeKey = String(user.supabaseUserId || user.id || normalizeEmail(user.email) || '').trim();
+      if (!dedupeKey) return;
+      if (!recipientMap.has(dedupeKey)) recipientMap.set(dedupeKey, user);
+    });
+    const recipients = Array.from(recipientMap.values());
+
+    const emailEligible = new Set();
+    const smsEligible = new Set();
+    recipients.forEach((user) => {
+      const email = normalizeEmail(user?.email);
+      const phone = normalizePhoneNumber(user?.phone);
+      if (email) emailEligible.add(email);
+      if (phone) smsEligible.add(phone);
+    });
+
+    let inAppDelivered = 0;
+    if (payload.channels.inApp) {
+      const results = await Promise.allSettled(recipients.map((user) => {
+        if (pushNotificationAsync) return pushNotificationAsync(user.id, payload.title, payload.message, payload.type);
+        return Promise.resolve(pushNotification(user.id, payload.title, payload.message, payload.type));
+      }));
+      inAppDelivered = results.filter((result) => result.status === 'fulfilled' && result.value !== null).length;
+    }
+
+    const warnings = [];
+    if (payload.channels.email) warnings.push('Email delivery is waiting for the live marketing server keys on this site.');
+    if (payload.channels.sms) warnings.push('SMS delivery is waiting for the live marketing server keys on this site.');
+
+    return storeMarketingCampaign({
+      ...payload,
+      createdById: actor.id,
+      createdByName: actor.fullName || actor.email || 'Master Admin',
+      totalRecipients: recipients.length,
+      delivery: {
+        totalRecipients: recipients.length,
+        inAppDelivered,
+        emailEligible: emailEligible.size,
+        emailSent: 0,
+        smsEligible: smsEligible.size,
+        smsSent: 0
+      },
+      warnings,
+      mode: 'browser-fallback',
+      createdAt: nowISO(),
+      updatedAt: nowISO()
+    });
+  }
+
+  async function sendMarketingBroadcastAsync(inputArg) {
+    const actor = requireRole([ROLES.MASTER]);
+    const payload = buildMarketingBroadcastPayload(inputArg);
+    const settings = getSettings();
+    const endpoint = String(settings?.supabase?.adminMarketingBroadcastEndpoint || '').trim();
+
+    if (endpoint) {
+      try {
+        const session = await getSupabaseSession().catch(() => read(KEYS.supabaseSessionCache, null));
+        const accessToken = session?.access_token || read(KEYS.supabaseSessionCache, null)?.access_token || '';
+        if (accessToken) {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`
+            },
+            body: JSON.stringify(payload)
+          });
+          const raw = await response.text().catch(() => '');
+          let resultPayload = null;
+          if (raw) {
+            try {
+              resultPayload = JSON.parse(raw);
+            } catch (_error) {
+              resultPayload = { message: String(raw).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() };
+            }
+          }
+
+          if (response.ok) {
+            const delivery = resultPayload?.data || resultPayload || {};
+            return storeMarketingCampaign({
+              ...payload,
+              createdById: actor.id,
+              createdByName: actor.fullName || actor.email || 'Master Admin',
+              totalRecipients: Number(delivery.totalRecipients || 0) || 0,
+              delivery: {
+                totalRecipients: Number(delivery.totalRecipients || 0) || 0,
+                inAppDelivered: Number(delivery.inAppDelivered || 0) || 0,
+                emailEligible: Number(delivery.emailEligible || 0) || 0,
+                emailSent: Number(delivery.emailSent || 0) || 0,
+                smsEligible: Number(delivery.smsEligible || 0) || 0,
+                smsSent: Number(delivery.smsSent || 0) || 0
+              },
+              warnings: safeArray(delivery.warnings),
+              mode: 'serverless-function',
+              createdAt: nowISO(),
+              updatedAt: nowISO()
+            });
+          }
+
+          if (!isMissingSupabaseAdminConfigMessage(resultPayload?.message || '')) {
+            throw new Error(resultPayload?.message || resultPayload?.error || 'Could not send marketing broadcast.');
+          }
+        }
+      } catch (error) {
+        if (!isMissingSupabaseAdminConfigMessage(String(error?.message || ''))) {
+          throw error;
+        }
+      }
+    }
+
+    return sendMarketingBroadcast(payload);
+  }
+
   function markNotificationRead(notificationId) {
     const user = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
-    const notifications = read(KEYS.notifications, []);
+    const notifications = normalizeNotificationStore(read(KEYS.notifications, []));
     const index = notifications.findIndex((n) => n.id === notificationId && (n.userId === user.id || n.userId === 'all'));
     if (index === -1) return false;
     notifications[index].read = true;
@@ -3646,7 +11160,7 @@
   function markAllNotificationsRead(userIdArg) {
     const viewer = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
     const userId = userIdArg || viewer.id;
-    const notifications = read(KEYS.notifications, []);
+    const notifications = normalizeNotificationStore(read(KEYS.notifications, []));
     let changed = false;
 
     notifications.forEach((item) => {
@@ -3681,13 +11195,21 @@
     const ctx = await resolveSupabaseContext(userIdArg);
     if (!ctx) return changed;
 
-    const updated = await ctx.client
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('user_id', ctx.targetRemoteId)
-      .eq('is_read', false);
-    if (updated.error) {
-      console.warn('Remote mark-all notifications skipped:', updated.error.message || updated.error);
+    const updates = await Promise.allSettled([
+      ctx.client
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', ctx.targetRemoteId)
+        .eq('is_read', false),
+      ctx.client
+        .from('notifications')
+        .update({ is_read: true })
+        .is('user_id', null)
+        .eq('is_read', false)
+    ]);
+    const rejected = updates.find((result) => result.status === 'fulfilled' && result.value?.error);
+    if (rejected?.value?.error) {
+      console.warn('Remote mark-all notifications skipped:', rejected.value.error.message || rejected.value.error);
     }
     return true;
   }
@@ -3697,9 +11219,15 @@
     const userId = userIdArg || actor.id;
     const docs = read(KEYS.docs, []);
     const list = Array.isArray(filesMeta) ? filesMeta : [filesMeta];
+    let fallbackApplication = null;
+    try {
+      fallbackApplication = getLatestApplication(userId) || (actor.role === ROLES.USER ? ensureDraft(userId) : null);
+    } catch (_error) {
+      fallbackApplication = getLatestApplication(userId) || null;
+    }
 
     const saved = list.map((doc) => {
-      const targetApp = doc?.applicationId ? getApplicationById(doc.applicationId) : (doc?.category === 'proof_of_payment' ? getLatestApplication(userId) : null);
+      const targetApp = doc?.applicationId ? getApplicationById(doc.applicationId) : fallbackApplication;
       return {
         id: doc?.id || uid('doc'),
         userId,
@@ -3726,7 +11254,15 @@
           console.warn('Could not link proof of payment to application.', error);
         }
       });
-    if (actor.role === ROLES.USER) pushNotification(userId, 'Documents uploaded', 'Your documents were uploaded successfully.', 'success');
+    if (actor.role === ROLES.USER) {
+      pushNotification(userId, 'Documents uploaded', 'Your documents were uploaded successfully.', 'success');
+      const latestApplication = getLatestApplication(userId);
+      notifyStaffForApplicationEvent(latestApplication, {
+        title: 'Learner uploaded documents',
+        message: `${buildLearnerAlertMessage(latestApplication, 'A learner')} uploaded ${saved.length} document${saved.length === 1 ? '' : 's'} to Kagie${saved.some((doc) => doc.category === 'proof_of_payment') ? ', including proof of payment' : ''}.`,
+        type: saved.some((doc) => doc.category === 'proof_of_payment') ? 'warning' : 'info'
+      });
+    }
     return clone(saved);
   }
 
@@ -3735,59 +11271,85 @@
     const userId = userIdArg || actor.id;
     const ctx = await resolveSupabaseContext(userId);
     if (!ctx) return saveDocuments(filesMeta, userId);
-
-    const latestApp = await getLatestApplicationAsync(userId).catch(() => null);
-    const list = Array.isArray(filesMeta) ? filesMeta : [filesMeta];
-    const bucket = 'kagie-documents';
-    const saved = [];
-
-    for (const doc of list) {
-      const targetApplicationId = doc?.applicationId || (doc?.category === 'proof_of_payment' ? latestApp?.id || null : null);
-      const originalName = doc?.name || doc?.fileName || 'document';
-      const rawFile = doc?.file || null;
-      const mimeType = doc?.type || doc?.mimeType || rawFile?.type || '';
-      const extension = extensionFromMime(mimeType) || String(originalName).split('.').pop();
-      const safeName = sanitizePathPart(originalName.replace(/\.[^.]+$/, '')) || 'document';
-      const objectPath = `${sanitizePathPart(ctx.targetRemoteId)}/${Date.now()}_${safeName}${extension ? `.${sanitizePathPart(extension)}` : ''}`;
-      const fileBody = rawFile || dataUrlToBlob(doc?.dataUrl || '', mimeType);
-      if (!fileBody) throw new Error('Could not prepare the selected file for upload.');
-
-      const upload = await ctx.client.storage
-        .from(bucket)
-        .upload(objectPath, fileBody, {
-          cacheControl: '3600',
-          contentType: mimeType || undefined,
-          upsert: false
-        });
-      if (upload.error) throw new Error(upload.error.message || 'Could not upload document.');
-
-      const insert = await ctx.client
-        .from('documents')
-        .insert({
-          user_id: ctx.targetRemoteId,
-          application_id: targetApplicationId,
-          document_type: doc?.category || 'general',
-          file_name: originalName,
-          file_url: objectPath,
-          status: STATUS.doc.PENDING
-        })
-        .select('*')
-        .single();
-      if (insert.error) throw new Error(insert.error.message || 'Could not save document record.');
-
-      saved.push(normalizeRemoteDocumentRow(insert.data, ctx.targetLocalUser?.id || userId, { ...doc, applicationId: targetApplicationId }));
-    }
-
-    mirrorRemoteDocuments(saved, ctx.targetLocalUser?.id || userId);
-    for (const doc of saved.filter((item) => item.category === 'proof_of_payment')) {
-      try {
-        await linkPaymentProofToApplicationAsync(doc.applicationId, doc, userId);
-      } catch (error) {
-        console.warn('Could not sync proof of payment to application.', error);
+    try {
+      let latestApp = await getLatestApplicationAsync(userId).catch(() => null);
+      if (!latestApp && actor.role === ROLES.USER) {
+        latestApp = await ensureDraftAsync(userId).catch(() => null);
       }
+      const list = Array.isArray(filesMeta) ? filesMeta : [filesMeta];
+      const bucket = 'kagie-documents';
+      const saved = [];
+
+      for (const doc of list) {
+        const targetApplicationId = doc?.applicationId || latestApp?.id || null;
+        const originalName = doc?.name || doc?.fileName || 'document';
+        const rawFile = doc?.file || null;
+        const declaredMime = String(doc?.type || doc?.mimeType || rawFile?.type || '').toLowerCase().split(';')[0].trim();
+        const nameExtension = String(originalName).split('.').pop().toLowerCase();
+        const documentMimes = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' };
+        const mimeType = !declaredMime || declaredMime === 'application/octet-stream' ? documentMimes[nameExtension] || '' : declaredMime;
+        if (!Object.values(documentMimes).includes(mimeType)) throw new Error('Choose a PDF, DOC, DOCX, JPG, JPEG, or PNG document.');
+        const extension = extensionFromMime(mimeType) || String(originalName).split('.').pop();
+        const safeName = sanitizePathPart(originalName.replace(/\.[^.]+$/, '')) || 'document';
+        const objectPath = `${sanitizePathPart(ctx.targetRemoteId)}/${Date.now()}_${safeName}${extension ? `.${sanitizePathPart(extension)}` : ''}`;
+        const fileBody = rawFile || dataUrlToBlob(doc?.dataUrl || '', mimeType);
+        if (!fileBody) throw new Error('Could not prepare the selected file for upload.');
+        if (Number(fileBody.size || rawFile?.size || doc?.size || 0) > 8 * 1024 * 1024) throw new Error('Keep each document at or below 8 MB.');
+
+        const upload = await ctx.client.storage
+          .from(bucket)
+          .upload(objectPath, fileBody, {
+            cacheControl: '3600',
+            contentType: mimeType || undefined,
+            upsert: false
+          });
+        if (upload.error) throw new Error(upload.error.message || 'Could not upload document.');
+
+        const insert = await ctx.client
+          .from('documents')
+          .insert({
+            user_id: ctx.targetRemoteId,
+            application_id: targetApplicationId,
+            document_type: doc?.category || 'general',
+            file_name: originalName,
+            file_url: objectPath,
+            file_size: Number(doc?.size || rawFile?.size || 0),
+            mime_type: mimeType || '',
+            status: STATUS.doc.PENDING
+          })
+          .select('*')
+          .single();
+        if (insert.error || !insert.data) {
+          await ctx.client.storage.from(bucket).remove([objectPath]).catch(() => {});
+          throw new Error(insert.error?.message || 'Could not save document record.');
+        }
+
+        saved.push(normalizeRemoteDocumentRow(insert.data, ctx.targetLocalUser?.id || userId, { ...doc, applicationId: targetApplicationId }));
+      }
+
+      mirrorRemoteDocuments(saved, ctx.targetLocalUser?.id || userId);
+      for (const doc of saved.filter((item) => item.category === 'proof_of_payment')) {
+        try {
+          await linkPaymentProofToApplicationAsync(doc.applicationId, doc, userId);
+        } catch (error) {
+          console.warn('Could not sync proof of payment to application.', error);
+        }
+      }
+      if (actor.role === ROLES.USER) {
+        pushNotification(userId, 'Documents uploaded', 'Your documents were uploaded successfully.', 'success');
+        const latestApplication = saved.find((doc) => doc.applicationId)?.applicationId
+          ? await getApplicationByIdAsync(saved.find((doc) => doc.applicationId)?.applicationId, userId).catch(() => null)
+          : await getLatestApplicationAsync(userId).catch(() => null);
+        await notifyStaffForApplicationEventAsync(latestApplication, {
+          title: 'Learner uploaded documents',
+          message: `${buildLearnerAlertMessage(latestApplication, 'A learner')} uploaded ${saved.length} document${saved.length === 1 ? '' : 's'} to Kagie${saved.some((doc) => doc.category === 'proof_of_payment') ? ', including proof of payment' : ''}.`,
+          type: saved.some((doc) => doc.category === 'proof_of_payment') ? 'warning' : 'info'
+        }).catch(() => {});
+      }
+      return saved;
+    } catch (error) {
+      throw new Error(error?.message || 'Your document could not be saved to Kagie. Please try again.');
     }
-    if (actor.role === ROLES.USER) pushNotification(userId, 'Documents uploaded', 'Your documents were uploaded successfully.', 'success');
-    return saved;
   }
 
   function getDocumentsByUser(userIdArg) {
@@ -3811,7 +11373,13 @@
       .select('*')
       .eq('user_id', ctx.targetRemoteId)
       .order('created_at', { ascending: false });
-    if (query.error) throw new Error(query.error.message || 'Could not load documents.');
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) {
+        console.warn('Falling back to local documents because the remote documents query is unavailable.', query.error);
+        return local;
+      }
+      throw new Error(query.error.message || 'Could not load documents.');
+    }
 
     const localById = new Map(local.map((item) => [item.id, item]));
     const remote = safeArray(query.data).map((row) => normalizeRemoteDocumentRow(row, ctx.targetLocalUser?.id || userId, localById.get(row.id)));
@@ -3969,6 +11537,150 @@
       });
   }
 
+  function buildLocalAssignedDocumentReviewQueue(applicationsArg) {
+    const rows = [];
+
+    safeArray(applicationsArg).forEach((app) => {
+      const userId = String(app?.userId || '').trim();
+      if (!userId) return;
+
+      const user = getUserById(userId) || getUsers().find((item) => item.supabaseUserId === userId) || {};
+      const reviewsByDocId = new Map(
+        getDocumentReviewsForUser(userId).map((item) => [item.doc?.id || item.docId, item.review || null])
+      );
+
+      getDocumentsByUser(userId).forEach((doc) => {
+        rows.push({
+          appId: app.id,
+          userId,
+          user: clone(user),
+          doc: clone(doc),
+          review: clone(reviewsByDocId.get(doc.id) || null)
+        });
+      });
+    });
+
+    return rows.sort((left, right) => new Date(right.doc?.createdAt || 0) - new Date(left.doc?.createdAt || 0));
+  }
+
+  async function getAssignedDocumentReviewQueueAsync(assistantIdArg) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const assistantId = assistantIdArg || actor.id;
+    const applications = await getApplicationsByAssistantAsync(assistantId);
+    if (!applications.length) return [];
+
+    const localQueue = () => buildLocalAssignedDocumentReviewQueue(applications);
+    const ctx = await resolveSupabaseContext(actor.id);
+    if (!ctx) return localQueue();
+
+    const appRefsByRemoteUserId = new Map();
+    const appRefByLocalUserId = new Map();
+    safeArray(applications).forEach((app) => {
+      const localUserId = String(app?.userId || '').trim();
+      const user = getUserById(localUserId) || getUsers().find((item) => item.supabaseUserId === localUserId) || {};
+      const remoteUserId = String(user?.supabaseUserId || (isUuid(localUserId) ? localUserId : '')).trim();
+      if (!localUserId || !remoteUserId) return;
+
+      const ref = {
+        appId: app.id,
+        localUserId,
+        user: clone(user)
+      };
+      const refs = appRefsByRemoteUserId.get(remoteUserId) || [];
+      refs.push(ref);
+      appRefsByRemoteUserId.set(remoteUserId, refs);
+      if (!appRefByLocalUserId.has(localUserId)) appRefByLocalUserId.set(localUserId, ref);
+    });
+
+    if (!appRefsByRemoteUserId.size) return localQueue();
+
+    const documentsResult = await fetchPagedRowsByIn(
+      ctx.client,
+      'documents',
+      '*',
+      'user_id',
+      Array.from(appRefsByRemoteUserId.keys()),
+      { order: { column: 'created_at', ascending: false } }
+    );
+    if (documentsResult.error) {
+      if (isRecoverableRemoteSyncError(documentsResult.error)) {
+        console.warn('Falling back to local assistant document queue because live documents are unavailable.', documentsResult.error);
+        return localQueue();
+      }
+      throw new Error(documentsResult.error.message || 'Could not load assigned documents.');
+    }
+
+    const documents = safeArray(documentsResult.data).map((row) => {
+      const ref = safeArray(appRefsByRemoteUserId.get(row.user_id))[0] || {};
+      return normalizeRemoteDocumentRow(row, ref.localUserId || row.user_id);
+    });
+    const documentsByUserId = new Map();
+    documents.forEach((doc) => {
+      const bucket = documentsByUserId.get(doc.userId) || [];
+      bucket.push(doc);
+      documentsByUserId.set(doc.userId, bucket);
+    });
+    documentsByUserId.forEach((docs, userId) => mirrorRemoteDocuments(docs, userId));
+
+    const documentIds = documents.map((doc) => doc.id).filter(isUuid);
+    let reviewRows = [];
+    if (documentIds.length) {
+      const reviewsResult = await fetchPagedRowsByIn(
+        ctx.client,
+        'document_reviews',
+        '*',
+        'document_id',
+        documentIds,
+        { order: { column: 'created_at', ascending: false } }
+      );
+      if (!reviewsResult.error) {
+        reviewRows = safeArray(reviewsResult.data);
+      } else {
+        console.warn('Assigned document review history is unavailable; document statuses will be shown instead.', reviewsResult.error);
+      }
+    }
+
+    const reviewerUsers = await fetchRemoteUsersByIds(reviewRows.map((row) => row.assistant_id), ctx.client).catch(() => []);
+    const reviewerMap = new Map(reviewerUsers.map((user) => [user.supabaseUserId, user]));
+    const latestReviewByDocumentId = new Map();
+    reviewRows.forEach((row) => {
+      if (!latestReviewByDocumentId.has(row.document_id)) latestReviewByDocumentId.set(row.document_id, row);
+    });
+
+    const normalizedReviews = [];
+    const queue = documents.map((doc) => {
+      const remoteReview = latestReviewByDocumentId.get(doc.id);
+      const normalizedReview = remoteReview
+        ? normalizeRemoteDocumentReviewRow(remoteReview, doc, reviewerMap.get(remoteReview.assistant_id))
+        : null;
+      if (normalizedReview) normalizedReviews.push(normalizedReview);
+
+      const ref = appRefByLocalUserId.get(doc.userId) || {};
+      return {
+        appId: doc.applicationId || ref.appId || '',
+        userId: doc.userId,
+        user: clone(ref.user || {}),
+        doc: clone(doc),
+        review: {
+          status: normalizedReview?.status || doc.status || STATUS.doc.PENDING,
+          comment: normalizedReview?.comment || '',
+          reviewedBy: normalizedReview?.reviewerId || '',
+          createdAt: normalizedReview?.createdAt || doc.updatedAt || doc.createdAt
+        }
+      };
+    });
+
+    const reviewsByUserId = new Map();
+    normalizedReviews.forEach((review) => {
+      const bucket = reviewsByUserId.get(review.userId) || [];
+      bucket.push(review);
+      reviewsByUserId.set(review.userId, bucket);
+    });
+    reviewsByUserId.forEach((reviews, userId) => mirrorRemoteDocumentReviews(reviews, userId));
+
+    return queue.sort((left, right) => new Date(right.doc?.createdAt || 0) - new Date(left.doc?.createdAt || 0));
+  }
+
   function getThreadIdForUser(userId) {
     return `support_${userId}`;
   }
@@ -3994,7 +11706,13 @@
       .select('*')
       .eq('thread_id', remote.thread.id)
       .order('created_at', { ascending: true });
-    if (query.error) throw new Error(query.error.message || 'Could not load support messages.');
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) {
+        console.warn('Falling back to local support messages because the remote messages query is unavailable.', query.error);
+        return getSupportMessages(localThreadId);
+      }
+      throw new Error(query.error.message || 'Could not load support messages.');
+    }
 
     const senderUsers = await fetchRemoteUsersByIds(safeArray(query.data).map((row) => row.sender_id), remote.client).catch(() => []);
     const senderMap = new Map(senderUsers.map((user) => [user.supabaseUserId, user]));
@@ -4023,8 +11741,11 @@
     chats.push(entry);
     write(KEYS.supportChats, chats);
 
-    const userId = threadId.replace('support_', '');
-    if (actor.id !== userId) {
+    const ticket = read(KEYS.supportThreads, []).find((item) => item.id === threadId);
+    const targetReference = ticket?.userId || ticket?.user_id || threadId.replace('support_', '');
+    const targetUser = getUserByIdentity(targetReference);
+    const userId = targetUser?.id || targetReference;
+    if (actor.role !== ROLES.USER && !userMatchesIdentity(actor, userId)) {
       pushNotification(userId, 'New support message', `${actor.fullName} sent you a message.`, 'info');
       logAssistantActivity({ assistantId: actor.id, applicationId: null, action: 'send_support_message', details: { threadId } });
     }
@@ -4052,7 +11773,13 @@
       })
       .select('*')
       .single();
-    if (insert.error) throw new Error(insert.error.message || 'Could not send support message.');
+    if (insert.error) {
+      if (isRecoverableRemoteSyncError(insert.error)) {
+        console.warn('Falling back to local support message send because the remote insert is unavailable.', insert.error);
+        return sendSupportMessage(localThreadId, text);
+      }
+      throw new Error(insert.error.message || 'Could not send support message.');
+    }
 
     const entry = normalizeRemoteSupportMessageRow(insert.data, localThreadId, actor);
     const messages = await getSupportMessagesAsync(localThreadId);
@@ -4062,6 +11789,529 @@
     if (actor.id !== targetUserId) {
       await pushNotificationAsync(targetUserId, 'New support message', `${actor.fullName} sent you a message.`, 'info').catch(() => {});
       await logAssistantActivityAsync({ assistantId: actor.id, applicationId: null, action: 'send_support_message', details: { threadId: localThreadId } }).catch(() => {});
+    }
+    return entry;
+  }
+
+  function getApplicationUpdates(userIdArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const targetUserId = String(userIdArg || (actor.role === ROLES.USER ? actor.id : '') || '').trim();
+    return read(KEYS.applicationUpdates, [])
+      .map(normalizeApplicationUpdate)
+      .filter((item) => {
+        if (actor.role === ROLES.USER) return item.userId === actor.id;
+        if (targetUserId) return item.userId === targetUserId;
+        if (actor.role === ROLES.MASTER) return true;
+        const app = item.applicationId ? getApplicationById(item.applicationId) : null;
+        return app && getApplicationsByAssistant(actor.id).some((assigned) => assigned.id === app.id);
+      })
+      .sort((a, b) => new Date(b.updateAt || b.createdAt || 0) - new Date(a.updateAt || a.createdAt || 0))
+      .map(clone);
+  }
+
+  function postApplicationUpdate(payloadArg) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const payload = payloadArg || {};
+    const app = payload.applicationId ? getApplicationById(payload.applicationId) : null;
+    const userId = String(payload.userId || app?.userId || '').trim();
+    if (!userId) throw new Error('Choose an applicant before posting an update.');
+    if (actor.role === ROLES.ASSISTANT) {
+      const allowed = app && getApplicationsByAssistant(actor.id).some((assigned) => assigned.id === app.id);
+      if (!allowed) throw new Error('You do not have access to update this application.');
+    }
+    const entry = normalizeApplicationUpdate({
+      ...payload,
+      id: uid('upd'),
+      userId,
+      applicationId: app?.id || payload.applicationId || '',
+      title: String(payload.title || '').trim(),
+      message: String(payload.message || '').trim(),
+      status: normalizeApplicationUpdateStatus(payload.status),
+      postedBy: actor.id,
+      postedByRole: actor.role,
+      updateAt: payload.updateAt || payload.dateTime || nowISO(),
+      createdAt: nowISO(),
+      updatedAt: nowISO()
+    });
+    if (!entry.title) throw new Error('Update title is required.');
+    if (!entry.message) throw new Error('Update message is required.');
+    const rows = read(KEYS.applicationUpdates, []);
+    rows.push(entry);
+    write(KEYS.applicationUpdates, rows);
+    pushNotification(userId, entry.title, entry.message, 'application_update');
+    return clone(entry);
+  }
+
+  async function getApplicationUpdatesAsync(userIdArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const targetUserId = String(userIdArg || (actor.role === ROLES.USER ? actor.id : '') || '').trim();
+    const ctx = await resolveSupabaseContext(targetUserId || actor.id);
+    if (!ctx) return getApplicationUpdates(targetUserId);
+    let builder = ctx.client
+      .from('application_updates')
+      .select('*')
+      .order('update_at', { ascending: false });
+    if (actor.role === ROLES.USER) {
+      builder = builder.eq('user_id', ctx.remoteSelfId);
+    } else if (targetUserId) {
+      builder = builder.eq('user_id', ctx.targetRemoteId);
+    }
+    const query = await builder;
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) return getApplicationUpdates(targetUserId);
+      throw new Error(query.error.message || 'Could not load application updates.');
+    }
+    const updates = safeArray(query.data).map((row) => normalizeApplicationUpdate({
+      ...row,
+      source: 'supabase'
+    }));
+    mirrorRemoteApplicationUpdates(updates);
+    return updates;
+  }
+
+  async function postApplicationUpdateAsync(payloadArg) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const payload = payloadArg || {};
+    const app = payload.applicationId ? await getApplicationByIdAsync(payload.applicationId).catch(() => getApplicationById(payload.applicationId)) : null;
+    const userId = String(payload.userId || app?.userId || '').trim();
+    if (!userId) throw new Error('Choose an applicant before posting an update.');
+    const userCtx = await resolveSupabaseContext(userId);
+    const actorCtx = await resolveSupabaseContext(actor.id);
+    if (!userCtx || !actorCtx) return postApplicationUpdate(payload);
+    const status = normalizeApplicationUpdateStatus(payload.status);
+    const title = String(payload.title || '').trim();
+    const message = String(payload.message || '').trim();
+    if (!title) throw new Error('Update title is required.');
+    if (!message) throw new Error('Update message is required.');
+    const insert = await userCtx.client
+      .from('application_updates')
+      .insert({
+        user_id: userCtx.targetRemoteId,
+        application_id: app?.id || payload.applicationId || null,
+        institution_id: payload.institutionId || null,
+        institution_name: String(payload.institutionName || '').trim(),
+        title,
+        message,
+        status,
+        action_label: String(payload.actionLabel || '').trim(),
+        action_url: String(payload.actionUrl || '').trim(),
+        posted_by: actorCtx.targetRemoteId,
+        posted_by_role: actor.role,
+        update_at: payload.updateAt || payload.dateTime || nowISO()
+      })
+      .select('*')
+      .single();
+    if (insert.error) {
+      if (isRecoverableRemoteSyncError(insert.error)) return postApplicationUpdate(payload);
+      throw new Error(insert.error.message || 'Could not post application update.');
+    }
+    const entry = normalizeApplicationUpdate({ ...insert.data, source: 'supabase' });
+    mirrorRemoteApplicationUpdates([entry]);
+    await pushNotificationAsync(userId, title, message, 'application_update').catch(() => {});
+    return entry;
+  }
+
+  function markApplicationUpdateRead(updateIdArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const updateId = String(updateIdArg || '').trim();
+    const rows = read(KEYS.applicationUpdates, []).map(normalizeApplicationUpdate);
+    const index = rows.findIndex((item) => item.id === updateId);
+    if (index === -1) return false;
+    if (actor.role === ROLES.USER && rows[index].userId !== actor.id) {
+      throw new Error('You can only mark your own update as read.');
+    }
+    rows[index] = { ...rows[index], read: true, updatedAt: nowISO() };
+    write(KEYS.applicationUpdates, rows);
+    return true;
+  }
+
+  async function markApplicationUpdateReadAsync(updateIdArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const updateId = String(updateIdArg || '').trim();
+    const ctx = await resolveSupabaseContext(actor.id);
+    if (!ctx || !isUuid(updateId)) return markApplicationUpdateRead(updateId);
+    const update = await ctx.client
+      .from('application_updates')
+      .update({ is_read: true })
+      .eq('id', updateId)
+      .select('*')
+      .maybeSingle();
+    if (update.error) {
+      if (isRecoverableRemoteSyncError(update.error)) return markApplicationUpdateRead(updateId);
+      throw new Error(update.error.message || 'Could not mark update as read.');
+    }
+    if (update.data) mirrorRemoteApplicationUpdates([normalizeApplicationUpdate({ ...update.data, source: 'supabase' })]);
+    return true;
+  }
+
+  function createSupportTicket(payloadArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const payload = payloadArg || {};
+    const userId = actor.role === ROLES.USER ? actor.id : String(payload.userId || '').trim();
+    if (!userId) throw new Error('Choose a learner before creating a support ticket.');
+    const subject = String(payload.subject || '').trim();
+    const message = String(payload.message || '').trim();
+    if (!subject) throw new Error('Support subject is required.');
+    if (!message) throw new Error('Support message is required.');
+    if (actor.role === ROLES.ASSISTANT && !identitySetHasAny(getAssistantScopedLearnerIdentitySetLocal(actor), supportReferenceIdentityKeys(userId))) {
+      throw new Error('You can only create support tickets for learners assigned to you.');
+    }
+    const thread = normalizeSupportThread({
+      id: uid('ticket'),
+      userId,
+      assistantId: payload.assistantId || '',
+      subject,
+      category: payload.category || 'General',
+      status: 'open',
+      createdAt: nowISO(),
+      updatedAt: nowISO(),
+      lastMessageAt: nowISO()
+    });
+    const threads = read(KEYS.supportThreads, []);
+    threads.push(thread);
+    write(KEYS.supportThreads, threads);
+    sendSupportMessage(thread.id, message);
+    return clone(thread);
+  }
+
+  function getSupportTickets(filterArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const filter = filterArg || {};
+    return read(KEYS.supportThreads, [])
+      .map(normalizeSupportThread)
+      .filter((thread) => {
+        if (actor.role === ROLES.USER) return userMatchesIdentity(actor, thread.userId);
+        if (filter.userId && thread.userId !== filter.userId) return false;
+        if (actor.role === ROLES.MASTER) return true;
+        if (thread.assistantId && thread.assistantId === actor.id) return true;
+        return getApplicationsByAssistant(actor.id).some((app) => app.userId === thread.userId);
+      })
+      .filter((thread) => !filter.status || normalizeSupportTicketStatus(thread.status) === normalizeSupportTicketStatus(filter.status))
+      .sort((a, b) => new Date(b.lastMessageAt || b.updatedAt || 0) - new Date(a.lastMessageAt || a.updatedAt || 0))
+      .map(clone);
+  }
+
+  async function hydrateSupportThreadIdentitiesAsync(threadsArg, clientArg) {
+    if (!clientArg) return [];
+    const remoteIds = uniqueNonEmptyStrings(
+      safeArray(threadsArg)
+        .map(normalizeSupportThread)
+        .flatMap((thread) => [thread.userId, thread.assistantId])
+        .filter((value) => isUuid(value))
+    );
+    if (!remoteIds.length) return [];
+    return fetchRemoteUsersByIds(remoteIds, clientArg).catch((error) => {
+      console.warn('Could not hydrate support ticket identities:', error?.message || error);
+      return [];
+    });
+  }
+
+  async function filterSupportThreadsForActorAsync(threadsArg, actorArg, ctxArg, filterArg) {
+    const actor = actorArg || requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const filter = filterArg || {};
+    const threads = safeArray(threadsArg).map(normalizeSupportThread);
+    await hydrateSupportThreadIdentitiesAsync(threads, ctxArg?.client);
+
+    const actorKeys = supportActorIdentitySet(actor);
+    const filterKeys = String(filter.userId || '').trim()
+      ? supportReferenceIdentityKeys(filter.userId).map((key) => String(key || '').trim().toLowerCase())
+      : [];
+    const assistantScope = actor.role === ROLES.ASSISTANT
+      ? await getAssistantScopedLearnerIdentitySetAsync(ctxArg).catch(() => getAssistantScopedLearnerIdentitySetLocal(actor))
+      : null;
+
+    return threads.filter((thread) => {
+      const learnerKeys = supportReferenceIdentityKeys(thread.userId);
+      if (filterKeys.length && !learnerKeys.some((key) => filterKeys.includes(String(key || '').trim().toLowerCase()))) return false;
+      if (actor.role === ROLES.MASTER) return true;
+      if (actor.role === ROLES.USER) return identitySetHasAny(actorKeys, learnerKeys);
+
+      const assistantKeys = supportReferenceIdentityKeys(thread.assistantId);
+      if (thread.assistantId && identitySetHasAny(actorKeys, assistantKeys)) return true;
+      return identitySetHasAny(assistantScope, learnerKeys);
+    });
+  }
+
+  async function assistantCanAccessSupportUserAsync(actorArg, userIdArg, ctxArg) {
+    const actor = actorArg || requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    if (actor.role !== ROLES.ASSISTANT) return true;
+    await hydrateSupportThreadIdentitiesAsync([{ userId: userIdArg }], ctxArg?.client);
+    const scope = await getAssistantScopedLearnerIdentitySetAsync(ctxArg).catch(() => getAssistantScopedLearnerIdentitySetLocal(actor));
+    return identitySetHasAny(scope, supportReferenceIdentityKeys(userIdArg));
+  }
+
+  async function requireSupportTicketAccessAsync(ticketIdArg, actorArg, ctxArg) {
+    const actor = actorArg || requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const ticketId = String(ticketIdArg || '').trim();
+    if (!ticketId) throw new Error('Support ticket is required.');
+    if (!isUuid(ticketId)) {
+      const localTicket = getSupportTickets().find((thread) => thread.id === ticketId);
+      if (!localTicket) throw new Error('You do not have access to this support ticket.');
+      return localTicket;
+    }
+
+    const ctx = ctxArg || await resolveSupabaseContext(actor.id);
+    if (!ctx?.client) {
+      const localTicket = getSupportTickets().find((thread) => thread.id === ticketId);
+      if (!localTicket) throw new Error('You do not have access to this support ticket.');
+      return localTicket;
+    }
+
+    const query = await ctx.client
+      .from('support_threads')
+      .select('*')
+      .eq('id', ticketId)
+      .maybeSingle();
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) {
+        const localTicket = getSupportTickets().find((thread) => thread.id === ticketId);
+        if (localTicket) return localTicket;
+      }
+      throw new Error(query.error.message || 'Could not load support ticket.');
+    }
+    if (!query.data) throw new Error('Support ticket not found.');
+
+    const visible = await filterSupportThreadsForActorAsync(
+      [normalizeSupportThread({ ...query.data, source: 'supabase' })],
+      actor,
+      ctx,
+      {}
+    );
+    if (!visible.length) throw new Error('You do not have access to this support ticket.');
+    mirrorRemoteSupportThreads(visible);
+    return visible[0];
+  }
+
+  async function createSupportTicketAsync(payloadArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const payload = payloadArg || {};
+    const targetUserId = actor.role === ROLES.USER ? actor.id : String(payload.userId || '').trim();
+    const subject = String(payload.subject || '').trim();
+    const message = String(payload.message || '').trim();
+    if (!targetUserId) throw new Error('Choose a learner before creating a support ticket.');
+    if (!subject) throw new Error('Support subject is required.');
+    if (!message) throw new Error('Support message is required.');
+    const userCtx = await resolveSupabaseContext(targetUserId);
+    const actorCtx = await resolveSupabaseContext(actor.id);
+    if (!userCtx || !actorCtx) return createSupportTicket(payload);
+    if (!(await assistantCanAccessSupportUserAsync(actor, targetUserId, actorCtx))) {
+      throw new Error('You can only create support tickets for learners assigned to you.');
+    }
+    const created = await userCtx.client
+      .from('support_threads')
+      .insert({
+        user_id: userCtx.targetRemoteId,
+        assistant_id: payload.assistantId || null,
+        subject,
+        category: String(payload.category || 'General').trim() || 'General',
+        status: 'open',
+        last_message_at: nowISO()
+      })
+      .select('*')
+      .single();
+    if (created.error) {
+      if (isRecoverableRemoteSyncError(created.error)) return createSupportTicket(payload);
+      throw new Error(created.error.message || 'Could not create support ticket.');
+    }
+    const msg = await userCtx.client
+      .from('support_messages')
+      .insert({
+        thread_id: created.data.id,
+        sender_id: actorCtx.targetRemoteId,
+        sender_role: actor.role,
+        message
+      })
+      .select('*')
+      .single();
+    const thread = normalizeSupportThread({ ...created.data, source: 'supabase' });
+    mirrorRemoteSupportThreads([thread]);
+    if (msg.error) {
+      console.warn('Support ticket was created but its first message failed:', msg.error);
+      const error = new Error('Your support ticket was created, but its first message could not be sent. Please retry from Support.');
+      error.supportTicket = thread;
+      throw error;
+    }
+    if (msg.data) {
+      mirrorRemoteSupportMessages([normalizeRemoteSupportMessageRow(msg.data, thread.id, actor)], thread.id);
+    }
+    return thread;
+  }
+
+  async function getSupportTicketsAsync(filterArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const filter = filterArg || {};
+    const targetUserId = String(filter.userId || (actor.role === ROLES.USER ? actor.id : '') || '').trim();
+    const ctx = await resolveSupabaseContext(targetUserId || actor.id);
+    if (!ctx) return getSupportTickets(filter);
+    let builder = ctx.client
+      .from('support_threads')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (actor.role === ROLES.USER) {
+      builder = builder.eq('user_id', ctx.remoteSelfId);
+    } else if (targetUserId) {
+      builder = builder.eq('user_id', ctx.targetRemoteId);
+    }
+    if (filter.status) {
+      builder = builder.eq('status', normalizeSupportTicketStatus(filter.status));
+    }
+    const query = await builder;
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) return getSupportTickets(filter);
+      throw new Error(query.error.message || 'Could not load support tickets.');
+    }
+    const threads = safeArray(query.data).map((row) => normalizeSupportThread({ ...row, source: 'supabase' }));
+    const visibleThreads = await filterSupportThreadsForActorAsync(threads, actor, ctx, filter);
+    mirrorRemoteSupportThreads(visibleThreads);
+    return visibleThreads;
+  }
+
+  function updateSupportTicketStatus(ticketIdArg, statusArg) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const ticketId = String(ticketIdArg || '').trim();
+    const status = normalizeSupportTicketStatus(statusArg);
+    const rows = read(KEYS.supportThreads, []).map(normalizeSupportThread);
+    const index = rows.findIndex((thread) => thread.id === ticketId);
+    if (index === -1) throw new Error('Support ticket not found.');
+    if (actor.role === ROLES.ASSISTANT && !getSupportTickets({ userId: rows[index].userId }).some((thread) => thread.id === ticketId)) {
+      throw new Error('You do not have access to this support ticket.');
+    }
+    rows[index] = {
+      ...rows[index],
+      status,
+      statusLabel: supportTicketStatusLabel(status),
+      closedAt: ['resolved', 'closed'].includes(status) ? nowISO() : '',
+      updatedAt: nowISO()
+    };
+    write(KEYS.supportThreads, rows);
+    return clone(rows[index]);
+  }
+
+  async function updateSupportTicketStatusAsync(ticketIdArg, statusArg) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const ticketId = String(ticketIdArg || '').trim();
+    const status = normalizeSupportTicketStatus(statusArg);
+    const ctx = await resolveSupabaseContext(actor.id);
+    if (!ctx || !isUuid(ticketId)) return updateSupportTicketStatus(ticketId, status);
+    await requireSupportTicketAccessAsync(ticketId, actor, ctx);
+    const update = await ctx.client
+      .from('support_threads')
+      .update({
+        status,
+        closed_at: ['resolved', 'closed'].includes(status) ? nowISO() : null
+      })
+      .eq('id', ticketId)
+      .select('*')
+      .maybeSingle();
+    if (update.error) {
+      if (isRecoverableRemoteSyncError(update.error)) return updateSupportTicketStatus(ticketId, status);
+      throw new Error(update.error.message || 'Could not update support ticket.');
+    }
+    if (!update.data) throw new Error('Support ticket not found.');
+    const thread = normalizeSupportThread({ ...update.data, source: 'supabase' });
+    mirrorRemoteSupportThreads([thread]);
+    return thread;
+  }
+
+  function getSupportTicketMessages(ticketIdArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const ticketId = String(ticketIdArg || '').trim();
+    if (!ticketId) throw new Error('Support ticket is required.');
+    const ticket = getSupportTickets().find((thread) => thread.id === ticketId);
+    if (!ticket && actor.role !== ROLES.MASTER) throw new Error('You do not have access to this support ticket.');
+    return read(KEYS.supportChats, [])
+      .filter((message) => message.threadId === ticketId)
+      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+      .map(clone);
+  }
+
+  async function getSupportTicketMessagesAsync(ticketIdArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const ticketId = String(ticketIdArg || '').trim();
+    if (!ticketId) throw new Error('Support ticket is required.');
+    if (!isUuid(ticketId)) return getSupportTicketMessages(ticketId);
+    const ctx = await resolveSupabaseContext(actor.id);
+    if (!ctx) return getSupportTicketMessages(ticketId);
+    await requireSupportTicketAccessAsync(ticketId, actor, ctx);
+    const query = await ctx.client
+      .from('support_messages')
+      .select('*')
+      .eq('thread_id', ticketId)
+      .order('created_at', { ascending: true });
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) return getSupportTicketMessages(ticketId);
+      throw new Error(query.error.message || 'Could not load support conversation.');
+    }
+    const senderUsers = await fetchRemoteUsersByIds(safeArray(query.data).map((row) => row.sender_id), ctx.client).catch(() => []);
+    const senderMap = new Map(senderUsers.map((user) => [user.supabaseUserId, user]));
+    const messages = safeArray(query.data).map((row) => normalizeRemoteSupportMessageRow(row, ticketId, senderMap.get(row.sender_id)));
+    mirrorRemoteSupportMessages(messages, ticketId);
+    return messages;
+  }
+
+  function replySupportTicket(ticketIdArg, messageArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const ticketId = String(ticketIdArg || '').trim();
+    const text = String(messageArg || '').trim();
+    if (!ticketId) throw new Error('Support ticket is required.');
+    if (!text) throw new Error('Message cannot be empty.');
+    const ticket = getSupportTickets().find((thread) => thread.id === ticketId);
+    if (!ticket && actor.role !== ROLES.MASTER) throw new Error('You do not have access to this support ticket.');
+    const entry = sendSupportMessage(ticketId, text);
+    const threads = read(KEYS.supportThreads, []).map(normalizeSupportThread);
+    const index = threads.findIndex((thread) => thread.id === ticketId);
+    if (index > -1) {
+      threads[index] = {
+        ...threads[index],
+        status: actor.role === ROLES.USER ? 'open' : 'awaiting_user',
+        statusLabel: supportTicketStatusLabel(actor.role === ROLES.USER ? 'open' : 'awaiting_user'),
+        lastMessageAt: entry.createdAt,
+        updatedAt: entry.createdAt
+      };
+      write(KEYS.supportThreads, threads);
+    }
+    return entry;
+  }
+
+  async function replySupportTicketAsync(ticketIdArg, messageArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const ticketId = String(ticketIdArg || '').trim();
+    const text = String(messageArg || '').trim();
+    if (!ticketId) throw new Error('Support ticket is required.');
+    if (!text) throw new Error('Message cannot be empty.');
+    if (!isUuid(ticketId)) return replySupportTicket(ticketId, text);
+    const ctx = await resolveSupabaseContext(actor.id);
+    if (!ctx) return replySupportTicket(ticketId, text);
+    await requireSupportTicketAccessAsync(ticketId, actor, ctx);
+    const insert = await ctx.client
+      .from('support_messages')
+      .insert({
+        thread_id: ticketId,
+        sender_id: ctx.remoteSelfId,
+        sender_role: actor.role,
+        message: text
+      })
+      .select('*')
+      .single();
+    if (insert.error) {
+      if (isRecoverableRemoteSyncError(insert.error)) return replySupportTicket(ticketId, text);
+      throw new Error(insert.error.message || 'Could not send support reply.');
+    }
+    try {
+      await ctx.client
+        .from('support_threads')
+        .update({
+          status: actor.role === ROLES.USER ? 'open' : 'awaiting_user',
+          last_message_at: nowISO()
+        })
+        .eq('id', ticketId);
+    } catch (_error) {
+      // The reply is already saved; ticket recency can safely catch up on the next refresh.
+    }
+    const entry = normalizeRemoteSupportMessageRow(insert.data, ticketId, actor);
+    const currentMessages = await getSupportTicketMessagesAsync(ticketId).catch(() => []);
+    if (!currentMessages.find((item) => item.id === entry.id)) {
+      mirrorRemoteSupportMessages(currentMessages.concat(entry), ticketId);
     }
     return entry;
   }
@@ -4084,7 +12334,7 @@
 
     records.push(entry);
     write(KEYS.callRequests, records);
-    if (actor.role === ROLES.USER) pushNotification(actor.id, 'Callback requested', 'Your callback request was sent successfully.', 'success');
+    if (actor.role === ROLES.USER) pushNotification(actor.id, 'Callback saved on this device', 'Your callback request has not reached Kagie support. Retry from Support when you are connected.', 'info');
     return clone(entry);
   }
 
@@ -4104,7 +12354,13 @@
       })
       .select('*')
       .single();
-    if (insert.error) throw new Error(insert.error.message || 'Could not request callback.');
+    if (insert.error) {
+      if (isRecoverableRemoteSyncError(insert.error)) {
+        console.warn('Falling back to local callback request because the remote insert is unavailable.', insert.error);
+        return requestCallback(payload);
+      }
+      throw new Error(insert.error.message || 'Could not request callback.');
+    }
 
     const entry = normalizeRemoteCallbackRow(insert.data, actor);
     mirrorRemoteCallRequests([entry], actor.id);
@@ -4113,8 +12369,14 @@
   }
 
   function getCallRequests() {
-    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const allowedLearners = actor.role === ROLES.ASSISTANT ? getAssistantScopedLearnerIdentitySetLocal(actor) : null;
     return read(KEYS.callRequests, [])
+      .filter((item) => {
+        if (actor.role !== ROLES.ASSISTANT) return true;
+        return userMatchesIdentity(actor, item?.assignedAssistantId)
+          || allowedLearners.has(String(item?.requesterId || '').trim().toLowerCase());
+      })
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .map(clone);
   }
@@ -4143,7 +12405,13 @@
       .select('*')
       .eq('user_id', ctx.targetRemoteId)
       .order('created_at', { ascending: false });
-    if (query.error) throw new Error(query.error.message || 'Could not load callback requests.');
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) {
+        console.warn('Falling back to local callback requests because the remote query is unavailable.', query.error);
+        return local;
+      }
+      throw new Error(query.error.message || 'Could not load callback requests.');
+    }
 
     const requesterUser = ctx.targetLocalUser || actor;
     const items = safeArray(query.data).map((row) => ({
@@ -4159,16 +12427,62 @@
     const ctx = await resolveSupabaseContext(actor.id);
     if (!ctx) return getCallRequests();
 
-    const query = await ctx.client
-      .from('callback_requests')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (query.error) throw new Error(query.error.message || 'Could not load callback requests.');
+    let rows = [];
+    if (actor.role === ROLES.ASSISTANT) {
+      const [assignedQuery, scopedUserIds] = await Promise.all([
+        ctx.client
+          .from('callback_requests')
+          .select('*')
+          .eq('assigned_assistant_id', ctx.remoteSelfId)
+          .order('created_at', { ascending: false }),
+        getAssistantScopedRemoteUserIds(ctx).catch(() => [])
+      ]);
+      if (assignedQuery.error) {
+        if (isRecoverableRemoteSyncError(assignedQuery.error)) {
+          console.warn('Falling back to local assistant callback requests because the remote query is unavailable.', assignedQuery.error);
+          return getCallRequests();
+        }
+        throw new Error(assignedQuery.error.message || 'Could not load callback requests.');
+      }
 
-    const remoteIds = safeArray(query.data).flatMap((row) => [row.user_id, row.assigned_assistant_id]).filter(Boolean);
+      const byId = new Map();
+      safeArray(assignedQuery.data).forEach((row) => byId.set(row.id, row));
+      if (scopedUserIds.length) {
+        const learnerQuery = await ctx.client
+          .from('callback_requests')
+          .select('*')
+          .in('user_id', scopedUserIds)
+          .order('created_at', { ascending: false });
+        if (learnerQuery.error) {
+          if (isRecoverableRemoteSyncError(learnerQuery.error)) {
+            console.warn('Skipping part of the assistant callback scope because one live query is unavailable.', learnerQuery.error);
+          } else {
+            throw new Error(learnerQuery.error.message || 'Could not load callback requests.');
+          }
+        } else {
+          safeArray(learnerQuery.data).forEach((row) => byId.set(row.id, row));
+        }
+      }
+      rows = Array.from(byId.values());
+    } else {
+      const query = await ctx.client
+        .from('callback_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (query.error) {
+        if (isRecoverableRemoteSyncError(query.error)) {
+          console.warn('Falling back to local admin callback requests because the remote query is unavailable.', query.error);
+          return getCallRequests();
+        }
+        throw new Error(query.error.message || 'Could not load callback requests.');
+      }
+      rows = safeArray(query.data);
+    }
+
+    const remoteIds = safeArray(rows).flatMap((row) => [row.user_id, row.assigned_assistant_id]).filter(Boolean);
     const syncedUsers = await fetchRemoteUsersByIds(remoteIds, ctx.client).catch(() => []);
     const userMap = new Map(syncedUsers.map((user) => [user.supabaseUserId, user]));
-    const items = safeArray(query.data).map((row) => ({
+    const items = safeArray(rows).map((row) => ({
       ...normalizeRemoteCallbackRow(row, userMap.get(row.user_id)),
       assignedAssistantId: userMap.get(row.assigned_assistant_id)?.id || row.assigned_assistant_id || null
     }));
@@ -4262,24 +12576,386 @@
     return entry;
   }
 
+  function persistPortalAccessOnApplicationLocal(applicationId, entriesArg) {
+    const apps = getAllApplications();
+    const index = apps.findIndex((app) => app.id === applicationId);
+    if (index === -1) return [];
+
+    const entries = safeArray(entriesArg)
+      .map((entry, itemIndex) => normalizePortalAccessEntry(entry, itemIndex + 1))
+      .filter(portalAccessHasData);
+
+    const next = clone(apps[index]);
+    next.forms = next.forms && typeof next.forms === 'object' ? next.forms : {};
+    next.forms.portalAccess = entries.map(clone);
+    next.updatedAt = nowISO();
+    apps[index] = next;
+    saveAllApplications(apps);
+    return entries.map(clone);
+  }
+
+  function upsertPortalAccessNoteLocal(applicationId, actor, entriesArg) {
+    const entries = safeArray(entriesArg)
+      .map((entry, index) => normalizePortalAccessEntry({
+        ...entry,
+        updatedAt: entry?.updatedAt || nowISO(),
+        updatedBy: entry?.updatedBy || actor?.fullName || actor?.role || 'Kagie'
+      }, index + 1))
+      .filter(portalAccessHasData);
+
+    const notes = read(KEYS.notes, []);
+    const text = serializePortalAccessState(entries);
+    const existingIndex = notes.findIndex((item) => item.applicationId === applicationId && isPortalAccessNoteText(item.text));
+
+    if (existingIndex >= 0) {
+      notes[existingIndex] = {
+        ...notes[existingIndex],
+        authorId: actor?.id || notes[existingIndex].authorId,
+        authorName: actor?.fullName || actor?.role || notes[existingIndex].authorName || 'Kagie',
+        text,
+        updatedAt: nowISO()
+      };
+    } else {
+      notes.push({
+        id: uid('note'),
+        applicationId,
+        authorId: actor?.id || '',
+        authorName: actor?.fullName || actor?.role || 'Kagie',
+        text,
+        createdAt: nowISO(),
+        updatedAt: nowISO()
+      });
+    }
+
+    write(KEYS.notes, notes);
+    persistPortalAccessOnApplicationLocal(applicationId, entries);
+    return entries.map(clone);
+  }
+
+  function persistLearnerSupportOnApplicationLocal(applicationId, dataArg) {
+    const apps = getAllApplications();
+    const index = apps.findIndex((app) => app.id === applicationId);
+    if (index === -1) return normalizeLearnerSupportNeeds({});
+
+    const support = normalizeLearnerSupportNeeds(dataArg);
+    const next = clone(apps[index]);
+    next.forms = next.forms && typeof next.forms === 'object' ? next.forms : {};
+    next.forms.learner = {
+      ...(next.forms.learner || {}),
+      ...support
+    };
+    next.updatedAt = nowISO();
+    apps[index] = next;
+    saveAllApplications(apps);
+    return clone(support);
+  }
+
+  function upsertLearnerSupportNoteLocal(applicationId, actor, dataArg) {
+    const support = normalizeLearnerSupportNeeds(dataArg);
+    const notes = read(KEYS.notes, []);
+    const text = serializeLearnerSupportState(support);
+    const existingIndex = notes.findIndex((item) => item.applicationId === applicationId && isLearnerSupportNoteText(item.text));
+
+    if (existingIndex >= 0) {
+      notes[existingIndex] = {
+        ...notes[existingIndex],
+        authorId: actor?.id || notes[existingIndex].authorId,
+        authorName: actor?.fullName || actor?.role || notes[existingIndex].authorName || 'Kagie',
+        text,
+        updatedAt: nowISO()
+      };
+    } else {
+      notes.push({
+        id: uid('note'),
+        applicationId,
+        authorId: actor?.id || '',
+        authorName: actor?.fullName || actor?.role || 'Kagie',
+        text,
+        createdAt: nowISO(),
+        updatedAt: nowISO()
+      });
+    }
+
+    write(KEYS.notes, notes);
+    persistLearnerSupportOnApplicationLocal(applicationId, support);
+    return clone(support);
+  }
+
+  function getApplicationLearnerSupport(applicationId) {
+    requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const app = getApplicationById(applicationId);
+    const direct = normalizeLearnerSupportNeeds(app?.forms?.learner || {});
+    if (learnerSupportHasData(direct)) return direct;
+
+    const notes = read(KEYS.notes, []).filter((note) => note.applicationId === applicationId);
+    return extractLearnerSupportFromNotes(notes);
+  }
+
+  async function getApplicationLearnerSupportAsync(applicationId) {
+    requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    if (!isUuid(applicationId)) return getApplicationLearnerSupport(applicationId);
+    const ctx = await resolveSupabaseContext();
+    if (!ctx) return getApplicationLearnerSupport(applicationId);
+
+    const query = await ctx.client
+      .from('application_notes')
+      .select('*')
+      .eq('application_id', applicationId)
+      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false });
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) {
+        console.warn('Falling back to local learner support because the remote notes query is unavailable.', query.error);
+        return getApplicationLearnerSupport(applicationId);
+      }
+      throw new Error(query.error.message || 'Could not load learner support details.');
+    }
+
+    const authorUsers = await fetchRemoteUsersByIds(safeArray(query.data).map((row) => row.author_id), ctx.client).catch(() => []);
+    const authorMap = new Map(authorUsers.map((user) => [user.supabaseUserId, user]));
+    const allNotes = safeArray(query.data).map((row) => normalizeRemoteApplicationNoteRow(row, authorMap.get(row.author_id)));
+    mirrorRemoteNotes(allNotes, applicationId);
+    const support = extractLearnerSupportFromNotes(allNotes);
+    if (learnerSupportHasData(support)) persistLearnerSupportOnApplicationLocal(applicationId, support);
+    return support;
+  }
+
+  function saveApplicationLearnerSupport(applicationId, dataArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const app = getApplicationById(applicationId);
+    if (!app) throw new Error('Application not found.');
+    return upsertLearnerSupportNoteLocal(applicationId, actor, dataArg);
+  }
+
+  async function saveApplicationLearnerSupportAsync(applicationId, dataArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    if (!isUuid(applicationId)) return saveApplicationLearnerSupport(applicationId, dataArg);
+    const ctx = await resolveSupabaseContext(actor.id);
+    if (!ctx) return saveApplicationLearnerSupport(applicationId, dataArg);
+
+    const support = normalizeLearnerSupportNeeds(dataArg);
+
+    try {
+      const existingQuery = await ctx.client
+        .from('application_notes')
+        .select('*')
+        .eq('application_id', applicationId)
+        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false });
+      if (existingQuery.error) throw existingQuery.error;
+
+      const text = serializeLearnerSupportState(support);
+      const existing = safeArray(existingQuery.data).find((row) => isLearnerSupportNoteText(row.note));
+      let writeResult = null;
+
+      if (existing) {
+        writeResult = await ctx.client
+          .from('application_notes')
+          .update({
+            note: text,
+            author_id: ctx.remoteSelfId,
+            author_role: actor.role
+          })
+          .eq('id', existing.id)
+          .select('*')
+          .single();
+      } else {
+        writeResult = await ctx.client
+          .from('application_notes')
+          .insert({
+            application_id: applicationId,
+            author_id: ctx.remoteSelfId,
+            author_role: actor.role,
+            note: text
+          })
+          .select('*')
+          .single();
+      }
+
+      if (writeResult.error) throw writeResult.error;
+
+      upsertLearnerSupportNoteLocal(applicationId, actor, support);
+      return clone(support);
+    } catch (error) {
+      if (isRecoverableRemoteSyncError(error)) {
+        console.warn('Falling back to local learner support save because remote note sync is unavailable.', error);
+        return saveApplicationLearnerSupport(applicationId, support);
+      }
+      throw new Error(error.message || 'Could not save learner support details.');
+    }
+  }
+
+  function getApplicationPortalAccess(applicationId) {
+    requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const app = getApplicationById(applicationId);
+    const directEntries = safeArray(app?.forms?.portalAccess)
+      .map((entry, index) => normalizePortalAccessEntry(entry, index + 1))
+      .filter(portalAccessHasData);
+    if (directEntries.length) return directEntries;
+
+    const notes = read(KEYS.notes, []).filter((note) => note.applicationId === applicationId);
+    return extractPortalAccessFromNotes(notes);
+  }
+
+  async function getApplicationPortalAccessAsync(applicationId) {
+    requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    if (!isUuid(applicationId)) return getApplicationPortalAccess(applicationId);
+    const ctx = await resolveSupabaseContext();
+    if (!ctx) return getApplicationPortalAccess(applicationId);
+
+    const query = await ctx.client
+      .from('application_notes')
+      .select('*')
+      .eq('application_id', applicationId)
+      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false });
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) {
+        console.warn('Falling back to local portal access because the remote notes query is unavailable.', query.error);
+        return getApplicationPortalAccess(applicationId);
+      }
+      throw new Error(query.error.message || 'Could not load institution portal access.');
+    }
+
+    const authorUsers = await fetchRemoteUsersByIds(safeArray(query.data).map((row) => row.author_id), ctx.client).catch(() => []);
+    const authorMap = new Map(authorUsers.map((user) => [user.supabaseUserId, user]));
+    const allNotes = safeArray(query.data).map((row) => normalizeRemoteApplicationNoteRow(row, authorMap.get(row.author_id)));
+    mirrorRemoteNotes(allNotes, applicationId);
+    const entries = extractPortalAccessFromNotes(allNotes);
+    if (entries.length) persistPortalAccessOnApplicationLocal(applicationId, entries);
+    return entries;
+  }
+
+  function saveApplicationPortalAccess(applicationId, entriesArg) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const app = getApplicationById(applicationId);
+    if (!app) throw new Error('Application not found.');
+
+    const entries = upsertPortalAccessNoteLocal(applicationId, actor, entriesArg);
+    pushNotification(
+      app.userId,
+      'Institution login details ready',
+      entries.length
+        ? 'Your institution login details are now available in your Kagie dashboard.'
+        : 'Your institution login details were updated in your Kagie dashboard.',
+      'info'
+    );
+    logAssistantActivity({
+      assistantId: actor.id,
+      applicationId,
+      action: 'save_portal_access',
+      details: { entries: entries.length }
+    });
+    return entries.map(clone);
+  }
+
+  async function saveApplicationPortalAccessAsync(applicationId, entriesArg) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    if (!isUuid(applicationId)) return saveApplicationPortalAccess(applicationId, entriesArg);
+    const ctx = await resolveSupabaseContext(actor.id);
+    if (!ctx) return saveApplicationPortalAccess(applicationId, entriesArg);
+
+    const entries = safeArray(entriesArg)
+      .map((entry, index) => normalizePortalAccessEntry({
+        ...entry,
+        updatedAt: entry?.updatedAt || nowISO(),
+        updatedBy: entry?.updatedBy || actor.fullName || actor.role
+      }, index + 1))
+      .filter(portalAccessHasData);
+
+    try {
+      const existingQuery = await ctx.client
+        .from('application_notes')
+        .select('*')
+        .eq('application_id', applicationId)
+        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false });
+      if (existingQuery.error) throw existingQuery.error;
+
+      const text = serializePortalAccessState(entries);
+      const existing = safeArray(existingQuery.data).find((row) => isPortalAccessNoteText(row.note));
+      let writeResult = null;
+
+      if (existing) {
+        writeResult = await ctx.client
+          .from('application_notes')
+          .update({
+            note: text,
+            author_id: ctx.remoteSelfId,
+            author_role: actor.role
+          })
+          .eq('id', existing.id)
+          .select('*')
+          .single();
+      } else {
+        writeResult = await ctx.client
+          .from('application_notes')
+          .insert({
+            application_id: applicationId,
+            author_id: ctx.remoteSelfId,
+            author_role: actor.role,
+            note: text
+          })
+          .select('*')
+          .single();
+      }
+
+      if (writeResult.error) throw writeResult.error;
+
+      upsertPortalAccessNoteLocal(applicationId, actor, entries);
+
+      const app = await getApplicationByIdAsync(applicationId).catch(() => getApplicationById(applicationId));
+      if (app?.userId) {
+        await pushNotificationAsync(
+          app.userId,
+          'Institution login details ready',
+          entries.length
+            ? 'Your institution login details are now available in your Kagie dashboard.'
+            : 'Your institution login details were updated in your Kagie dashboard.',
+          'info'
+        ).catch(() => {});
+      }
+      await logAssistantActivityAsync({
+        assistantId: actor.id,
+        applicationId,
+        action: 'save_portal_access',
+        details: { entries: entries.length }
+      }).catch(() => {});
+      return entries.map(clone);
+    } catch (error) {
+      if (isRecoverableRemoteSyncError(error)) {
+        console.warn('Falling back to local portal access save because remote note sync is unavailable.', error);
+        return saveApplicationPortalAccess(applicationId, entries);
+      }
+      throw new Error(error.message || 'Could not save institution portal access.');
+    }
+  }
+
   async function getApplicationNotesAsync(applicationId) {
     requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
     if (!isUuid(applicationId)) return getApplicationNotes(applicationId);
     const ctx = await resolveSupabaseContext();
     if (!ctx) return getApplicationNotes(applicationId);
 
-    const query = await ctx.client
-      .from('application_notes')
+    let query = await ctx.client
+      .from('admin_notes')
       .select('*')
       .eq('application_id', applicationId)
       .order('created_at', { ascending: false });
+    if (query.error) {
+      query = await ctx.client
+        .from('application_notes')
+        .select('*')
+        .eq('application_id', applicationId)
+        .order('created_at', { ascending: false });
+    }
     if (query.error) throw new Error(query.error.message || 'Could not load application notes.');
 
     const authorUsers = await fetchRemoteUsersByIds(safeArray(query.data).map((row) => row.author_id), ctx.client).catch(() => []);
     const authorMap = new Map(authorUsers.map((user) => [user.supabaseUserId, user]));
     const notes = safeArray(query.data).map((row) => normalizeRemoteApplicationNoteRow(row, authorMap.get(row.author_id)));
     mirrorRemoteNotes(notes, applicationId);
-    return notes;
+    return notes.filter((note) => !isSystemApplicationNoteText(note.text));
   }
 
   async function addApplicationNoteAsync(applicationId, noteText) {
@@ -4290,16 +12966,36 @@
     const ctx = await resolveSupabaseContext(actor.id);
     if (!ctx) return addApplicationNote(applicationId, text);
 
-    const insert = await ctx.client
-      .from('application_notes')
+    const appSnapshot = await ctx.client
+      .from('applications')
+      .select('id,user_id')
+      .eq('id', applicationId)
+      .maybeSingle();
+    const noteUserId = appSnapshot?.data?.user_id || null;
+
+    let insert = await ctx.client
+      .from('admin_notes')
       .insert({
         application_id: applicationId,
+        user_id: noteUserId,
         author_id: ctx.remoteSelfId,
         author_role: actor.role,
         note: text
       })
       .select('*')
       .single();
+    if (insert.error) {
+      insert = await ctx.client
+        .from('application_notes')
+        .insert({
+          application_id: applicationId,
+          author_id: ctx.remoteSelfId,
+          author_role: actor.role,
+          note: text
+        })
+        .select('*')
+        .single();
+    }
     if (insert.error) throw new Error(insert.error.message || 'Could not save application note.');
 
     const entry = normalizeRemoteApplicationNoteRow(insert.data, actor);
@@ -4388,14 +13084,37 @@
     const ctx = await resolveSupabaseContext(actor.id);
     if (!ctx) return getAllAssistantActivity();
 
-    let query = ctx.client.from('assistant_activity').select('*').order('created_at', { ascending: false });
-    if (actor.role !== ROLES.MASTER) query = query.eq('assistant_id', ctx.remoteSelfId);
-    const result = await query;
-    if (result.error) throw new Error(result.error.message || 'Could not load assistant activity.');
+    let result = await ctx.client.from('assistant_activity').select('*').order('created_at', { ascending: false });
+    if (result.error) {
+      let logQuery = ctx.client.from('activity_logs').select('*').order('timestamp', { ascending: false });
+      if (actor.role !== ROLES.MASTER) logQuery = logQuery.eq('admin_id', ctx.remoteSelfId);
+      result = await logQuery;
+    } else if (actor.role !== ROLES.MASTER) {
+      result = await ctx.client.from('assistant_activity').select('*').eq('assistant_id', ctx.remoteSelfId).order('created_at', { ascending: false });
+    }
+    if (result.error) {
+      if (isRecoverableRemoteSyncError(result.error)) {
+        console.warn('Falling back to local assistant activity because the remote activity query is unavailable.', result.error);
+        return getAllAssistantActivity();
+      }
+      throw new Error(result.error.message || 'Could not load assistant activity.');
+    }
 
-    const assistantUsers = await fetchRemoteUsersByIds(safeArray(result.data).map((row) => row.assistant_id), ctx.client).catch(() => []);
+    const assistantUsers = await fetchRemoteUsersByIds(
+      safeArray(result.data).map((row) => row.assistant_id || row.admin_id).filter(Boolean),
+      ctx.client
+    ).catch(() => []);
     const assistantMap = new Map(assistantUsers.map((user) => [user.supabaseUserId, user]));
-    const items = safeArray(result.data).map((row) => normalizeRemoteAssistantActivityRow(row, assistantMap.get(row.assistant_id)));
+    const items = safeArray(result.data).map((row) => (
+      row?.assistant_id
+        ? normalizeRemoteAssistantActivityRow(row, assistantMap.get(row.assistant_id))
+        : normalizeRemoteAssistantActivityRow({
+            ...row,
+            assistant_id: row?.admin_id || '',
+            created_at: row?.timestamp || row?.created_at || nowISO(),
+            details: row?.metadata || row?.details || {}
+          }, assistantMap.get(row?.admin_id))
+    ));
     mirrorRemoteAssistantActivity(items);
     return getAllAssistantActivity();
   }
@@ -4471,97 +13190,329 @@
     requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
     return read(KEYS.notes, [])
       .filter((note) => note.applicationId === applicationId)
+      .filter((note) => !isSystemApplicationNoteText(note.text))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .map(clone);
   }
 
   function assignAssistant(applicationId, assistantId) {
     const actor = requireRole([ROLES.MASTER]);
-    const assistant = getUsers().find((u) => u.id === assistantId && u.role === ROLES.ASSISTANT);
+    const assistant = getUserByIdentity(assistantId);
     if (!assistant) throw new Error('Assistant not found.');
+    if (normalizeKagieRole(assistant.role, String(assistant.role || '').trim() || ROLES.ASSISTANT) !== ROLES.ASSISTANT) {
+      throw new Error('Assistant not found.');
+    }
 
-    const updated = updateApplication(applicationId, { assistantId });
+    const resolvedAssistantId = String(assistant.id || assistantId || '').trim();
+    const updated = updateApplication(applicationId, {
+      assistantId: resolvedAssistantId,
+      assignedAssistantId: resolvedAssistantId
+    });
     pushNotification(updated.userId, 'Assistant assigned', `${assistant.fullName} was assigned to your application.`, 'info');
 
     logAssistantActivity({
       assistantId: actor.id,
       applicationId,
       action: 'assign_assistant',
-      details: { assignedAssistantId: assistantId }
+      details: { assignedAssistantId: resolvedAssistantId }
     });
 
     return updated;
   }
 
   async function createAssistantAccount(data) {
-    requireRole([ROLES.MASTER]);
+    const actor = requireRole([ROLES.MASTER]);
 
     const fullName = String(data?.fullName || '').trim();
     const email = normalizeEmail(data?.email);
-    const password = String(data?.password || '123456');
+    const password = String(data?.password || '').trim();
     const phone = String(data?.phone || '').trim();
+    const existingCachedAccount = getUserByEmail(email);
 
     if (!fullName) throw new Error('Assistant full name is required.');
     if (!email) throw new Error('Assistant email is required.');
-    if (getUserByEmail(email)) throw new Error('An account with this email already exists.');
+    if (!isValidEmailAddress(email)) throw new Error('Use a real assistant email address, for example name@kagie.app.');
+    if (password.length < 6) throw new Error('Assistant password must be at least 6 characters.');
+    if (existingCachedAccount && existingCachedAccount.role !== ROLES.ASSISTANT) {
+      throw new Error('This email is already used by a non-assistant Kagie account.');
+    }
 
-    const settings = getSettings();
-    if (settings.supabase.adminCreateAssistantEndpoint) {
-      try {
-        const session = await getSupabaseSession().catch(() => read(KEYS.supabaseSessionCache, null));
-        const accessToken = session?.access_token || read(KEYS.supabaseSessionCache, null)?.access_token || '';
-        const headers = { 'Content-Type': 'application/json' };
-        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+      const settings = getSettings();
+      const endpoint = String(settings?.supabase?.adminCreateAssistantEndpoint || '').trim();
+      const useLocalFallback = isLocalEnvironment();
+      if (useLocalFallback && existingCachedAccount) throw new Error('We could not create the account with those details. If you already have a Kagie account, please log in or use Forgot Password.');
+      const getLiveAssistantAccessToken = async () => {
+        const cachedSession = read(KEYS.supabaseSessionCache, null);
+        const activeSession = await getSupabaseSession().catch(() => cachedSession);
+        let accessToken = activeSession?.access_token || cachedSession?.access_token || '';
+        if (accessToken || useLocalFallback || !isSupabaseEnabled()) return accessToken;
 
-        const response = await fetch(settings.supabase.adminCreateAssistantEndpoint, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ fullName, email, password, phone })
-        });
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(payload?.message || payload?.error || 'Secure assistant creation endpoint failed.');
-        const remote = payload?.data || payload || {};
-        const assistant = {
-          id: uid('assistant'),
-          supabaseUserId: remote?.id || remote?.supabaseUserId || '',
-          fullName: remote?.fullName || fullName,
-          email: normalizeEmail(remote?.email || email),
+        const recoveryEmail = normalizeEmail(actor?.email || '');
+        const recoveryPassword = String(actor?.password || '').trim();
+        if (!recoveryEmail || !recoveryPassword) return '';
+
+        try {
+          const client = initSupabaseClient();
+          const { data: authData, error: authError } = await client.auth.signInWithPassword({
+            email: recoveryEmail,
+            password: recoveryPassword
+          });
+          if (authError || !authData?.session?.access_token) {
+            return '';
+          }
+          write(KEYS.supabaseSessionCache, authData.session || null);
+          if (authData.user) {
+            const refreshedActor = await materializeSupabaseUser(authData.user, {
+              email: recoveryEmail,
+              password: recoveryPassword
+            }).catch(() => null);
+            if (refreshedActor) setCurrentUser(refreshedActor);
+          }
+          accessToken = authData.session.access_token;
+        } catch (_error) {
+          accessToken = '';
+        }
+
+        return accessToken;
+      };
+      const createLiveAssistantFallback = async () => {
+        const signup = await signUpPrivilegedUserViaSupabase({
+          fullName,
+          email,
           password,
-          phone: remote?.phone || phone,
-          role: remote?.role || ROLES.ASSISTANT,
-          profileImage: '',
+          phone,
+          role: ROLES.ASSISTANT
+        });
+
+        const cachedAssistant =
+          getUserByEmail(email) ||
+          (existingCachedAccount && existingCachedAccount.role === ROLES.ASSISTANT ? existingCachedAccount : null);
+        const remoteUser = signup?.user || null;
+        const remoteAssistantId = String(remoteUser?.id || cachedAssistant?.supabaseUserId || '').trim();
+        if (!remoteAssistantId && signup?.alreadyRegistered) {
+          throw new Error('This assistant email is already registered. Use another email or ask the assistant to confirm the existing account first.');
+        }
+        const assistant = {
+          id: cachedAssistant?.id || (remoteAssistantId ? `assistant_${remoteAssistantId.replace(/[^a-z0-9_-]/gi, '')}` : uid('assistant')),
+          supabaseUserId: remoteAssistantId,
+          fullName,
+          email,
+          password,
+          phone,
+          role: ROLES.ASSISTANT,
+          profileImage: cachedAssistant?.profileImage || '',
           source: 'supabase',
-          profile: {},
-          createdAt: remote?.createdAt || nowISO(),
-          updatedAt: remote?.updatedAt || nowISO()
+          profile: sanitizeProfileObject(cachedAssistant?.profile || {}),
+          pendingEmailConfirmation: Boolean(signup?.pendingEmailConfirmation),
+          createdBy: actor?.id || cachedAssistant?.createdBy || '',
+          createdAt: cachedAssistant?.createdAt || nowISO(),
+          updatedAt: nowISO()
         };
+
         upsertLocalUser(assistant);
-        return sanitizeUser(assistant);
+        pushNotification(
+          assistant.id,
+          'Assistant account ready',
+          assistant.pendingEmailConfirmation
+            ? 'Your Kagie assistant account was created. Confirm your email before first login.'
+            : 'Your Kagie assistant account is ready for sign in.',
+          'success'
+        );
+        logAssistantActivity({
+          assistantId: actor.id,
+          applicationId: null,
+          action: 'create_assistant_account',
+          details: {
+            assistantAccountId: assistant.id,
+            assistantEmail: assistant.email,
+            mode: 'supabase-signup-fallback',
+            pendingEmailConfirmation: Boolean(assistant.pendingEmailConfirmation)
+          }
+        });
+        if (actor) setCurrentUser(actor);
+        return sanitizeUser(getUserBySupabaseId(remoteAssistantId) || getUserByEmail(email) || assistant);
+      };
+
+      const resolveAssistantCreationFallback = async (reasonArg) => {
+        if (useLocalFallback) {
+          return createLocalAssistantFallback();
+        }
+        try {
+          return await createLiveAssistantFallback();
+        } catch (fallbackError) {
+          throw new Error(
+            String(fallbackError?.message || '').trim() ||
+            String(reasonArg || '').trim() ||
+            'Could not create the assistant account right now.'
+          );
+        }
+      };
+
+      // Keep the older helper name alive so stale admin copies do not crash
+      // while the refreshed dashboard bundle is propagating.
+      const requireSecureLiveAssistantCreation = (reasonArg) => resolveAssistantCreationFallback(reasonArg);
+
+    const createLocalAssistantFallback = () => {
+      const assistant = {
+        id: uid('assistant'),
+        supabaseUserId: '',
+        fullName,
+        email,
+        password,
+        phone,
+        role: ROLES.ASSISTANT,
+        profileImage: '',
+        source: 'manual',
+        createdBy: actor?.id || '',
+        profile: {},
+        createdAt: nowISO(),
+        updatedAt: nowISO()
+      };
+
+      upsertLocalUser(assistant);
+      pushNotification(
+        assistant.id,
+        'Assistant account ready',
+        'Your Kagie assistant account is ready for sign in.',
+        'success'
+      );
+      logAssistantActivity({
+        assistantId: actor.id,
+        applicationId: null,
+        action: 'create_assistant_account',
+        details: {
+          assistantAccountId: assistant.id,
+          assistantEmail: assistant.email,
+          mode: 'local'
+        }
+      });
+      if (actor) setCurrentUser(actor);
+      return sanitizeUser(getUserById(assistant.id) || assistant);
+    };
+
+      if (!endpoint) {
+        return resolveAssistantCreationFallback('Secure live assistant creation is not configured on this site yet. Add SUPABASE_SERVICE_ROLE_KEY to the server environment and redeploy.');
+      }
+
+      try {
+        const accessToken = await getLiveAssistantAccessToken();
+        if (!accessToken) {
+          throw new Error('Your live master admin session expired. Log out, log back in as master admin, then create the assistant again.');
+        }
+
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ fullName, email, password, phone })
+      });
+      const rawBody = await response.text().catch(() => '');
+      let payload = null;
+      if (rawBody) {
+        try {
+          payload = JSON.parse(rawBody);
+        } catch (_error) {
+          payload = { message: String(rawBody).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() };
+        }
+      }
+
+      if (!response.ok) {
+          const message = payload?.message || payload?.error || response.statusText || 'Secure assistant creation endpoint failed.';
+          if (useLocalFallback) {
+            console.warn('Secure assistant creation failed locally, falling back to a local assistant account.', message);
+            return createLocalAssistantFallback();
+          }
+          if (/live profile policy conflict blocked assistant creation/i.test(message)) {
+            return resolveAssistantCreationFallback('Kagie hit a live profile policy conflict while creating this assistant, so it switched to the direct assistant signup path.');
+          }
+          if (/supabase admin configuration is missing/i.test(message)) {
+            return resolveAssistantCreationFallback('Secure live assistant creation is waiting for SUPABASE_SERVICE_ROLE_KEY on the server.');
+          }
+          if (isRecoverableProfileSyncError(message)) {
+            return resolveAssistantCreationFallback('Kagie hit a live profile sync loop while creating this assistant, so it switched to the direct assistant signup path.');
+          }
+          throw new Error(message);
+        }
+
+      const remote = payload?.data || payload || {};
+      const remoteAssistantId = String(remote?.id || remote?.supabaseUserId || '').trim();
+      const assistant = {
+        id: remoteAssistantId ? `assistant_${remoteAssistantId.replace(/[^a-z0-9_-]/gi, '')}` : uid('assistant'),
+        supabaseUserId: remoteAssistantId,
+        fullName: remote?.fullName || fullName,
+        email: normalizeEmail(remote?.email || email),
+        password,
+        phone: remote?.phone || phone,
+        role: remote?.role || ROLES.ASSISTANT,
+        profileImage: '',
+        source: 'supabase',
+        profile: {},
+        alreadyExists: Boolean(remote?.alreadyExists),
+        repaired: Boolean(remote?.repaired),
+        createdAt: remote?.createdAt || nowISO(),
+        updatedAt: remote?.updatedAt || nowISO()
+      };
+      upsertLocalUser(assistant);
+      if (actor) setCurrentUser(actor);
+      return sanitizeUser(getUserBySupabaseId(remoteAssistantId) || getUserByEmail(assistant.email) || assistant);
       } catch (err) {
-        throw new Error(err.message || 'Could not create assistant account through secure endpoint.');
+        if (useLocalFallback) {
+          console.warn('Assistant creation fell back to a local assistant account:', err?.message || err);
+          return createLocalAssistantFallback();
+        }
+        if (/live profile policy conflict blocked assistant creation/i.test(String(err?.message || ''))) {
+          return resolveAssistantCreationFallback('Kagie hit a live profile policy conflict while creating this assistant, so it switched to the direct assistant signup path.');
+        }
+        if (isRecoverableProfileSyncError(err)) {
+          return resolveAssistantCreationFallback('Kagie hit a remote profile loop while creating this assistant, so it switched to the direct assistant signup path.');
+        }
+        if (/supabase admin configuration is missing/i.test(String(err?.message || ''))) {
+          return resolveAssistantCreationFallback('Secure live assistant creation is waiting for SUPABASE_SERVICE_ROLE_KEY on the server.');
+        }
+        throw new Error(err?.message || 'Could not create assistant account through secure endpoint.');
       }
     }
 
-    const assistant = {
-      id: uid('assistant'),
-      supabaseUserId: '',
-      fullName,
-      email,
-      password,
-      phone,
-      role: ROLES.ASSISTANT,
-      profileImage: '',
-      source: 'local',
-      profile: {},
-      createdAt: nowISO(),
-      updatedAt: nowISO()
-    };
-    upsertLocalUser(assistant);
-    return sanitizeUser(assistant);
+  function clearAssistantReferencesLocally(assistantId) {
+    const safeAssistantId = String(assistantId || '').trim();
+    if (!safeAssistantId) return;
+
+    const applications = getAllApplications();
+    let applicationsChanged = false;
+    const nextApplications = applications.map((app) => {
+      const assignedAssistantId = String(app?.assignedAssistantId || app?.assistantId || '').trim();
+      if (assignedAssistantId !== safeAssistantId) return app;
+      applicationsChanged = true;
+      return {
+        ...app,
+        assistantId: null,
+        assignedAssistantId: null,
+        updatedAt: nowISO()
+      };
+    });
+    if (applicationsChanged) saveAllApplications(nextApplications);
+
+    const activity = read(KEYS.assistantActivity, []);
+    const filteredActivity = activity.filter((item) => String(item?.assistantId || '').trim() !== safeAssistantId);
+    if (filteredActivity.length !== activity.length) write(KEYS.assistantActivity, filteredActivity);
+  }
+
+  async function bootstrapMasterAdminAccount(data) {
+    requireRole([ROLES.MASTER]);
+    await awaitRuntimeSupabaseConfig();
+    const endpoint = String(getSettings()?.supabase?.adminBootstrapMasterEndpoint || '').trim();
+    const session = await getSupabaseSession();
+    if (!endpoint || !session?.access_token) throw new Error('A signed-in live master admin is required. Initial admin setup must be completed by the server operator.');
+    const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify(data || {}) });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(payload?.message || payload?.error || 'Could not create the master admin account.');
+    return payload?.data?.user || payload?.data || payload;
   }
 
   async function createMasterAdminAccount(data) {
     requireRole([ROLES.MASTER]);
+    if (isSupabaseEnabled()) return bootstrapMasterAdminAccount(data);
     const before = currentUserRaw();
     const admin = await registerUser({ ...data, role: ROLES.MASTER });
     if (before) setCurrentUser(before);
@@ -4569,55 +13520,401 @@
   }
 
   function getUsersByRole(role) {
-    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
-    return getUsers().filter((u) => u.role === role).map(sanitizeUser);
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const canonicalRole = normalizeKagieRole(role, String(role || '').trim() || ROLES.USER);
+    const merged = mergeUniqueUsers(
+      getUsers()
+        .filter((u) => normalizeKagieRole(u.role, String(u.role || '').trim() || canonicalRole) === canonicalRole)
+    );
+    if (actor.role === ROLES.ASSISTANT && canonicalRole === ROLES.USER) {
+      return filterUsersForAssistantScope(merged, getAssistantScopedLearnerIdentitySetLocal(actor));
+    }
+    return merged;
   }
 
   function getAllUsers() {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const merged = mergeUniqueUsers(getUsers());
+    if (actor.role === ROLES.ASSISTANT) {
+      return filterUsersForAssistantScope(merged, getAssistantScopedLearnerIdentitySetLocal(actor));
+    }
+    return merged;
+  }
+
+  async function getStaffDirectoryAccessToken() {
+    const cachedSession = read(KEYS.supabaseSessionCache, null);
+    const activeSession = await getSupabaseSession().catch(() => cachedSession);
+    return activeSession?.access_token || cachedSession?.access_token || '';
+  }
+
+  async function getActiveSupabaseAccessToken() {
+    const cachedSession = read(KEYS.supabaseSessionCache, null);
+    const activeSession = await getSupabaseSession().catch(() => cachedSession);
+    return activeSession?.access_token || cachedSession?.access_token || '';
+  }
+
+  function resolveAdminFunctionEndpoint(preferred, defaultPath) {
+    const direct = String(preferred || '').trim();
+    if (direct) return direct;
+    if (typeof window === 'undefined' || !window.location?.origin) return '';
+    return `${window.location.origin}${String(defaultPath || '/v1/admin/users')}`;
+  }
+
+  function getAdminUsersEndpointCandidates(preferred) {
+    const primary = resolveAdminFunctionEndpoint(preferred, '/v1/admin/users');
+    const candidates = [];
+    if (primary) candidates.push(primary);
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      candidates.push(`${window.location.origin}/api/admin/users`);
+    }
+    return Array.from(new Set(candidates.filter(Boolean)));
+  }
+
+  function getAdminAssistantsEndpointCandidates(preferred) {
+    const primary = resolveAdminFunctionEndpoint(preferred, '/v1/admin/assistants');
+    const candidates = [];
+    if (primary) candidates.push(primary);
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      candidates.push(`${window.location.origin}/v1/admin/assistants`);
+      candidates.push(`${window.location.origin}/api/admin/assistants`);
+    }
+    return Array.from(new Set(candidates.filter(Boolean)));
+  }
+
+  async function callYocoEndpoint(suffix, options = {}) {
+    requireRole([ROLES.USER]);
+    const token = await getActiveSupabaseAccessToken();
+    if (!token) throw new Error('Please sign in again before checking your payment.');
+    const roleEndpoint = getSettings()?.supabase?.authRoleEndpoint;
+    const base = roleEndpoint ? new URL(roleEndpoint, window.location.origin).origin : window.location.origin;
+    const response = await fetch(base + '/v1/payments/yoco/' + suffix, {
+      ...options, headers: { 'Content-Type':'application/json', Authorization:'Bearer ' + token },
+      signal: AbortSignal.timeout(25000)
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(payload?.message || 'Kagie could not confirm the payment. Your reference is preserved; try refreshing.');
+    if (!payload?.data) throw new Error('The payment service returned no confirmation.');
+    return payload.data;
+  }
+  async function startYocoCheckoutAsync(paymentData = {}) {
+    const user = requireRole([ROLES.USER]);
+    const returnUrl = new URL('/payment.html', window.location.origin);
+    const makeReturn = result => { const url = new URL(returnUrl); url.searchParams.set('result', result); return url.href; };
+    const data = await callYocoEndpoint('checkout', { method:'POST', body:JSON.stringify({
+      payerName:String(paymentData.payerName || user.fullName || ''), phone:String(paymentData.phone || user.phone || ''),
+      reference:String(paymentData.reference || ''), note:String(paymentData.note || ''),
+      successUrl:makeReturn('success'),cancelUrl:makeReturn('cancelled'),failureUrl:makeReturn('failed')
+    }) });
+    const redirect = new URL(data.redirectUrl);
+    if (redirect.protocol !== 'https:' || redirect.hostname !== 'c.yoco.com' || redirect.username || redirect.password || redirect.port || !data.paymentId) throw new Error('Kagie could not verify the hosted payment link. Contact support before paying.');
+    try { localStorage.setItem('kagie_yoco_attempt_v1:' + user.id, JSON.stringify({ paymentId:data.paymentId,reference:String(data.reference || '') })); } catch { /* The return URL also carries the durable attempt ID. */ }
+    return data;
+  }
+  async function getYocoPaymentStatusAsync(paymentId) {
+    return callYocoEndpoint('status?paymentId=' + encodeURIComponent(paymentId), {method:'GET'});
+  }
+  async function getPaymentHistoryAsync(offset = 0) {
+    return callYocoEndpoint('status?history=1&offset=' + encodeURIComponent(offset), {method:'GET'});
+  }
+
+  async function callAdminUsersEndpoint(options = {}) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const endpoints = getAdminUsersEndpointCandidates(String(getSettings()?.supabase?.adminUsersEndpoint || '').trim());
+    if (!endpoints.length || typeof fetch !== 'function') throw new Error('Admin users endpoint is not available.');
+
+    const accessToken = await getStaffDirectoryAccessToken();
+    if (!accessToken) {
+      if (!isLocalStaffSession(actor)) {
+        console.warn('User directory fallback: no live staff access token available right now.');
+      }
+      throw new Error('Please sign in again so Kagie can verify your staff access.');
+    }
+
+    let lastError = null;
+    for (const endpoint of endpoints) {
+      const url = `${endpoint}${options.search || ''}`;
+      try {
+        const response = await fetch(url, {
+          method: options.method || 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`
+          },
+          body: options.body ? JSON.stringify(options.body) : undefined
+        });
+        const rawBody = await response.text().catch(() => '');
+        let payload = null;
+        if (rawBody) {
+          try {
+            payload = JSON.parse(rawBody);
+          } catch (_error) {
+            payload = { message: String(rawBody).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() };
+          }
+        }
+        if (!response.ok) {
+          lastError = new Error(payload?.message || payload?.error || response.statusText || 'Could not load admin users.');
+          continue;
+        }
+        return payload || {};
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError || new Error('Could not reach the Kagie admin users endpoint.');
+  }
+
+  async function fetchAssistantAccountsFromAdminEndpoint() {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const endpoints = getAdminAssistantsEndpointCandidates(
+      String(getSettings()?.supabase?.adminAssistantsEndpoint || getSettings()?.supabase?.adminCreateAssistantEndpoint || '').trim()
+    );
+    if (!endpoints.length || typeof fetch !== 'function') return [];
+
+    const accessToken = await getStaffDirectoryAccessToken();
+    if (!accessToken) {
+      if (!isLocalStaffSession(actor)) {
+        console.warn('Assistant directory fallback: no live staff access token available right now.');
+      }
+      return [];
+    }
+
+    let lastError = null;
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`
+          }
+        });
+        const rawBody = await response.text().catch(() => '');
+        let payload = null;
+        if (rawBody) {
+          try {
+            payload = JSON.parse(rawBody);
+          } catch (_error) {
+            payload = { message: String(rawBody).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() };
+          }
+        }
+
+        if (!response.ok) {
+          lastError = new Error(payload?.message || payload?.error || response.statusText || 'Unknown error');
+          console.warn('Assistant directory endpoint fallback:', lastError.message);
+          continue;
+        }
+
+        return mergeUniqueUsers(
+          safeArray(payload?.data).map((row) => normalizeRemoteUserRow({
+            id: row?.id,
+            role: row?.role || ROLES.ASSISTANT,
+            full_name: row?.fullName || row?.full_name || '',
+            email: row?.email || '',
+            phone: row?.phone || '',
+            created_at: row?.createdAt || row?.created_at || '',
+            updated_at: row?.updatedAt || row?.updated_at || ''
+          }))
+        );
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    console.warn('Could not load assistant directory from secure endpoint:', lastError);
+    return [];
+  }
+
+  async function fetchAllAccountsFromAdminEndpoint() {
+    try {
+      const payload = await callAdminUsersEndpoint({ method: 'GET' });
+
+      return mergeUniqueUsers(
+        safeArray(payload?.data).map((row) => {
+          const normalized = normalizeRemoteUserRow({
+            id: row?.id,
+            role: row?.role || ROLES.USER,
+            full_name: row?.fullName || row?.full_name || '',
+            email: row?.email || '',
+            phone: row?.phone || '',
+            created_at: row?.createdAt || row?.created_at || '',
+            updated_at: row?.updatedAt || row?.updated_at || ''
+          });
+          return {
+            ...normalized,
+            surname: String(row?.surname || '').trim(),
+            idNumber: String(row?.idNumber || row?.id_number || '').trim(),
+            gender: String(row?.gender || '').trim(),
+            dateOfBirth: String(row?.dateOfBirth || row?.date_of_birth || '').trim(),
+            province: String(row?.province || '').trim(),
+            city: String(row?.city || '').trim(),
+            location: String(row?.location || '').trim(),
+            address: String(row?.address || '').trim(),
+            schoolName: String(row?.schoolName || row?.school_name || '').trim(),
+            grade: String(row?.grade || row?.completionYear || row?.completion_year || '').trim(),
+            applicationStatus: String(row?.applicationStatus || row?.application_status || '').trim(),
+            accountStatus: String(row?.accountStatus || row?.account_status || '').trim(),
+            roleLabel: String(row?.roleLabel || row?.role_label || '').trim(),
+            confirmationStatus: String(row?.confirmationStatus || row?.confirmation_status || '').trim(),
+            assignedAssistantId: String(row?.assignedAssistantId || row?.assigned_assistant_id || '').trim(),
+            assignedAssistantName: String(row?.assignedAssistantName || row?.assigned_assistant_name || '').trim(),
+            assignedAssistantEmail: String(row?.assignedAssistantEmail || row?.assigned_assistant_email || '').trim(),
+            latestApplicationId: String(row?.latestApplicationId || row?.latest_application_id || '').trim(),
+            latestApplicationStatus: String(row?.latestApplicationStatus || row?.latest_application_status || '').trim(),
+            lastLogin: String(row?.lastLogin || row?.last_login || row?.last_sign_in_at || '').trim(),
+            selectedInstitution: String(row?.selectedInstitution || row?.selected_institution || '').trim(),
+            selectedFaculty: String(row?.selectedFaculty || row?.selected_faculty || '').trim(),
+            selectedCourses: safeArray(row?.selectedCourses || row?.selected_courses).map((item) => String(item || '').trim()).filter(Boolean),
+            hasProfile: Boolean(row?.hasProfile),
+            hasFormDetails: Boolean(row?.hasFormDetails || row?.has_form_details),
+            profileCompletionPercent: Number(row?.profileCompletionPercent ?? row?.profile_completion_percent ?? 0),
+            profileCompletionLabel: String(row?.profileCompletionLabel || row?.profile_completion_label || '').trim(),
+            source: 'supabase'
+          };
+        })
+      );
+    } catch (error) {
+      console.warn('Could not load full user directory from secure endpoint:', error);
+      return [];
+    }
+  }
+
+  async function getAdminUserDirectoryAsync() {
     requireRole([ROLES.MASTER]);
-    return getUsers().map(sanitizeUser);
+    const payload = await callAdminUsersEndpoint({ method: 'GET' });
+    return safeArray(payload?.data).map((row) => ({ ...row }));
+  }
+
+  async function getAdminUserDetailAsync(userId) {
+    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const id = String(userId || '').trim();
+    if (!id) throw new Error('Choose a user first.');
+    const payload = await callAdminUsersEndpoint({
+      method: 'GET',
+      search: `?userId=${encodeURIComponent(id)}`
+    });
+    return payload?.data || null;
+  }
+
+  async function assignUserToAssistantAsync(userId, assistantId, options = {}) {
+    requireRole([ROLES.MASTER]);
+    const learnerId = String(userId || '').trim();
+    const adminId = String(assistantId || '').trim();
+    if (!learnerId || !adminId) throw new Error('Choose a learner and assistant admin first.');
+    const payload = await callAdminUsersEndpoint({
+      method: 'POST',
+      body: {
+        userId: learnerId,
+        assistantAdminId: adminId,
+        applicationId: options.applicationId || options.application_id || ''
+      }
+    });
+    return payload?.data || null;
+  }
+
+  async function fetchDirectoryUsersByRole(canonicalRole) {
+    const directoryUsers = canonicalRole === ROLES.ASSISTANT
+      ? await fetchAssistantAccountsFromAdminEndpoint().catch(() => [])
+      : await fetchAllAccountsFromAdminEndpoint().catch(() => []);
+    return safeArray(directoryUsers).filter((user) =>
+      normalizeKagieRole(user?.role, String(user?.role || '').trim() || ROLES.USER) === canonicalRole
+    );
   }
 
   async function getUsersByRoleAsync(role) {
-    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const canonicalRole = normalizeKagieRole(role, String(role || '').trim() || ROLES.USER);
     const ctx = await resolveSupabaseContext();
-    if (!ctx) return getUsersByRole(role);
+    if (!ctx) {
+      const directoryUsers = await fetchDirectoryUsersByRole(canonicalRole).catch(() => []);
+      const fallback = directoryUsers.length ? mergeUniqueUsers(directoryUsers, getUsersByRole(canonicalRole)) : getUsersByRole(role);
+      if (actor.role === ROLES.ASSISTANT) {
+        if (canonicalRole !== ROLES.USER) {
+          const viewerKeys = getUserIdentityKeys(actor);
+          return fallback.filter((user) => getUserIdentityKeys(user).some((key) => viewerKeys.includes(key)));
+        }
+        return filterUsersForAssistantScope(fallback, getAssistantScopedLearnerIdentitySetLocal(actor));
+      }
+      return fallback;
+    }
+    const roleVariants = getKagieRoleVariants(canonicalRole);
 
-    const query = await ctx.client
+    const query = await fetchPagedSupabaseRows(() => ctx.client
       .from('profiles')
       .select('*')
-      .eq('role', role)
-      .order('created_at', { ascending: false });
-    if (query.error) throw new Error(query.error.message || 'Could not load users by role.');
-
-    const remote = syncRemoteUsersFromProfiles(query.data || []).filter((user) => user.role === role);
-    const merged = [...remote];
-    getUsersByRole(role).forEach((user) => {
-      if (!merged.find((item) => item.id === user.id || normalizeEmail(item.email) === normalizeEmail(user.email))) {
-        merged.push(user);
+      .in('role', roleVariants)
+      .order('created_at', { ascending: false }));
+    if (query.error) {
+      if (isRecoverableProfileSyncError(query.error)) {
+        console.warn('Falling back to secure staff directory for users-by-role because the remote profile policy is still recursive.', query.error);
+        const fallbackUsers = await fetchDirectoryUsersByRole(canonicalRole);
+        return fallbackUsers.length ? mergeUniqueUsers(fallbackUsers, getUsersByRole(canonicalRole)) : getUsersByRole(role);
       }
-    });
+      throw new Error(query.error.message || 'Could not load users by role.');
+    }
+
+    const remote = syncRemoteUsersFromProfiles(query.data || []).filter((user) =>
+      normalizeKagieRole(user.role, String(user.role || '').trim() || canonicalRole) === canonicalRole
+    );
+    const directoryUsers = await fetchDirectoryUsersByRole(canonicalRole);
+    const allUsersByRole = (canonicalRole === ROLES.USER || canonicalRole === ROLES.ASSISTANT)
+      ? await getAllUsersAsync()
+        .then((users) => users.filter((user) => normalizeKagieRole(user.role, String(user.role || '').trim() || canonicalRole) === canonicalRole))
+        .catch(() => [])
+      : [];
+    const merged = mergeUniqueUsers(remote, directoryUsers, allUsersByRole, getUsersByRole(canonicalRole));
+    if (ctx.viewer.role === ROLES.ASSISTANT) {
+      if (canonicalRole !== ROLES.USER) {
+        const viewerKeys = getUserIdentityKeys(ctx.viewer);
+        return merged.filter((user) => getUserIdentityKeys(user).some((key) => viewerKeys.includes(key)));
+      }
+      return filterUsersForAssistantScope(
+        merged,
+        await getAssistantScopedLearnerIdentitySetAsync(ctx).catch(() => getAssistantScopedLearnerIdentitySetLocal(ctx.viewer))
+      );
+    }
     return merged;
   }
 
   async function getAllUsersAsync() {
-    requireRole([ROLES.MASTER]);
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
     const ctx = await resolveSupabaseContext();
-    if (!ctx) return getAllUsers();
+    if (!ctx) {
+      const authDirectoryUsers = await fetchAllAccountsFromAdminEndpoint().catch(() => []);
+      const fallback = authDirectoryUsers.length ? mergeUniqueUsers(authDirectoryUsers, getAllUsers()) : getAllUsers();
+      if (actor.role === ROLES.ASSISTANT) {
+        return filterUsersForAssistantScope(fallback, getAssistantScopedLearnerIdentitySetLocal(actor));
+      }
+      return fallback;
+    }
 
-    const query = await ctx.client
+    const query = await fetchPagedSupabaseRows(() => ctx.client
       .from('profiles')
       .select('*')
-      .order('created_at', { ascending: false });
-    if (query.error) throw new Error(query.error.message || 'Could not load users.');
+      .order('created_at', { ascending: false }));
+    if (query.error) {
+      if (isRecoverableProfileSyncError(query.error)) {
+        console.warn('Falling back to secure staff directory because the remote profile policy is still recursive.', query.error);
+        const authDirectoryUsers = await fetchAllAccountsFromAdminEndpoint().catch(() => []);
+        const mergedFallback = authDirectoryUsers.length ? mergeUniqueUsers(authDirectoryUsers, getAllUsers()) : getAllUsers();
+        if (ctx.viewer.role === ROLES.ASSISTANT) {
+          return filterUsersForAssistantScope(
+            mergedFallback,
+            await getAssistantScopedLearnerIdentitySetAsync(ctx).catch(() => getAssistantScopedLearnerIdentitySetLocal(ctx.viewer))
+          );
+        }
+        return mergedFallback;
+      }
+      throw new Error(query.error.message || 'Could not load users.');
+    }
 
     const remote = syncRemoteUsersFromProfiles(query.data || []);
-    const merged = [...remote];
-    getAllUsers().forEach((user) => {
-      if (!merged.find((item) => item.id === user.id || normalizeEmail(item.email) === normalizeEmail(user.email))) {
-        merged.push(user);
-      }
-    });
+    const authDirectoryUsers = await fetchAllAccountsFromAdminEndpoint().catch(() => []);
+    const merged = mergeUniqueUsers(remote, authDirectoryUsers, getAllUsers());
+    if (ctx.viewer.role === ROLES.ASSISTANT) {
+      return filterUsersForAssistantScope(
+        merged,
+        await getAssistantScopedLearnerIdentitySetAsync(ctx).catch(() => getAssistantScopedLearnerIdentitySetLocal(ctx.viewer))
+      );
+    }
     return merged;
   }
 
@@ -4650,18 +13947,121 @@
     return true;
   }
 
+  async function getApplicationFormTypesAsync() {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const ctx = await resolveSupabaseContext(actor.id);
+    if (!ctx) return getApplicationFormTypes();
+    const query = await ctx.client
+      .from('application_form_types')
+      .select('form_type,label,display_order,is_active,updated_at')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) return getApplicationFormTypes();
+      throw new Error(query.error.message || 'Could not load form types.');
+    }
+    const rows = safeArray(query.data).map((row) => ({
+      formType: normalizeApplicationTypeKey(row.form_type),
+      label: row.label || applicationTypeLabelForKey(row.form_type),
+      displayOrder: Number(row.display_order || 100),
+      enabled: row.is_active !== false,
+      updatedAt: row.updated_at || ''
+    }));
+    return rows.length ? rows : getApplicationFormTypes();
+  }
+
+  async function getAssistantFormPermissionsAsync(assistantIdArg) {
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const assistantId = String(assistantIdArg || actor.id || '').trim();
+    if (actor.role === ROLES.ASSISTANT && assistantId && assistantId !== actor.id && assistantId !== actor.supabaseUserId) {
+      throw new Error('You can only view your own form permissions.');
+    }
+    const ctx = await resolveSupabaseContext(assistantId);
+    if (!ctx) return getAssistantFormPermissions(assistantId);
+    const [types, query] = await Promise.all([
+      getApplicationFormTypesAsync().catch(() => getApplicationFormTypes()),
+      ctx.client
+        .from('assistant_form_permissions')
+        .select('assistant_admin_id,form_type,enabled,granted_by,granted_at,updated_at')
+        .eq('assistant_admin_id', ctx.targetRemoteId)
+    ]);
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) return getAssistantFormPermissions(assistantId);
+      throw new Error(query.error.message || 'Could not load assistant form permissions.');
+    }
+    const byType = new Map(safeArray(query.data).map((row) => [normalizeApplicationTypeKey(row.form_type), row]));
+    const permissions = safeArray(types).map((type) => normalizeAssistantFormPermission({
+      assistantAdminId: assistantId,
+      formType: type.formType,
+      label: type.label,
+      enabled: byType.has(type.formType) ? byType.get(type.formType).enabled === true : false,
+      grantedBy: byType.get(type.formType)?.granted_by || '',
+      grantedAt: byType.get(type.formType)?.granted_at || '',
+      updatedAt: byType.get(type.formType)?.updated_at || ''
+    }));
+    mirrorRemoteAssistantFormPermissions(permissions, assistantId);
+    return permissions;
+  }
+
+  async function saveAssistantFormPermissionsAsync(assistantIdArg, permissionsArg) {
+    const actor = requireRole([ROLES.MASTER]);
+    const assistantId = String(assistantIdArg || '').trim();
+    if (!assistantId) throw new Error('Choose an assistant admin first.');
+    const ctx = await resolveSupabaseContext(assistantId);
+    if (!ctx) { if (isSupabaseEnabled()) throw new Error('Live permissions could not connect.'); return saveAssistantFormPermissions(assistantId, permissionsArg); }
+    const actorCtx = await resolveSupabaseContext(actor.id);
+    const types = await getApplicationFormTypesAsync().catch(() => getApplicationFormTypes());
+    const byType = new Map(safeArray(permissionsArg).map((item) => {
+      const normalized = normalizeAssistantFormPermission(item);
+      return [normalized.formType, normalized];
+    }));
+    const rows = safeArray(types).map((type) => ({
+      assistant_admin_id: ctx.targetRemoteId,
+      form_type: type.formType,
+      enabled: byType.has(type.formType) ? byType.get(type.formType).enabled !== false : false,
+      granted_by: actorCtx?.targetRemoteId || actor.supabaseUserId || actor.id,
+      granted_at: nowISO()
+    }));
+    const upsert = await ctx.client
+      .from('assistant_form_permissions')
+      .upsert(rows, { onConflict: 'assistant_admin_id,form_type' })
+      .select('assistant_admin_id,form_type,enabled,granted_by,granted_at,updated_at');
+    if (upsert.error) {
+      if (isRecoverableRemoteSyncError(upsert.error)) throw new Error('Form permissions were not saved. Live database access is required.');
+      throw new Error(upsert.error.message || 'Could not save assistant form permissions.');
+    }
+    const permissions = safeArray(upsert.data).map((row) => normalizeAssistantFormPermission({
+      ...row,
+      assistantAdminId: assistantId
+    }));
+    mirrorRemoteAssistantFormPermissions(permissions, assistantId);
+    return getAssistantFormPermissionsAsync(assistantId).catch(() => permissions);
+  }
+
   async function getApplicationsByAssistantAsync(assistantIdArg) {
     const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
     const assistantId = assistantIdArg || actor.id;
     const ctx = await resolveSupabaseContext(assistantId);
     if (!ctx) return getApplicationsByAssistant(assistantId);
 
-    const query = await ctx.client
-      .from('applications')
-      .select(REMOTE_APPLICATION_SELECT)
-      .eq('assistant_id', ctx.targetRemoteId)
-      .order('updated_at', { ascending: false });
-    if (query.error) throw new Error(query.error.message || 'Could not load assigned applications.');
+    const assignedUserIds = await loadAssignedUserIdsForAssistantAsync(ctx, ctx.targetRemoteId);
+    if (!assignedUserIds.length) return [];
+
+    const query = await fetchPagedRowsByIn(
+      ctx.client,
+      'applications',
+      REMOTE_APPLICATION_SELECT,
+      'user_id',
+      assignedUserIds,
+      { order: { column: 'updated_at', ascending: false } }
+    );
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) {
+        console.warn('Falling back to local assigned applications because the remote applications query is unavailable.', query.error);
+        return getApplicationsByAssistant(assistantId);
+      }
+      throw new Error(query.error.message || 'Could not load assigned applications.');
+    }
 
     const remoteIds = safeArray(query.data).flatMap((row) => [row.user_id, row.assistant_id]).filter(Boolean);
     const syncedUsers = await fetchRemoteUsersByIds(remoteIds, ctx.client).catch(() => []);
@@ -4679,21 +14079,47 @@
       });
     });
 
-    const apps = await hydrateRemoteApplications(query.data || [], assistantId, profileMap);
+    const [apps, permissions] = await Promise.all([
+      hydrateRemoteApplications(query.data || [], assistantId, profileMap),
+      getAssistantFormPermissionsAsync(assistantId).catch(() => getAssistantFormPermissions(assistantId))
+    ]);
     mirrorRemoteApplications(apps);
-    return apps.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    return apps
+      .filter((app) => assistantPermissionAllowsApplication(permissions, app))
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   }
 
   async function getAllApplicationsForAdminAsync() {
-    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
-    const ctx = await resolveSupabaseContext();
+    const actor = requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const ctx = await resolveSupabaseContext(actor.id);
     if (!ctx) return getAllApplicationsForAdmin();
 
-    const query = await ctx.client
-      .from('applications')
-      .select(REMOTE_APPLICATION_SELECT)
-      .order('updated_at', { ascending: false });
-    if (query.error) throw new Error(query.error.message || 'Could not load applications.');
+    let query = null;
+    if (actor.role === ROLES.ASSISTANT) {
+      const assignedUserIds = await loadAssignedUserIdsForAssistantAsync(ctx, ctx.remoteSelfId);
+      if (!assignedUserIds.length) return [];
+      query = await fetchPagedRowsByIn(
+        ctx.client,
+        'applications',
+        REMOTE_APPLICATION_SELECT,
+        'user_id',
+        assignedUserIds,
+        { order: { column: 'updated_at', ascending: false } }
+      );
+    } else {
+      query = await fetchPagedSupabaseRows(() => ctx.client
+        .from('applications')
+        .select(REMOTE_APPLICATION_SELECT)
+        .order('updated_at', { ascending: false }));
+    }
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) {
+        console.warn('Falling back to local admin applications because the remote applications query is unavailable.', query.error);
+        return getAllApplicationsForAdmin();
+      }
+      console.warn('Falling back to local admin applications because the live applications query failed.', query.error);
+      return getAllApplicationsForAdmin();
+    }
 
     const remoteIds = safeArray(query.data).flatMap((row) => [row.user_id, row.assistant_id]).filter(Boolean);
     const syncedUsers = await fetchRemoteUsersByIds(remoteIds, ctx.client).catch(() => []);
@@ -4711,9 +14137,24 @@
       });
     });
 
-    const apps = await hydrateRemoteApplications(query.data || [], ctx.viewer.id, profileMap);
-    mirrorRemoteApplications(apps);
-    return apps.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    try {
+      const apps = await hydrateRemoteApplications(query.data || [], actor.id, profileMap);
+      mirrorRemoteApplications(apps);
+      if (actor.role === ROLES.ASSISTANT) {
+        const permissions = await getAssistantFormPermissionsAsync(actor.id).catch(() => getAssistantFormPermissions(actor.id));
+        return apps
+          .filter((app) => assistantPermissionAllowsApplication(permissions, app))
+          .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      }
+      return apps.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    } catch (error) {
+      if (isRecoverableRemoteSyncError(error)) {
+        console.warn('Falling back to local admin applications because the remote hydration step is unavailable.', error);
+        return getAllApplicationsForAdmin();
+      }
+      console.warn('Falling back to local admin applications because the live hydration step failed.', error);
+      return getAllApplicationsForAdmin();
+    }
   }
 
   async function assignAssistantAsync(applicationId, assistantId) {
@@ -4725,15 +14166,58 @@
     const assistantCtx = await resolveSupabaseContext(assistantId);
     if (!assistantCtx?.targetRemoteId) throw new Error('Assistant not found.');
 
-    const appSnapshot = await ctx.client.from('applications').select('id,user_id').eq('id', applicationId).maybeSingle();
+    const appSnapshot = await ctx.client.from('applications').select('id,user_id,assistant_id').eq('id', applicationId).maybeSingle();
     if (appSnapshot.error) throw new Error(appSnapshot.error.message || 'Could not load application.');
     if (!appSnapshot.data) throw new Error('Application not found.');
 
-    const update = await ctx.client
+    const assignmentPayload = {
+      assistant_id: assistantCtx.targetRemoteId,
+      assigned_by: ctx.remoteSelfId,
+      assigned_at: nowISO(),
+      assignment_status: String(appSnapshot.data.assistant_id || '').trim() && appSnapshot.data.assistant_id !== assistantCtx.targetRemoteId
+        ? 'Reassigned'
+        : 'Assigned'
+    };
+    let update = await ctx.client
       .from('applications')
-      .update({ assistant_id: assistantCtx.targetRemoteId })
+      .update(assignmentPayload)
       .eq('id', applicationId);
+    if (update.error && /assigned_by|assigned_at|assignment_status/i.test(String(update.error.message || ''))) {
+      update = await ctx.client
+        .from('applications')
+        .update({ assistant_id: assistantCtx.targetRemoteId })
+        .eq('id', applicationId);
+    }
     if (update.error) throw new Error(update.error.message || 'Could not assign assistant.');
+
+    let assignmentMirror = await ctx.client
+      .from('assistant_assignments')
+      .upsert({
+        user_id: appSnapshot.data.user_id,
+        assistant_admin_id: assistantCtx.targetRemoteId,
+        assigned_by: ctx.remoteSelfId,
+        assigned_at: nowISO(),
+        status: assignmentPayload.assignment_status
+      }, {
+        onConflict: 'user_id'
+      });
+    if (assignmentMirror.error) {
+      assignmentMirror = await ctx.client
+        .from('assignments')
+        .upsert({
+          user_id: appSnapshot.data.user_id,
+          assistant_admin_id: assistantCtx.targetRemoteId,
+          master_admin_id: ctx.remoteSelfId,
+          application_id: applicationId,
+          assigned_at: nowISO(),
+          status: assignmentPayload.assignment_status
+        }, {
+          onConflict: 'user_id'
+        });
+      if (assignmentMirror.error) {
+        throw new Error(assignmentMirror.error.message || 'Could not mirror assistant assignment.');
+      }
+    }
 
     await ctx.client.from('support_threads').update({ assistant_id: assistantCtx.targetRemoteId }).eq('user_id', appSnapshot.data.user_id);
     await ctx.client.from('callback_requests').update({ assigned_assistant_id: assistantCtx.targetRemoteId }).eq('user_id', appSnapshot.data.user_id).eq('status', STATUS.callback.PENDING);
@@ -4755,6 +14239,15 @@
         role: ROLES.ASSISTANT,
         phone: ''
       });
+
+    try {
+      updateApplication(applicationId, {
+        assistantId: assistantId,
+        assignedAssistantId: assistantId
+      });
+    } catch (error) {
+      console.warn('Could not mirror assistant assignment locally after live update.', error);
+    }
 
     await pushNotificationAsync(learnerUser.id, 'Assistant assigned', `${assignedAssistant.fullName} was assigned to your application.`, 'info').catch(() => {});
     await logAssistantActivityAsync({
@@ -4813,10 +14306,12 @@
     if (latest?.paymentStatus === STATUS.payment.PENDING && !latest?.payment?.proofUploadedAt) pendingTasks.push('Upload proof of payment');
     if (latest?.paymentStatus === STATUS.payment.PENDING_VERIFICATION) pendingTasks.push('Wait for payment verification');
     if (latest?.paymentStatus === STATUS.payment.REJECTED) pendingTasks.push('Re-upload proof of payment');
+    if ([STATUS.application.PENDING_DETAILS, STATUS.application.INCOMPLETE].includes(latest?.status)) pendingTasks.push('Complete application details');
     if (latest?.status === STATUS.application.MISSING_DOCUMENTS) pendingTasks.push('Resolve missing documents');
 
     const smartAlerts = [];
     if (unreadNotifications) smartAlerts.push(`${unreadNotifications} unread notification${unreadNotifications === 1 ? '' : 's'}`);
+    if ([STATUS.application.PENDING_DETAILS, STATUS.application.INCOMPLETE].includes(latest?.status)) smartAlerts.push('Your application is waiting for the remaining details');
     if (latest?.status === STATUS.application.PROCESSING) smartAlerts.push('Your application is being processed');
     if (latest?.paymentStatus === STATUS.payment.REJECTED) smartAlerts.push(latest?.payment?.rejectionReason ? `Payment proof rejected: ${latest.payment.rejectionReason}` : 'Your payment proof was rejected and needs a re-upload');
     if (latest?.paymentStatus === STATUS.payment.PENDING_VERIFICATION && latest?.payment?.proofUploadedAt) smartAlerts.push('Proof of payment uploaded and waiting for verification');
@@ -4879,12 +14374,101 @@
     };
   }
 
+  function countAdminSnapshotRows(rowsArg, predicate) {
+    return safeArray(rowsArg).filter((row) => predicate(row || {})).length;
+  }
+
+  function buildAdminPlatformSnapshot(sourceArg) {
+    const source = sourceArg || {};
+    const applications = safeArray(source.applications);
+    const institutions = safeArray(source.institutions);
+    const housingListings = safeArray(source.housingListings);
+    const questionPapers = safeArray(source.questionPapers);
+    const careerArticles = safeArray(source.careerArticles);
+    const announcements = safeArray(source.announcements);
+    const nowTime = Date.now();
+    const applicationStatus = (app) => String(app?.status || '').trim().toLowerCase();
+    const isApplicationFinal = (app) => /accept|approv|reject|complete/.test(applicationStatus(app));
+    const isReviewedApplication = (app) => {
+      const status = applicationStatus(app);
+      return Boolean(status) && !/^(draft|submitted)$/.test(status) && !isApplicationFinal(app);
+    };
+    const institutionState = (institution) => String(institution?.application_status || institution?.manual_status || institution?.manualStatus || institution?.status || 'open').trim().toLowerCase();
+    const isInstitutionActive = (institution) => institution?.is_visible !== false && institution?.is_active !== false && institution?.isActive !== false;
+    const isInstitutionOpen = (institution) => {
+      if (!isInstitutionActive(institution) || institutionState(institution) === 'closed') return false;
+      if (institution?.canApply === false) return false;
+      const openingDate = institution?.opening_date || institution?.openingDate;
+      const closingDate = institution?.closing_date || institution?.closingDate;
+      if (openingDate && new Date(openingDate).getTime() > nowTime) return false;
+      if (closingDate && new Date(closingDate).getTime() < nowTime) return false;
+      return true;
+    };
+    const lowerStatus = (row, ...keys) => String(firstFilled(...keys.map((key) => row?.[key])) || '').trim().toLowerCase();
+    const isAnnouncementScheduled = (item) => {
+      const scheduledFor = item?.scheduled_for || item?.scheduledFor;
+      return Boolean(scheduledFor && new Date(scheduledFor).getTime() > nowTime);
+    };
+
+    return {
+      applications: {
+        total: applications.length,
+        pending: countAdminSnapshotRows(applications, (app) => !isApplicationFinal(app) && !isReviewedApplication(app)),
+        reviewed: countAdminSnapshotRows(applications, isReviewedApplication),
+        approved: countAdminSnapshotRows(applications, (app) => /accept|approv/.test(applicationStatus(app))),
+        rejected: countAdminSnapshotRows(applications, (app) => /reject/.test(applicationStatus(app)))
+      },
+      institutions: {
+        total: institutions.length,
+        open: countAdminSnapshotRows(institutions, isInstitutionOpen),
+        closed: countAdminSnapshotRows(institutions, (institution) => institutionState(institution) === 'closed' || institution?.canApply === false),
+        active: countAdminSnapshotRows(institutions, isInstitutionActive),
+        inactive: countAdminSnapshotRows(institutions, (institution) => !isInstitutionActive(institution))
+      },
+      housing: {
+        total: housingListings.length,
+        active: countAdminSnapshotRows(housingListings, (listing) => {
+          const state = lowerStatus(listing, 'listing_state', 'listingState', 'status');
+          return listing?.is_active !== false && listing?.isActive !== false && state === 'published';
+        }),
+        inactive: countAdminSnapshotRows(housingListings, (listing) => {
+          const state = lowerStatus(listing, 'listing_state', 'listingState', 'status');
+          return listing?.is_active === false || listing?.isActive === false || state !== 'published';
+        })
+      },
+      questionPapers: {
+        total: questionPapers.length,
+        published: countAdminSnapshotRows(questionPapers, (paper) => lowerStatus(paper, 'status') === 'published'),
+        drafts: countAdminSnapshotRows(questionPapers, (paper) => lowerStatus(paper, 'status') !== 'published')
+      },
+      career: {
+        total: careerArticles.length,
+        published: countAdminSnapshotRows(careerArticles, (article) => lowerStatus(article, 'status') === 'published'),
+        drafts: countAdminSnapshotRows(careerArticles, (article) => lowerStatus(article, 'status') === 'draft'),
+        archived: countAdminSnapshotRows(careerArticles, (article) => lowerStatus(article, 'status') === 'archived')
+      },
+      announcements: {
+        total: announcements.length,
+        active: countAdminSnapshotRows(announcements, (item) => lowerStatus(item, 'status') === 'active' || item?.active === true),
+        scheduled: countAdminSnapshotRows(announcements, isAnnouncementScheduled)
+      }
+    };
+  }
+
   function getAdminSummary() {
     requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
     const apps = getAllApplications();
     const users = getUsers();
     const callbackRequests = read(KEYS.callRequests, []);
     const docs = read(KEYS.docs, []);
+    const platform = buildAdminPlatformSnapshot({
+      applications: apps,
+      institutions: getInstitutionCatalog({ includeInactive: true }),
+      housingListings: getMergedAccommodationListingRecords(),
+      questionPapers: getQuestionPaperStore(),
+      careerArticles: getCareerArticleStore(),
+      announcements: getAnnouncementStore()
+    });
 
     return {
       totals: {
@@ -4895,7 +14479,9 @@
         processing: apps.filter((a) => a.status === STATUS.application.PROCESSING).length,
         pendingCallbacks: callbackRequests.filter((c) => c.status === STATUS.callback.PENDING).length,
         pendingDocs: docs.filter((d) => d.status === STATUS.doc.PENDING).length
-      }
+      },
+      platform,
+      sourceErrors: []
     };
   }
 
@@ -4904,14 +14490,35 @@
     const ctx = await resolveSupabaseContext();
     if (!ctx) return getAdminSummary();
 
-    const [profilesResult, applicationsResult, callbackResult, documentsResult] = await Promise.all([
+    const [
+      profilesResult,
+      applicationsResult,
+      callbackResult,
+      documentsResult,
+      institutionsResult,
+      housingResult,
+      questionPaperResult,
+      careerResult,
+      announcementResult
+    ] = await Promise.all([
       ctx.client.from('profiles').select('id,role'),
       ctx.client.from('applications').select('id,status,payment_status'),
       ctx.client.from('callback_requests').select('id,status'),
-      ctx.client.from('documents').select('id,status')
+      ctx.client.from('documents').select('id,status'),
+      ctx.client.from('institutions').select('id,is_visible,application_status,opening_date,closing_date'),
+      ctx.client.from('housing_listings').select('id,is_active,listing_state'),
+      ctx.client.from('question_papers').select('id,status'),
+      ctx.client.from('career_articles').select('id,status'),
+      ctx.client.from('announcements').select('id,status,scheduled_for')
     ]);
 
-    if (profilesResult.error) throw new Error(profilesResult.error.message || 'Could not load profile totals.');
+    if (profilesResult.error) {
+      if (isRecoverableProfileSyncError(profilesResult.error)) {
+        console.warn('Falling back to local admin summary because remote profile policy is still recursive.', profilesResult.error);
+        return getAdminSummary();
+      }
+      throw new Error(profilesResult.error.message || 'Could not load profile totals.');
+    }
     if (applicationsResult.error) throw new Error(applicationsResult.error.message || 'Could not load application totals.');
     if (callbackResult.error) throw new Error(callbackResult.error.message || 'Could not load callback totals.');
     if (documentsResult.error) throw new Error(documentsResult.error.message || 'Could not load document totals.');
@@ -4920,17 +14527,38 @@
     const apps = safeArray(applicationsResult.data);
     const callbacks = safeArray(callbackResult.data);
     const docs = safeArray(documentsResult.data);
+    const sourceErrors = [];
+    const optionalRows = (result, label) => {
+      if (result?.error) {
+        sourceErrors.push({
+          source: label,
+          message: result.error.message || `Could not load ${label}.`
+        });
+        return [];
+      }
+      return safeArray(result?.data);
+    };
+    const platform = buildAdminPlatformSnapshot({
+      applications: apps,
+      institutions: optionalRows(institutionsResult, 'institutions'),
+      housingListings: optionalRows(housingResult, 'housing listings'),
+      questionPapers: optionalRows(questionPaperResult, 'question papers'),
+      careerArticles: optionalRows(careerResult, 'career articles'),
+      announcements: optionalRows(announcementResult, 'announcements')
+    });
 
     return {
       totals: {
-        users: profiles.filter((user) => user.role === ROLES.USER).length,
-        assistants: profiles.filter((user) => user.role === ROLES.ASSISTANT).length,
+        users: profiles.filter((user) => normalizeKagieRole(user.role, String(user.role || '').trim() || ROLES.USER) === ROLES.USER).length,
+        assistants: profiles.filter((user) => normalizeKagieRole(user.role, String(user.role || '').trim() || ROLES.ASSISTANT) === ROLES.ASSISTANT).length,
         applications: apps.length,
         pendingVerification: apps.filter((app) => app.payment_status === STATUS.payment.PENDING_VERIFICATION).length,
         processing: apps.filter((app) => app.status === STATUS.application.PROCESSING).length,
         pendingCallbacks: callbacks.filter((item) => item.status === STATUS.callback.PENDING).length,
         pendingDocs: docs.filter((doc) => doc.status === STATUS.doc.PENDING).length
-      }
+      },
+      platform,
+      sourceErrors
     };
   }
 
@@ -4944,6 +14572,133 @@
     if (value.includes('apply')) return 'applied';
     if (value.includes('pending') || value.includes('missing')) return 'pending';
     return 'draft';
+  }
+
+  function normalizeSchoolUsageKey(name, province) {
+    return `${String(name || '').trim().toLowerCase()}|${String(province || '').trim().toLowerCase()}`;
+  }
+
+  function buildSchoolUsageSummary(recordsArg, applicationsArg, limitArg) {
+    const records = safeArray(recordsArg);
+    const applications = safeArray(applicationsArg);
+    const limit = Math.max(0, Number(limitArg || 8));
+    const applicationsByUser = new Map();
+
+    applications.forEach((application) => {
+      const userId = String(application?.userId || application?.user_id || '').trim();
+      if (!userId) return;
+      applicationsByUser.set(userId, (applicationsByUser.get(userId) || 0) + 1);
+    });
+
+    const schools = new Map();
+    records.forEach((record) => {
+      const role = String(record?.role || ROLES.USER).trim();
+      if (role && role !== ROLES.USER) return;
+
+      const userId = String(record?.id || record?.userId || record?.user_id || '').trim();
+      const schoolName = String(record?.schoolName || record?.schoolAttended || record?.school_name || '').trim();
+      if (!schoolName) return;
+
+      const province = String(record?.schoolProvince || record?.school_province || record?.province || '').trim();
+      const completionYear = String(record?.completionYear || record?.completion_year || '').trim();
+      const key = normalizeSchoolUsageKey(schoolName, province);
+      if (!key || key === '|') return;
+
+      const existing = schools.get(key) || {
+        schoolName,
+        province,
+        learnerCount: 0,
+        applicationCount: 0,
+        completionYears: new Set(),
+        learnerIds: new Set()
+      };
+
+      const learnerKey = userId || `${schoolName}_${existing.learnerCount + 1}`;
+      if (!existing.learnerIds.has(learnerKey)) {
+        existing.learnerIds.add(learnerKey);
+        existing.learnerCount += 1;
+        existing.applicationCount += Number(applicationsByUser.get(userId) || 0);
+      }
+      if (completionYear) existing.completionYears.add(completionYear);
+      schools.set(key, existing);
+    });
+
+    const ranked = Array.from(schools.values())
+      .map((item) => ({
+        schoolName: item.schoolName,
+        province: item.province,
+        learnerCount: item.learnerCount,
+        applicationCount: item.applicationCount,
+        completionYears: Array.from(item.completionYears).sort((a, b) => String(b).localeCompare(String(a))).slice(0, 3)
+      }))
+      .sort((a, b) => (b.learnerCount - a.learnerCount) || (b.applicationCount - a.applicationCount) || a.schoolName.localeCompare(b.schoolName));
+
+    return {
+      totalSchools: ranked.length,
+      learnersWithSchools: ranked.reduce((sum, item) => sum + Number(item.learnerCount || 0), 0),
+      schools: limit ? ranked.slice(0, limit) : ranked
+    };
+  }
+
+  function getSchoolUsageSummary(limitArg) {
+    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const learnerRecords = getUsers()
+      .filter((user) => user.role === ROLES.USER)
+      .map((user) => {
+        const profile = getProfile(user.id) || {};
+        return {
+          id: user.id,
+          role: user.role,
+          schoolName: profile.schoolName || profile.schoolAttended || user.profile?.schoolName || '',
+          schoolAttended: profile.schoolAttended || profile.schoolName || '',
+          schoolProvince: profile.schoolProvince || profile.province || '',
+          completionYear: profile.completionYear || ''
+        };
+      });
+    return buildSchoolUsageSummary(learnerRecords, getAllApplications(), limitArg);
+  }
+
+  async function getSchoolUsageSummaryAsync(limitArg) {
+    requireRole([ROLES.ASSISTANT, ROLES.MASTER]);
+    const ctx = await resolveSupabaseContext();
+    if (!ctx) return getSchoolUsageSummary(limitArg);
+
+    const [profilesResult, schoolProfilesResult, applicationsResult] = await Promise.all([
+      ctx.client.from('profiles').select('id,role'),
+      ctx.client.from('school_profiles').select('user_id,school_name,school_province,completion_year'),
+      ctx.client.from('applications').select('id,user_id')
+    ]);
+
+    if (profilesResult.error) {
+      if (isRecoverableProfileSyncError(profilesResult.error)) {
+        console.warn('Falling back to local school usage summary because remote profile policy is still recursive.', profilesResult.error);
+        return getSchoolUsageSummary(limitArg);
+      }
+      throw new Error(profilesResult.error.message || 'Could not load school usage summary.');
+    }
+
+    if (schoolProfilesResult.error || applicationsResult.error) {
+      console.warn('Falling back to local school usage summary because remote school analytics are unavailable.', schoolProfilesResult.error || applicationsResult.error);
+      return getSchoolUsageSummary(limitArg);
+    }
+
+    const schoolRowsByUser = new Map(
+      safeArray(schoolProfilesResult.data).map((row) => [String(row?.user_id || '').trim(), row || {}])
+    );
+    const learnerRecords = safeArray(profilesResult.data)
+      .filter((profile) => profile?.role === ROLES.USER)
+      .map((profile) => {
+        const schoolRow = schoolRowsByUser.get(String(profile?.id || '').trim()) || {};
+        return {
+          id: profile.id,
+          role: profile.role,
+          schoolName: schoolRow.school_name || '',
+          schoolProvince: schoolRow.school_province || '',
+          completionYear: schoolRow.completion_year || ''
+        };
+      });
+
+    return buildSchoolUsageSummary(learnerRecords, safeArray(applicationsResult.data), limitArg);
   }
 
   function getUsersCompat() {
@@ -5038,7 +14793,20 @@
     return getProfile(targetUserId);
   }
 
+  const profileLoadsInFlight = new Map();
   async function getProfileAsync(userIdArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const targetUserId = userIdArg || actor.id;
+    const key = `${actor.id}:${targetUserId}`;
+    if (profileLoadsInFlight.has(key)) return profileLoadsInFlight.get(key);
+    const pending = loadProfileAsync(targetUserId).finally(() => {
+      if (profileLoadsInFlight.get(key) === pending) profileLoadsInFlight.delete(key);
+    });
+    profileLoadsInFlight.set(key, pending);
+    return pending;
+  }
+
+  async function loadProfileAsync(userIdArg) {
     const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
     const targetUserId = userIdArg || actor.id;
     const ctx = await resolveSupabaseContext(targetUserId);
@@ -5046,9 +14814,9 @@
 
     const [profileResult, userResult, guardianResult, schoolResult] = await Promise.allSettled([
       ctx.client.from('profiles').select('*').eq('id', ctx.targetRemoteId).maybeSingle(),
-      ctx.client.from('user_profiles').select('*').eq('user_id', ctx.targetRemoteId).maybeSingle(),
-      ctx.client.from('guardian_profiles').select('*').eq('user_id', ctx.targetRemoteId).maybeSingle(),
-      ctx.client.from('school_profiles').select('*').eq('user_id', ctx.targetRemoteId).maybeSingle()
+      ctx.client.from('user_profiles').select('*').eq('user_id', ctx.targetRemoteId).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+      ctx.client.from('guardian_profiles').select('*').eq('user_id', ctx.targetRemoteId).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+      ctx.client.from('school_profiles').select('*').eq('user_id', ctx.targetRemoteId).order('updated_at', { ascending: false }).limit(1).maybeSingle()
     ]);
 
     const profileResponse = profileResult.status === 'fulfilled'
@@ -5070,6 +14838,22 @@
     if (profileResponse.error && isRecoverableProfileSyncError(profileResponse.error)) {
       console.warn('Falling back to local base profile because remote profile policy is still recursive.', profileResponse.error);
     }
+    if (userResponse.error && isRecoverableProfileSyncError(userResponse.error)) {
+      console.warn('Falling back to local learner profile details because remote profile policy is still recursive.', userResponse.error);
+      userResponse.data = null;
+      userResponse.error = null;
+    }
+    if (guardianResponse.error && isRecoverableProfileSyncError(guardianResponse.error)) {
+      console.warn('Falling back to local guardian profile details because remote profile policy is still recursive.', guardianResponse.error);
+      guardianResponse.data = null;
+      guardianResponse.error = null;
+    }
+    if (schoolResponse.error && isRecoverableProfileSyncError(schoolResponse.error)) {
+      console.warn('Falling back to local school profile details because remote profile policy is still recursive.', schoolResponse.error);
+      schoolResponse.data = null;
+      schoolResponse.error = null;
+    }
+
     if (userResponse.error) throw new Error(userResponse.error.message || 'Could not load learner profile.');
     if (guardianResponse.error) throw new Error(guardianResponse.error.message || 'Could not load guardian profile.');
     if (schoolResponse.error) throw new Error(schoolResponse.error.message || 'Could not load school profile.');
@@ -5091,13 +14875,14 @@
       phone: profileRow.phone || localBase.phone || '',
       cellphone: profileRow.phone || localBase.cellphone || localBase.phone || '',
       profileImage: profileRow.profile_image || localBase.profileImage || '',
-      idNumber: userRow.id_number || localBase.idNumber || '',
+      idNumber: userRow.id_number || profileRow.id_number || localBase.idNumber || '',
       surname: userRow.surname || localBase.surname || '',
       maidenName: userRow.maiden_name || localBase.maidenName || '',
       dob: userRow.date_of_birth || localBase.dob || '',
       gender: userRow.gender || localBase.gender || '',
       homeLanguage: userRow.home_language || localBase.homeLanguage || '',
-      province: userRow.province || localBase.province || '',
+      province: userRow.province || profileRow.province || localBase.province || '',
+      city: profileRow.city || localBase.city || localBase.town || '',
       postalCode: userRow.postal_code || localBase.postalCode || '',
       address: userRow.address || localBase.address || '',
       guardianRelation: guardianRow.relation || localBase.guardianRelation || '',
@@ -5136,31 +14921,56 @@
       : (getProfile(targetUserId) || {});
     const merged = mergeDeep(existing || {}, patch || {});
     const fullName = merged.fullName || merged.fullNames || existing?.fullName || '';
-    const email = normalizeEmail(merged.email || ctx.targetLocalUser?.email || actor.email || '');
+    const email = normalizeEmail(merged.email || ctx.targetLocalUser?.email || existing?.email || (targetUserId === actor.id ? actor.email : '') || '');
     const phone = merged.phone || merged.cellphone || existing?.phone || '';
     const schoolName = merged.schoolName || merged.schoolAttended || '';
+    const targetRole = ctx.targetLocalUser?.role || existing?.role || (targetUserId === actor.id ? actor.role : ROLES.USER);
+    logDataFlowDebug('saveProfileAsync submit', {
+      targetUserId,
+      remoteUserId: ctx.targetRemoteId,
+      fieldKeys: Object.keys(patch || {}),
+      hasEmail: Boolean(email),
+      hasPhone: Boolean(phone),
+      hasIdNumber: Boolean(merged.idNumber),
+      hasGuardian: Boolean(merged.guardianFullNames || merged.guardianName || merged.guardianId),
+      hasSchool: Boolean(schoolName || merged.schoolProvince || merged.schoolType)
+    });
 
     let profileWriteError = null;
-    const profileWrite = await ctx.client.from('profiles').upsert({
+    const profilePayload = {
       id: ctx.targetRemoteId,
+      user_id: ctx.targetRemoteId,
       full_name: fullName,
       email,
       phone,
-      role: ctx.targetLocalUser?.role || actor.role || ROLES.USER,
+      id_number: merged.idNumber || '',
+      province: merged.province || '',
+      city: merged.city || merged.town || '',
+      role: targetRole,
       profile_image: merged.profileImage || existing?.profileImage || ''
-    });
+    };
+    let profileWrite = await ctx.client.from('profiles').upsert(profilePayload, { onConflict: 'id' });
+    if (profileWrite.error && isProfileSchemaCacheColumnError(profileWrite.error)) {
+      profileWriteError = profileWrite.error;
+      console.warn('Profiles schema cache is missing compatibility columns. Retrying a minimal profile write; run the Kagie profile schema migration.', profileWrite.error);
+      profileWrite = await ctx.client.from('profiles').upsert({
+        id: ctx.targetRemoteId,
+        full_name: fullName,
+        role: targetRole,
+        profile_image: merged.profileImage || existing?.profileImage || ''
+      }, { onConflict: 'id' });
+    }
     if (profileWrite.error) {
       if (isRecoverableProfileSyncError(profileWrite.error)) {
-        profileWriteError = profileWrite.error;
-        console.warn('Skipping remote profiles upsert because the current RLS policy is recursive.', profileWrite.error);
+        profileWriteError = profileWriteError || profileWrite.error;
+        console.warn('Skipping remote profiles upsert because the current profile policy/schema needs migration.', profileWrite.error);
       } else {
         throw new Error(profileWrite.error.message || 'Could not save profile.');
       }
     }
 
     const writes = await Promise.all([
-      ctx.client.from('user_profiles').upsert({
-        user_id: ctx.targetRemoteId,
+      writeUserScopedSupabaseRow(ctx.client, 'user_profiles', ctx.targetRemoteId, {
         id_number: merged.idNumber || '',
         surname: merged.surname || '',
         maiden_name: merged.maidenName || '',
@@ -5170,9 +14980,8 @@
         province: merged.province || '',
         postal_code: merged.postalCode || '',
         address: merged.address || ''
-      }),
-      ctx.client.from('guardian_profiles').upsert({
-        user_id: ctx.targetRemoteId,
+      }).then((result) => ({ ...result, table: 'user_profiles' })),
+      writeUserScopedSupabaseRow(ctx.client, 'guardian_profiles', ctx.targetRemoteId, {
         relation: merged.guardianRelation || '',
         guardian_id: merged.guardianId || '',
         full_names: merged.guardianFullNames || merged.guardianName || '',
@@ -5183,20 +14992,37 @@
         province: merged.guardianProvince || '',
         postal_code: merged.guardianPostal || '',
         address: merged.guardianAddress || ''
-      }),
-      ctx.client.from('school_profiles').upsert({
-        user_id: ctx.targetRemoteId,
+      }).then((result) => ({ ...result, table: 'guardian_profiles' })),
+      writeUserScopedSupabaseRow(ctx.client, 'school_profiles', ctx.targetRemoteId, {
         school_name: schoolName,
         confirm_name: merged.confirmName || schoolName || '',
         school_province: merged.schoolProvince || '',
         school_type: merged.schoolType || '',
         completion_year: toIntegerOrNull(merged.completionYear),
         average: toNumericOrNull(merged.average)
-      })
+      }).then((result) => ({ ...result, table: 'school_profiles' }))
     ]);
 
     writes.forEach((result) => {
-      if (result.error) throw new Error(result.error.message || 'Could not save profile.');
+      if (result.error) {
+        logDataFlowDebug('saveProfileAsync detail table write failed', {
+          targetUserId,
+          remoteUserId: ctx.targetRemoteId,
+          table: result.table,
+          strategy: result.strategy,
+          message: result.error.message || String(result.error)
+        });
+        throw new Error(result.error.message || 'Could not save profile.');
+      }
+    });
+    logDataFlowDebug('saveProfileAsync success', {
+      targetUserId,
+      remoteUserId: ctx.targetRemoteId,
+      profileWriteMode: profileWriteError ? 'minimal-profile-fallback' : 'full-profile-upsert',
+      detailWrites: writes.map((result) => ({
+        table: result.table,
+        strategy: result.strategy
+      }))
     });
 
     if (ctx.targetLocalUser?.id) {
@@ -5221,7 +15047,10 @@
       }
     }
 
-    return getProfileAsync(ctx.targetLocalUser?.id || targetUserId);
+    const refreshedUserId = ctx.targetLocalUser?.id || targetUserId;
+    // A read started before this write must not be reused for the saved result.
+    profileLoadsInFlight.delete(`${actor.id}:${refreshedUserId}`);
+    return getProfileAsync(refreshedUserId);
   }
 
   async function ensureDraftAsync(userIdArg) {
@@ -5229,7 +15058,7 @@
     const ctx = await resolveSupabaseContext(targetUserId);
     if (!ctx) return ensureDraft(targetUserId);
 
-    const profile = await getProfileAsync(ctx.targetLocalUser?.id || targetUserId).catch(() => ({}));
+    const profilePromise = getProfileAsync(ctx.targetLocalUser?.id || targetUserId).catch(() => ({}));
     const existing = await ctx.client
       .from('applications')
       .select(REMOTE_APPLICATION_SELECT)
@@ -5238,8 +15067,13 @@
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-
-    if (existing.error) throw new Error(existing.error.message || 'Could not load draft.');
+    if (existing.error) {
+      if (isRecoverableRemoteSyncError(existing.error)) {
+        console.warn('Falling back to local draft because the remote draft query is unavailable.', existing.error);
+        return ensureDraft(targetUserId);
+      }
+      throw new Error(existing.error.message || 'Could not load draft.');
+    }
 
     let row = existing.data || null;
     if (!row) {
@@ -5248,13 +15082,72 @@
         .insert({ user_id: ctx.targetRemoteId })
         .select(REMOTE_APPLICATION_SELECT)
         .single();
-      if (created.error) throw new Error(created.error.message || 'Could not create draft.');
+      if (created.error) {
+        if (isRecoverableRemoteSyncError(created.error)) {
+          console.warn('Falling back to local draft because the remote draft creation is unavailable.', created.error);
+          return ensureDraft(targetUserId);
+        }
+        throw new Error(created.error.message || 'Could not create draft.');
+      }
       row = created.data;
     }
 
+    const profile = await profilePromise;
     const [app] = await hydrateRemoteApplications([row], ctx.targetLocalUser?.id || targetUserId, profile);
-    if (app) mirrorRemoteApplication(app, ctx.targetLocalUser?.id || ctx.viewer.id);
+    if (app) mirrorRemoteApplication(app, ctx.targetLocalUser?.id || targetUserId || app.userId);
     return app || ensureDraft(targetUserId);
+  }
+
+  async function ensureApplicationDraftAsync(applicationTypeArg, userIdArg) {
+    const targetUserId = userIdArg || requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]).id;
+    const applicationType = normalizeApplicationTypeKey(applicationTypeArg) || 'undergraduate';
+    const ctx = await resolveSupabaseContext(targetUserId);
+    if (!ctx) return ensureApplicationDraft(applicationType, targetUserId);
+
+    try {
+      const profile = await getProfileAsync(ctx.targetLocalUser?.id || targetUserId).catch(() => ({}));
+      const reusableStatuses = [
+        STATUS.application.DRAFT,
+        STATUS.application.PACKAGE_SELECTED,
+        STATUS.application.AWAITING_PAYMENT,
+        STATUS.application.MISSING_DOCUMENTS,
+        STATUS.application.DOCUMENTS_MISSING
+      ];
+      const existing = await ctx.client
+        .from('applications')
+        .select(REMOTE_APPLICATION_SELECT)
+        .eq('user_id', ctx.targetRemoteId)
+        .eq('application_type', remoteApplicationTypeKey(applicationType))
+        .in('status', reusableStatuses)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existing.error) throw existing.error;
+
+      let row = existing.data || null;
+      if (!row) {
+        const created = await ctx.client
+          .from('applications')
+          .insert({
+            user_id: ctx.targetRemoteId,
+            application_type: remoteApplicationTypeKey(applicationType)
+          })
+          .select(REMOTE_APPLICATION_SELECT)
+          .single();
+        if (created.error) throw created.error;
+        row = created.data;
+      }
+
+      const [app] = await hydrateRemoteApplications([row], ctx.targetLocalUser?.id || targetUserId, profile);
+      if (app) mirrorRemoteApplication(app, ctx.targetLocalUser?.id || targetUserId || app.userId);
+      return app || ensureApplicationDraft(applicationType, targetUserId);
+    } catch (error) {
+      if (isRecoverableRemoteSyncError(error)) {
+        console.warn('Falling back to a local application-type draft because remote specialised drafts are unavailable.', error);
+        return ensureApplicationDraft(applicationType, targetUserId);
+      }
+      throw new Error(error?.message || 'Could not create the application draft.');
+    }
   }
 
   async function getApplicationByIdAsync(appId, userIdArg) {
@@ -5263,7 +15156,13 @@
     if (!ctx) return getApplicationById(appId);
 
     const query = await ctx.client.from('applications').select(REMOTE_APPLICATION_SELECT).eq('id', appId).maybeSingle();
-    if (query.error) throw new Error(query.error.message || 'Could not load application.');
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) {
+        console.warn('Falling back to local application because the remote application query is unavailable.', query.error);
+        return getApplicationById(appId);
+      }
+      throw new Error(query.error.message || 'Could not load application.');
+    }
     if (!query.data) return null;
 
     const localUser = getUsers().find((user) => user.supabaseUserId === query.data.user_id) || null;
@@ -5287,11 +15186,17 @@
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (query.error) throw new Error(query.error.message || 'Could not load latest application.');
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) {
+        console.warn('Falling back to local latest application because the remote query is unavailable.', query.error);
+        return getLatestApplication(targetUserId);
+      }
+      throw new Error(query.error.message || 'Could not load latest application.');
+    }
     if (!query.data) return null;
 
     const [app] = await hydrateRemoteApplications([query.data], ctx.targetLocalUser?.id || targetUserId, profile);
-    if (app) mirrorRemoteApplication(app, ctx.targetLocalUser?.id || ctx.viewer.id);
+    if (app) mirrorRemoteApplication(app, ctx.targetLocalUser?.id || targetUserId || app.userId);
     return app || null;
   }
 
@@ -5301,15 +15206,21 @@
     if (!ctx) return getApplicationsByUser(targetUserId);
 
     const profile = await getProfileAsync(ctx.targetLocalUser?.id || targetUserId).catch(() => ({}));
-    const query = await ctx.client
+    const query = await fetchPagedSupabaseRows(() => ctx.client
       .from('applications')
       .select(REMOTE_APPLICATION_SELECT)
       .eq('user_id', ctx.targetRemoteId)
-      .order('updated_at', { ascending: false });
-    if (query.error) throw new Error(query.error.message || 'Could not load applications.');
+      .order('updated_at', { ascending: false }));
+    if (query.error) {
+      if (isRecoverableRemoteSyncError(query.error)) {
+        console.warn('Falling back to local applications because the remote applications query is unavailable.', query.error);
+        return getApplicationsByUser(targetUserId);
+      }
+      throw new Error(query.error.message || 'Could not load applications.');
+    }
 
     const apps = await hydrateRemoteApplications(query.data || [], ctx.targetLocalUser?.id || targetUserId, profile);
-    mirrorRemoteApplications(apps, ctx.targetLocalUser?.id || ctx.viewer.id);
+    mirrorRemoteApplications(apps, ctx.targetLocalUser?.id || targetUserId);
     return apps;
   }
 
@@ -5325,7 +15236,13 @@
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (current.error) throw new Error(current.error.message || 'Could not load payment record.');
+    if (current.error) {
+      if (isRecoverableRemoteSyncError(current.error)) {
+        console.warn('Skipping remote payment record sync because the payment query is unavailable.', current.error);
+        return null;
+      }
+      throw new Error(current.error.message || 'Could not load payment record.');
+    }
 
     const payload = {
       payer_name: normalizedPayment?.payerName || '',
@@ -5342,7 +15259,13 @@
         .from('payments')
         .update(payload)
         .eq('id', current.data.id);
-      if (updated.error) throw new Error(updated.error.message || 'Could not update payment record.');
+      if (updated.error) {
+        if (isRecoverableRemoteSyncError(updated.error)) {
+          console.warn('Skipping remote payment record update because the payment table is unavailable.', updated.error);
+          return current.data.id;
+        }
+        throw new Error(updated.error.message || 'Could not update payment record.');
+      }
       return current.data.id;
     }
 
@@ -5354,7 +15277,13 @@
       })
       .select('id')
       .single();
-    if (inserted.error) throw new Error(inserted.error.message || 'Could not create payment record.');
+    if (inserted.error) {
+      if (isRecoverableRemoteSyncError(inserted.error)) {
+        console.warn('Skipping remote payment record insert because the payment table is unavailable.', inserted.error);
+        return null;
+      }
+      throw new Error(inserted.error.message || 'Could not create payment record.');
+    }
     return inserted.data?.id || null;
   }
 
@@ -5365,123 +15294,339 @@
     if (!ctx) return updateApplication(appId, patch);
     const currentApp = await getApplicationByIdAsync(appId).catch(() => null);
 
-    const updates = {};
+    try {
+      const updates = {};
+      const payloadPatch = {};
+      const hasAssignmentPatch = Object.prototype.hasOwnProperty.call(patch || {}, 'assistantId')
+        || Object.prototype.hasOwnProperty.call(patch || {}, 'assignedAssistantId');
+      const requestedAssistantId = patch?.assignedAssistantId ?? patch?.assistantId ?? null;
+      const currentAssignedAssistantId = currentApp?.assignedAssistantId || currentApp?.assistantId || null;
 
-    if (Object.prototype.hasOwnProperty.call(patch || {}, 'assistantId')) {
-      if (patch.assistantId) {
-        const assistantCtx = await resolveSupabaseContext(patch.assistantId);
-        updates.assistant_id = assistantCtx?.targetRemoteId || patch.assistantId || null;
-      } else {
-        updates.assistant_id = null;
-      }
-    }
-    if (Object.prototype.hasOwnProperty.call(patch || {}, 'status')) updates.status = patch.status || STATUS.application.DRAFT;
-    if (Object.prototype.hasOwnProperty.call(patch || {}, 'paymentStatus')) updates.payment_status = patch.paymentStatus || STATUS.payment.PENDING;
-    if (Object.prototype.hasOwnProperty.call(patch || {}, 'submittedAt')) updates.submitted_at = patch.submittedAt || null;
-
-    if (patch?.payment) {
-      const nextPayment = normalizePaymentDetails(mergeDeep(currentApp?.payment || {}, patch.payment), patch.paymentStatus || currentApp?.paymentStatus);
-      updates.payer_name = nextPayment?.payerName || '';
-      updates.payer_phone = nextPayment?.phone || '';
-      updates.payment_reference = nextPayment?.reference || '';
-      updates.payment_method = nextPayment?.method || '';
-      updates.payment_note = serializePaymentNoteState(nextPayment);
-      updates.payment_amount = Number(nextPayment?.amount || 0);
-    }
-
-    if (Object.prototype.hasOwnProperty.call(patch || {}, 'package')) {
-      const remotePack = await findRemotePackRecord(patch.package);
-      updates.package_id = remotePack?.id || null;
-    }
-
-    if (Object.keys(updates).length) {
-      const baseUpdate = await ctx.client.from('applications').update(updates).eq('id', appId);
-      if (baseUpdate.error) throw new Error(baseUpdate.error.message || 'Could not update application.');
-    }
-
-    if (Array.isArray(patch?.services)) {
-      try {
-        updateApplication(appId, { services: safeArray(patch.services).map(clone) });
-      } catch (error) {
-        console.warn('Could not mirror service items locally while syncing application.', error);
-      }
-    }
-
-    if (Array.isArray(patch?.institutions)) {
-      const cleared = await ctx.client.from('application_institutions').delete().eq('application_id', appId);
-      if (cleared.error) throw new Error(cleared.error.message || 'Could not refresh institutions.');
-
-      if (patch.institutions.length) {
-        const rows = patch.institutions.map((item) => ({
-          application_id: appId,
-          province: item?.province || '',
-          institution_type: item?.institutionType || '',
-          institution_name: item?.institutionName || item?.name || '',
-          faculty: item?.faculty || '',
-          choice_1: item?.choice1 || '',
-          choice_2: item?.choice2 || '',
-          choice_3: item?.choice3 || ''
-        }));
-        const inserted = await ctx.client.from('application_institutions').insert(rows);
-        if (inserted.error) throw new Error(inserted.error.message || 'Could not save institutions.');
-      }
-    }
-
-    if (Array.isArray(patch?.forms?.marks?.subjects)) {
-      const clearedMarks = await ctx.client.from('application_marks').delete().eq('application_id', appId);
-      if (clearedMarks.error) throw new Error(clearedMarks.error.message || 'Could not refresh marks.');
-
-      if (patch.forms.marks.subjects.length) {
-        const rows = patch.forms.marks.subjects.map((mark) => ({
-          application_id: appId,
-          subject: mark?.subject || '',
-          percent: Math.max(0, Math.min(100, Number(mark?.percent || 0))),
-          level: Math.max(1, Math.min(7, Number(mark?.level || 1)))
-        }));
-        const insertedMarks = await ctx.client.from('application_marks').insert(rows);
-        if (insertedMarks.error) throw new Error(insertedMarks.error.message || 'Could not save marks.');
-      }
-    }
-
-    const nextPaymentStatus = patch?.paymentStatus || currentApp?.paymentStatus || STATUS.payment.PENDING;
-    const nextPayment = patch?.payment || patch?.paymentStatus
-      ? normalizePaymentDetails(mergeDeep(currentApp?.payment || {}, patch?.payment || {}), nextPaymentStatus)
-      : null;
-
-    if (patch?.payment || patch?.paymentStatus) {
-      await syncRemotePaymentRecord(ctx.client, appId, nextPayment, nextPaymentStatus);
-    }
-
-    const refreshed = await getApplicationByIdAsync(appId);
-    if (patch?.status || patch?.paymentStatus) {
-      let message = `Status: ${refreshed.status} | Payment: ${refreshed.paymentStatus}`;
-      let type = 'info';
-      if (patch?.paymentStatus && patch.paymentStatus !== currentApp?.paymentStatus) {
-        if (refreshed.paymentStatus === STATUS.payment.REJECTED) {
-          message = refreshed.payment?.rejectionReason
-            ? `Your payment proof was rejected. Reason: ${refreshed.payment.rejectionReason}`
-            : 'Your payment proof was rejected. Please upload a clearer proof of payment.';
-          type = 'warning';
-        } else if (refreshed.paymentStatus === STATUS.payment.VERIFIED) {
-          message = 'Your payment has been verified successfully.';
-          type = 'success';
-        } else if (refreshed.paymentStatus === STATUS.payment.PENDING_VERIFICATION) {
-          message = refreshed.payment?.proofUploadedAt
-            ? 'Your proof of payment has been uploaded and is pending verification.'
-            : 'Your payment is pending verification.';
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'assistantId')) {
+        if (patch.assistantId) {
+          const assistantCtx = await resolveSupabaseContext(patch.assistantId);
+          updates.assistant_id = assistantCtx?.targetRemoteId || patch.assistantId || null;
+        } else {
+          updates.assistant_id = null;
         }
       }
-      await pushNotificationAsync(refreshed.userId, 'Application updated', message, type).catch(() => {});
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'status')) updates.status = patch.status || STATUS.application.DRAFT;
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'paymentStatus')) updates.payment_status = patch.paymentStatus || STATUS.payment.PENDING;
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'submittedAt')) updates.submitted_at = patch.submittedAt || null;
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'applicationType')) {
+        updates.application_type = remoteApplicationTypeKey(patch.applicationType);
+        payloadPatch.applicationType = normalizeApplicationTypeKey(patch.applicationType);
+      }
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'applicationTypeLabel')) payloadPatch.applicationTypeLabel = patch.applicationTypeLabel || '';
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'selectedAddons')) {
+        updates.selected_addons = safeArray(patch.selectedAddons).map(clone);
+        payloadPatch.selectedAddons = safeArray(patch.selectedAddons).map(clone);
+      }
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'packagePrice')) {
+        updates.package_price = Number(patch.packagePrice || 0);
+        payloadPatch.packagePrice = Number(patch.packagePrice || 0);
+      }
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'addonsTotal')) {
+        updates.addons_total = Number(patch.addonsTotal || 0);
+        payloadPatch.addonsTotal = Number(patch.addonsTotal || 0);
+      }
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'finalTotal')) {
+        updates.final_total = Number(patch.finalTotal || 0);
+        payloadPatch.finalTotal = Number(patch.finalTotal || 0);
+      }
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'applicationReference')) {
+        updates.application_reference = patch.applicationReference || '';
+        payloadPatch.applicationReference = patch.applicationReference || '';
+      }
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'institutionChoice1')) {
+        updates.institution_choice_1 = patch.institutionChoice1 || '';
+        payloadPatch.institutionChoice1 = patch.institutionChoice1 || '';
+      }
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'institutionChoice2')) {
+        updates.institution_choice_2 = patch.institutionChoice2 || '';
+        payloadPatch.institutionChoice2 = patch.institutionChoice2 || '';
+      }
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'programmeChoice')) {
+        updates.programme_choice = patch.programmeChoice || '';
+        payloadPatch.programmeChoice = patch.programmeChoice || '';
+      }
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'forms')) payloadPatch.forms = clone(patch.forms || {});
+      if (Array.isArray(patch?.institutions)) {
+        const payloadInstitutions = safeArray(patch.institutions).map(normalizeInstitutionRecord);
+        payloadPatch.institutions = payloadInstitutions.map(clone);
+        payloadPatch.forms = mergeDeep(payloadPatch.forms || {}, {
+          institutions: payloadInstitutions.map(clone)
+        });
+      }
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'selectedPackage')) payloadPatch.selectedPackage = clone(patch.selectedPackage || null);
+
+      if (patch?.payment) {
+        const nextPayment = normalizePaymentDetails(mergeDeep(currentApp?.payment || {}, patch.payment), patch.paymentStatus || currentApp?.paymentStatus);
+        updates.payer_name = nextPayment?.payerName || '';
+        updates.payer_phone = nextPayment?.phone || '';
+        updates.payment_reference = nextPayment?.reference || '';
+        updates.payment_method = nextPayment?.method || '';
+        updates.payment_note = serializePaymentNoteState(nextPayment);
+        updates.payment_amount = Number(nextPayment?.amount || 0);
+      }
+
+      if (Array.isArray(patch?.services)) {
+        payloadPatch.services = safeArray(patch.services).map(clone);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'package')) {
+        const remotePack = await findRemotePackRecord(patch.package);
+        updates.package_id = remotePack?.id || null;
+      }
+      if (patch?.selectedPackage || patch?.package) {
+        const selectedPackage = patch.selectedPackage || patch.package;
+        const packageCode = String(selectedPackage?.code || selectedPackage?.id || '').trim();
+        if (packageCode) {
+          const selectedPackageQuery = await ctx.client
+            .from('application_packages')
+            .select('id')
+            .eq('code', packageCode)
+            .maybeSingle();
+          if (selectedPackageQuery.error) throw selectedPackageQuery.error;
+          updates.selected_package_id = selectedPackageQuery.data?.id || null;
+        }
+      }
+
+      if (Object.keys(payloadPatch).length) {
+        updates.application_payload = mergeDeep(currentApp?.applicationPayload || {}, payloadPatch);
+      }
+
+      if (hasAssignmentPatch) {
+        updates.assigned_by = requestedAssistantId ? ctx.remoteSelfId : null;
+        updates.assigned_at = requestedAssistantId ? nowISO() : null;
+        updates.assignment_status = requestedAssistantId
+          ? (currentAssignedAssistantId && String(currentAssignedAssistantId).trim() !== String(requestedAssistantId).trim() ? 'Reassigned' : 'Assigned')
+          : 'Unassigned';
+      }
+
+      if (Object.keys(updates).length) {
+        let baseUpdate = await ctx.client.from('applications').update(updates).eq('id', appId);
+        if (baseUpdate.error && hasAssignmentPatch && isMissingAssignmentAuditColumnsError(baseUpdate.error)) {
+          const fallbackUpdates = { ...updates };
+          delete fallbackUpdates.assigned_by;
+          delete fallbackUpdates.assigned_at;
+          delete fallbackUpdates.assignment_status;
+          baseUpdate = await ctx.client.from('applications').update(fallbackUpdates).eq('id', appId);
+        }
+        if (baseUpdate.error) throw new Error(baseUpdate.error.message || 'Could not update application.');
+      }
+
+      if (Object.prototype.hasOwnProperty.call(patch || {}, 'assistantId') || Object.prototype.hasOwnProperty.call(patch || {}, 'assignedAssistantId')) {
+        try {
+          updateApplication(appId, {
+            assistantId: patch?.assistantId ?? null,
+            assignedAssistantId: patch?.assignedAssistantId ?? patch?.assistantId ?? null
+          });
+        } catch (error) {
+          console.warn('Could not mirror assignment metadata locally after remote application update.', error);
+        }
+      }
+
+      if (Array.isArray(patch?.services)) {
+        try {
+          updateApplication(appId, { services: safeArray(patch.services).map(clone) });
+        } catch (error) {
+          console.warn('Could not mirror service items locally while syncing application.', error);
+        }
+      }
+
+      if (Array.isArray(patch?.institutions)) {
+        try {
+          const safeInstitutions = safeArray(patch.institutions).map((institution) => {
+            const matchedInstitution = ensureInstitutionAvailableForApplication(institution);
+            return {
+              ...institution,
+              year: institution?.year || matchedInstitution?.year || String(new Date().getFullYear()),
+              institutionStatus: matchedInstitution?.status || institution?.institutionStatus || '',
+              canApply: matchedInstitution ? matchedInstitution.canApply : institution?.canApply
+            };
+          });
+          const cleared = await ctx.client.from('application_institutions').delete().eq('application_id', appId);
+          if (cleared.error) throw new Error(cleared.error.message || 'Could not refresh institutions.');
+
+          if (safeInstitutions.length) {
+            const rows = safeInstitutions.map((item) => ({
+              application_id: appId,
+              institution_id: isUuid(item?.institutionId) ? item.institutionId : null,
+              province: item?.province || '',
+              institution_type: item?.institutionType || '',
+              institution_name: item?.institutionName || item?.name || '',
+              application_fee: Number(item?.applicationFee ?? 0),
+              application_fee_label: item?.applicationFeeLabel || '',
+              application_fee_note: item?.applicationFeeNote || '',
+              faculty: item?.faculty || '',
+              choice_1: item?.choice1 || '',
+              choice_2: item?.choice2 || '',
+              choice_3: item?.choice3 || ''
+            }));
+            let inserted = await ctx.client.from('application_institutions').insert(rows);
+            if (inserted.error && String(inserted.error.message || inserted.error).toLowerCase().includes('institution_id')) {
+              inserted = await ctx.client.from('application_institutions').insert(rows.map((row) => {
+                const safeRow = { ...row };
+                delete safeRow.institution_id;
+                return safeRow;
+              }));
+            }
+            if (inserted.error) throw new Error(inserted.error.message || 'Could not save institutions.');
+          }
+        } catch (error) {
+          console.warn('Application institution mirror skipped; saved payload will be used for admin views.', error);
+        }
+      }
+
+      if (Array.isArray(patch?.forms?.marks?.subjects)) {
+        try {
+          const replaced = await ctx.client.rpc('replace_application_marks', {
+            p_application_id: appId, p_owner_id: ctx.remoteSelfId,
+            p_marks: patch.forms.marks.subjects.map((mark) => ({ subject: mark?.subject || '', percent: Number(mark?.percent), level: Number(mark?.level) }))
+          });
+          if (replaced.error) throw new Error(replaced.error.message || 'Could not save marks. Previous marks are preserved.');
+        } catch (error) {
+          console.warn('Application marks mirror skipped; saved payload will be used for admin views.', error);
+        }
+      }
+
+      if (Array.isArray(patch?.selectedAddons)) {
+        const clearedAddons = await ctx.client
+          .from('application_selected_addons')
+          .delete()
+          .eq('application_id', appId);
+        if (clearedAddons.error) throw clearedAddons.error;
+
+        const addonCodes = safeArray(patch.selectedAddons).map((addon) => addon?.code).filter(Boolean);
+        if (addonCodes.length) {
+          const addonRecords = await ctx.client
+            .from('application_addons')
+            .select('id,code,price')
+            .in('code', addonCodes);
+          if (addonRecords.error) throw addonRecords.error;
+          const addonByCode = new Map(safeArray(addonRecords.data).map((addon) => [addon.code, addon]));
+          const addonRows = safeArray(patch.selectedAddons).map((addon) => ({
+            application_id: appId,
+            addon_id: addonByCode.get(addon?.code)?.id,
+            price_at_selection: Number(addon?.price || addonByCode.get(addon?.code)?.price || 0)
+          })).filter((row) => row.addon_id);
+          if (addonRows.length) {
+            const insertedAddons = await ctx.client.from('application_selected_addons').insert(addonRows);
+            if (insertedAddons.error) throw insertedAddons.error;
+          }
+        }
+      }
+
+      if (patch?.forms?.specialisedApplication?.values) {
+        const values = patch.forms.specialisedApplication.values || {};
+        const personalWrite = await ctx.client.from('application_personal_details').upsert({
+          application_id: appId,
+          full_name: values.fullName || '',
+          surname: values.surname || '',
+          id_number: values.idNumber || '',
+          passport_number: '',
+          date_of_birth: values.dateOfBirth || null,
+          gender: values.gender || '',
+          nationality: values.nationality || '',
+          race: values.race || '',
+          home_language: values.homeLanguage || '',
+          phone: values.phone || '',
+          alternative_phone: values.alternativePhone || '',
+          email: values.email || '',
+          residential_address: values.residentialAddress || '',
+          province: values.province || '',
+          city: values.city || '',
+          postal_code: values.postalCode || ''
+        }, { onConflict: 'application_id' });
+        if (personalWrite.error) throw personalWrite.error;
+
+        const academicWrite = await ctx.client.from('application_academic_details').upsert({
+          application_id: appId,
+          school_name: values.schoolName || '',
+          matric_year: Number(values.matricYear || 0) || null,
+          highest_grade_completed: values.highestGradeCompleted || '',
+          current_institution: values.currentInstitution || '',
+          previous_institution: values.previousInstitution || '',
+          current_student_number: values.currentStudentNumber || values.previousStudentNumber || '',
+          qualification: values.currentQualification || values.qualificationCompleted || values.futureQualification || '',
+          faculty: values.currentFaculty || values.preferredFaculty || values.targetFaculty || '',
+          academic_average: Number(values.academicAverage || values.finalAverage || 0) || null,
+          nqf_level: values.nqfLevel || '',
+          modules_completed: values.modulesCompleted || values.subjectsCompleted || '',
+          modules_failed: values.modulesFailed || '',
+          credits_completed: Number(values.creditsCompleted || 0) || null,
+          credits_outstanding: Number(values.creditsOutstanding || 0) || null,
+          details: clone(values)
+        }, { onConflict: 'application_id' });
+        if (academicWrite.error) throw academicWrite.error;
+      }
+
+      const nextPaymentStatus = patch?.paymentStatus || currentApp?.paymentStatus || STATUS.payment.PENDING;
+      const nextPayment = patch?.payment || patch?.paymentStatus
+        ? normalizePaymentDetails(mergeDeep(currentApp?.payment || {}, patch?.payment || {}), nextPaymentStatus)
+        : null;
+
+      if (patch?.payment || patch?.paymentStatus) {
+        await syncRemotePaymentRecord(ctx.client, appId, nextPayment, nextPaymentStatus);
+      }
+
+      if (
+        Object.prototype.hasOwnProperty.call(patch || {}, 'packagePrice')
+        || Object.prototype.hasOwnProperty.call(patch || {}, 'addonsTotal')
+        || Object.prototype.hasOwnProperty.call(patch || {}, 'finalTotal')
+        || Object.prototype.hasOwnProperty.call(patch || {}, 'paymentStatus')
+      ) {
+        const specialisedPayment = await ctx.client.from('application_payments').upsert({
+          application_id: appId,
+          user_id: currentApp?.userId && isUuid(currentApp.userId) ? currentApp.userId : ctx.targetRemoteId,
+          package_price: Number(patch?.packagePrice ?? currentApp?.packagePrice ?? 0),
+          addons_total: Number(patch?.addonsTotal ?? currentApp?.addonsTotal ?? 0),
+          final_total: Number(patch?.finalTotal ?? currentApp?.finalTotal ?? 0),
+          payment_status: ['Unpaid', 'Pending', 'Paid', 'Failed', 'Refunded'].includes(nextPaymentStatus) ? nextPaymentStatus : 'Pending',
+          payment_method: nextPayment?.method || '',
+          payment_reference: nextPayment?.reference || ''
+        }, { onConflict: 'application_id' });
+        if (specialisedPayment.error) throw specialisedPayment.error;
+      }
+
+      const refreshed = await getApplicationByIdAsync(appId);
+      if (patch?.status || patch?.paymentStatus) {
+        let message = `Status: ${refreshed.status} | Payment: ${refreshed.paymentStatus}`;
+        let type = 'info';
+        if (patch?.paymentStatus && patch.paymentStatus !== currentApp?.paymentStatus) {
+          if (refreshed.paymentStatus === STATUS.payment.REJECTED) {
+            message = refreshed.payment?.rejectionReason
+              ? `Your payment proof was rejected. Reason: ${refreshed.payment.rejectionReason}`
+              : 'Your payment proof was rejected. Please upload a clearer proof of payment.';
+            type = 'warning';
+          } else if (refreshed.paymentStatus === STATUS.payment.VERIFIED) {
+            message = 'Your payment has been verified successfully.';
+            type = 'success';
+          } else if (refreshed.paymentStatus === STATUS.payment.PENDING_VERIFICATION) {
+            message = refreshed.payment?.proofUploadedAt
+              ? 'Your proof of payment has been uploaded and is pending verification.'
+              : 'Your payment is pending verification.';
+          }
+        }
+        await pushNotificationAsync(refreshed.userId, 'Application updated', message, type).catch(() => {});
+      }
+      if (actor.role === ROLES.ASSISTANT || actor.role === ROLES.MASTER) {
+        await logAssistantActivityAsync({
+          assistantId: actor.id,
+          applicationId: refreshed.id,
+          action: 'update_application',
+          details: { status: refreshed.status, paymentStatus: refreshed.paymentStatus }
+        }).catch(() => {});
+      }
+      return refreshed;
+    } catch (error) {
+      if (isRecoverableRemoteSyncError(error)) {
+        console.warn('Falling back to local application update because remote application sync is unavailable.', error);
+        return updateApplication(appId, patch);
+      }
+      throw error;
     }
-    if (actor.role === ROLES.ASSISTANT || actor.role === ROLES.MASTER) {
-      await logAssistantActivityAsync({
-        assistantId: actor.id,
-        applicationId: refreshed.id,
-        action: 'update_application',
-        details: { status: refreshed.status, paymentStatus: refreshed.paymentStatus }
-      }).catch(() => {});
-    }
-    return refreshed;
   }
 
   function reviewPaymentByAdmin(applicationId, review) {
@@ -5523,42 +15668,14 @@
   }
 
   async function reviewPaymentByAdminAsync(applicationId, review) {
-    const actor = requireRole([ROLES.MASTER]);
-    if (!isUuid(applicationId)) return reviewPaymentByAdmin(applicationId, review);
-    const app = await getApplicationByIdAsync(applicationId);
-    if (!app) throw new Error('Application not found.');
-
-    const nextStatus = review?.status || app.paymentStatus || STATUS.payment.PENDING_VERIFICATION;
-    const reason = String(review?.reason || '').trim();
-    const currentPayment = normalizePaymentDetails(app.payment, app.paymentStatus) || {
-      payerName: '',
-      phone: '',
-      reference: '',
-      note: '',
-      method: '',
-      amount: 0,
-      submittedAt: app.submittedAt || nowISO()
-    };
-    const nextPayment = {
-      ...currentPayment,
-      status: nextStatus,
-      verificationNote: nextStatus === STATUS.payment.REJECTED ? '' : reason,
-      rejectionReason: nextStatus === STATUS.payment.REJECTED ? reason : '',
-      reviewedAt: nowISO(),
-      verifiedAt: nextStatus === STATUS.payment.VERIFIED ? nowISO() : ''
-    };
-
-    const updated = await updateApplicationAsync(applicationId, {
-      paymentStatus: nextStatus,
-      payment: nextPayment
-    });
-    await logAssistantActivityAsync({
-      assistantId: actor.id,
-      applicationId,
-      action: 'review_payment',
-      details: { paymentStatus: nextStatus, rejectionReason: nextPayment.rejectionReason || '' }
-    }).catch(() => {});
-    return updated;
+    requireRole([ROLES.MASTER]);
+    if (!isSupabaseEnabled()) return reviewPaymentByAdmin(applicationId, review);
+    if (!isUuid(applicationId)) throw new Error('Choose a saved live application before reviewing payment.');
+    const ctx = await resolveSupabaseContext();
+    if (!ctx) throw new Error('Live payment review could not connect. Please sign in again.');
+    const result = await ctx.client.rpc('staff_review_payment', { application_id_arg: applicationId, status_arg: review?.status || STATUS.payment.PENDING_VERIFICATION, reason_arg: String(review?.reason || '').trim() });
+    if (result.error) throw new Error(result.error.message || 'Payment review was not saved.');
+    return getApplicationByIdAsync(applicationId);
   }
 
   async function saveFormSectionAsync(sectionName, data, appIdArg) {
@@ -5567,6 +15684,14 @@
     if (!app) throw new Error('Draft application not found.');
 
     if (!isSupabaseEnabled()) return saveFormSection(sectionName, data, appIdArg);
+    logDataFlowDebug('saveFormSectionAsync submit', {
+      sectionName,
+      applicationId: app.id,
+      userId: user.id,
+      remoteUserId: currentUserRaw()?.supabaseUserId || user.supabaseUserId || '',
+      fieldKeys: data && typeof data === 'object' ? Object.keys(data) : [],
+      fieldCount: Array.isArray(data) ? data.length : Object.keys(data || {}).length
+    });
 
     if (sectionName === 'learner') {
       await saveProfileAsync(user.id, {
@@ -5576,6 +15701,15 @@
         phone: data?.cellphone || data?.phone || '',
         cellphone: data?.cellphone || data?.phone || ''
       });
+      try {
+        updateApplication(app.id, {
+          forms: {
+            learner: data || {}
+          }
+        });
+      } catch (error) {
+        console.warn('Could not mirror learner form data locally after live save.', error);
+      }
       return getApplicationByIdAsync(app.id, user.id);
     }
 
@@ -5595,6 +15729,15 @@
         guardianPostal: data?.guardianPostal || '',
         guardianAddress: data?.guardianAddress || ''
       });
+      try {
+        updateApplication(app.id, {
+          forms: {
+            parent: data || {}
+          }
+        });
+      } catch (error) {
+        console.warn('Could not mirror guardian form data locally after live save.', error);
+      }
       return getApplicationByIdAsync(app.id, user.id);
     }
 
@@ -5608,6 +15751,15 @@
         completionYear: data?.completionYear || '',
         average: data?.average || ''
       });
+      try {
+        updateApplication(app.id, {
+          forms: {
+            school: data || {}
+          }
+        });
+      } catch (error) {
+        console.warn('Could not mirror school form data locally after live save.', error);
+      }
       return getApplicationByIdAsync(app.id, user.id);
     }
 
@@ -5633,10 +15785,14 @@
 
     const entry = {
       id: institution?.id || uid('inst'),
+      institutionId: institution?.institutionId || matchedInstitution?.id || '',
       institutionName: institution?.institutionName || institution?.name || '',
       province: institution?.province || '',
       institutionType: institution?.institutionType || '',
       year: institution?.year || matchedInstitution?.year || String(new Date().getFullYear()),
+      applicationFee: roundMoney(institution?.applicationFee ?? matchedInstitution?.applicationFee ?? 0),
+      applicationFeeLabel: institution?.applicationFeeLabel || matchedInstitution?.applicationFeeLabel || '',
+      applicationFeeNote: institution?.applicationFeeNote || matchedInstitution?.applicationFeeNote || '',
       institutionStatus: institution?.institutionStatus || matchedInstitution?.status || 'open',
       closingDate: institution?.closingDate || matchedInstitution?.closingDate || matchedInstitution?.applicationDeadline || '',
       faculty: institution?.faculty || '',
@@ -5691,20 +15847,25 @@
       clientKey,
       syncState: 'syncing'
     }, targetUserId);
-    const remote = await getOrCreateRemoteCart(targetUserId);
+    const remote = await getOrCreateRemoteCart(targetUserId).catch((error) => {
+      console.warn('Keeping local cart item because the remote cart is unavailable.', error);
+      return null;
+    });
     if (!remote) return localCopy;
 
     const normalizedType = item?.type === 'service_request' ? 'service' : item?.type || 'custom';
     const remotePack = normalizedType === 'application_pack' ? await findRemotePackRecord(item) : null;
+    const itemId = String(item?.id || uid('cart')).trim();
     const finalItem = {
-      id: item?.id || uid('cart'),
+      ...(item || {}),
+      id: itemId,
       clientKey,
       type: normalizedType,
       name: item?.name || item?.serviceName || item?.packName || item?.institutionName || 'Cart item',
       price: Number(item?.price ?? item?.packPrice ?? item?.servicePrice ?? 0),
       quantity: Number(item?.quantity || 1),
-      createdAt: nowISO(),
-      ...item
+      createdAt: item?.createdAt || nowISO(),
+      syncState: 'synced'
     };
 
     const insert = await remote.client.from('cart_items').insert({
@@ -5728,14 +15889,156 @@
     }
 
     const rows = await getCartAsync(targetUserId);
-    await syncRemoteCartTotal(remote.cart.id, targetUserId);
+    await syncRemoteCartTotal(remote.cart.id, targetUserId).catch((error) => {
+      console.warn('Could not refresh the live cart total after adding an item.', error);
+    });
     return normalizeRemoteCartItem(insert.data) || rows[rows.length - 1];
+  }
+
+  async function replaceApplicationPackCartItemAsync(itemArg, userIdArg) {
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const item = itemArg && typeof itemArg === 'object' ? clone(itemArg) : {};
+    const targetUserId = userIdArg || actor.id;
+    const clientKey = String(item?.clientKey || item?.id || uid('cartsync')).trim();
+    const itemId = String(item?.id || uid('cart')).trim();
+    const finalItem = {
+      ...item,
+      id: itemId,
+      clientKey,
+      type: 'application_pack',
+      name: item?.name || item?.packName || 'Application pack',
+      price: Number(item?.price ?? item?.packPrice ?? 0),
+      quantity: Number(item?.quantity || 1),
+      createdAt: item?.createdAt || nowISO(),
+      syncState: 'syncing'
+    };
+
+    const localItems = getCart(targetUserId).filter((entry) => entry.type !== 'application_pack');
+    localItems.push({
+      ...finalItem,
+      syncState: isSupabaseEnabled() ? 'syncing' : 'local'
+    });
+    saveCart(localItems, targetUserId);
+
+    const remote = await getOrCreateRemoteCart(targetUserId).catch((error) => {
+      console.warn('Keeping local package cart item because the remote cart is unavailable.', error);
+      return null;
+    });
+    if (!remote) {
+      const localOnlyItem = {
+        ...finalItem,
+        syncState: 'local'
+      };
+      saveCart(
+        getCart(targetUserId)
+          .filter((entry) => entry.type !== 'application_pack')
+          .concat(localOnlyItem),
+        targetUserId
+      );
+      return localOnlyItem;
+    }
+
+    const remotePack = await findRemotePackRecord(item).catch(() => null);
+    const deleted = await remote.client
+      .from('cart_items')
+      .delete()
+      .eq('cart_id', remote.cart.id)
+      .eq('item_type', 'application_pack');
+    if (deleted.error) {
+      console.warn('Keeping local package cart item because remote package cleanup failed.', deleted.error);
+      const localOnlyItem = { ...finalItem, syncState: 'local_only' };
+      saveCart(
+        getCart(targetUserId)
+          .filter((entry) => entry.type !== 'application_pack')
+          .concat(localOnlyItem),
+        targetUserId
+      );
+      return localOnlyItem;
+    }
+
+    const inserted = await remote.client.from('cart_items').insert({
+      cart_id: remote.cart.id,
+      item_type: 'application_pack',
+      ref_id: remotePack?.id || (isUuid(item?.refId) ? item.refId : null),
+      name: finalItem.name,
+      price: Number(finalItem.price || 0),
+      quantity: Number(finalItem.quantity || 1),
+      metadata: {
+        ...finalItem,
+        syncState: 'synced'
+      }
+    }).select('*').single();
+
+    if (inserted.error) {
+      console.warn('Keeping local package cart item because remote package insert failed.', inserted.error);
+      const localOnlyItem = { ...finalItem, syncState: 'local_only' };
+      saveCart(
+        getCart(targetUserId)
+          .filter((entry) => entry.type !== 'application_pack')
+          .concat(localOnlyItem),
+        targetUserId
+      );
+      return localOnlyItem;
+    }
+
+    await syncRemoteCartTotal(remote.cart.id, targetUserId).catch((error) => {
+      console.warn('Could not refresh the live cart total after replacing the application pack.', error);
+    });
+
+    const syncedItem = normalizeRemoteCartItem(inserted.data) || { ...finalItem, syncState: 'synced' };
+    saveCart(
+      getCart(targetUserId)
+        .filter((entry) => entry.type !== 'application_pack')
+        .concat(syncedItem),
+      targetUserId
+    );
+    return syncedItem;
+  }
+
+  async function updateCartItemAsync(itemId, patchArg, userIdArg) {
+    const targetUserId = userIdArg || requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]).id;
+    const localCopy = updateCartItem(itemId, patchArg, targetUserId);
+    const remote = await getOrCreateRemoteCart(targetUserId).catch((error) => {
+      console.warn('Keeping local cart item update because the remote cart is unavailable.', error);
+      return null;
+    });
+    if (!remote) return localCopy;
+
+    const update = await remote.client
+      .from('cart_items')
+      .update({
+        item_type: localCopy.type || 'custom',
+        ref_id: isUuid(localCopy?.refId) ? localCopy.refId : null,
+        name: localCopy.name || 'Cart item',
+        price: Number(localCopy.price || 0),
+        quantity: Number(localCopy.quantity || 1),
+        metadata: localCopy
+      })
+      .eq('id', itemId)
+      .select('*')
+      .single();
+
+    if (update.error) {
+      console.warn('Keeping local cart item update because remote cart update failed.', update.error);
+      return {
+        ...localCopy,
+        syncState: 'local_only'
+      };
+    }
+
+    await syncRemoteCartTotal(remote.cart.id, targetUserId).catch((error) => {
+      console.warn('Could not refresh the live cart total after updating an item.', error);
+    });
+    return normalizeRemoteCartItem(update.data) || localCopy;
   }
 
   async function removeCartItemAsync(itemId, userIdArg) {
     const targetUserId = userIdArg || requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]).id;
     const localRows = removeCartItem(itemId, targetUserId);
-    const remote = await getOrCreateRemoteCart(targetUserId);
+    const remote = await getOrCreateRemoteCart(targetUserId).catch((error) => {
+      console.warn('Keeping local cart removal because the remote cart is unavailable.', error);
+      return null;
+    });
     if (!remote) return localRows;
 
     const deleted = await remote.client.from('cart_items').delete().eq('id', itemId);
@@ -5744,14 +16047,19 @@
       return localRows;
     }
 
-    await syncRemoteCartTotal(remote.cart.id, targetUserId);
-    return getCartAsync(targetUserId);
+    await syncRemoteCartTotal(remote.cart.id, targetUserId).catch((error) => {
+      console.warn('Could not refresh the live cart total after removing an item.', error);
+    });
+    return getCartAsync(targetUserId).catch(() => localRows);
   }
 
   async function clearCartAsync(userIdArg) {
     const targetUserId = userIdArg || requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]).id;
     clearCart(targetUserId);
-    const remote = await getOrCreateRemoteCart(targetUserId);
+    const remote = await getOrCreateRemoteCart(targetUserId).catch((error) => {
+      console.warn('Keeping local cart clear because the remote cart is unavailable.', error);
+      return null;
+    });
     if (!remote) return true;
 
     const cleared = await remote.client.from('cart_items').delete().eq('cart_id', remote.cart.id);
@@ -5760,14 +16068,81 @@
       return true;
     }
 
-    await syncRemoteCartTotal(remote.cart.id, targetUserId, []);
+    await syncRemoteCartTotal(remote.cart.id, targetUserId, []).catch((error) => {
+      console.warn('Could not refresh the live cart total after clearing the cart.', error);
+    });
     mirrorRemoteCart([], remote.targetLocalUser?.id || remote.viewer.id);
     return true;
   }
 
-  async function getCartTotalAsync(userIdArg) {
+  async function clearAppliedPromoCodeAsync(userIdArg) {
+    const userId = userIdArg || requireRole([ROLES.USER]).id;
+    const items = await getCartAsync(userId);
+    const promoItems = safeArray(items).filter((item) => isPromoDiscountItem(item));
+    for (const item of promoItems) {
+      if (removeCartItemAsync) await removeCartItemAsync(item.id, userId);
+      else removeCartItem(item.id, userId);
+    }
+    return getCartPricingSummaryAsync(userId);
+  }
+
+  async function applyPromoCodeAsync(codeArg, userIdArg) {
+    const userId = userIdArg || requireRole([ROLES.USER]).id;
+    const code = normalizePromoCodeValue(codeArg);
+    const promo = await getPromoCampaignByCodeAsync(code, { includeInactive: false });
+    if (!promo) throw new Error('Promo code not found or inactive.');
+
+    const currentItems = await getCartAsync(userId);
+    const promoItems = safeArray(currentItems).filter((item) => isPromoDiscountItem(item));
+    for (const item of promoItems) {
+      if (removeCartItemAsync) await removeCartItemAsync(item.id, userId);
+      else removeCartItem(item.id, userId);
+    }
+
+    const baseItems = getCartItemsWithoutPromo(await getCartAsync(userId));
+    const validationMessage = getPromoValidationMessage(promo, userId, baseItems);
+    if (validationMessage) throw new Error(validationMessage);
+
+    const discountAmount = calculatePromoDiscountAmount(promo, baseItems);
+    if (addCartItemAsync) await addCartItemAsync(buildPromoDiscountCartItem(promo, discountAmount), userId);
+    else addCartItem(buildPromoDiscountCartItem(promo, discountAmount), userId);
+    savePendingPromoCode('');
+    return getCartPricingSummaryAsync(userId);
+  }
+
+  async function syncAppliedPromoCodeAsync(userIdArg) {
+    const userId = userIdArg || requireRole([ROLES.USER]).id;
+    const currentItems = await getCartAsync(userId);
+    const currentPromo = getAppliedPromoFromCartItems(currentItems);
+
+    if (currentPromo?.code) {
+      try {
+        return await applyPromoCodeAsync(currentPromo.code, userId);
+      } catch (_error) {
+        return clearAppliedPromoCodeAsync(userId);
+      }
+    }
+
+    const pendingCode = getPendingPromoCode();
+    if (pendingCode) {
+      try {
+        return await applyPromoCodeAsync(pendingCode, userId);
+      } catch (_error) {
+        return getCartPricingSummary(userId, currentItems);
+      }
+    }
+
+    return getCartPricingSummary(userId, currentItems);
+  }
+
+  async function getCartPricingSummaryAsync(userIdArg) {
     const items = await getCartAsync(userIdArg);
-    return items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
+    return getCartPricingSummary(userIdArg, items);
+  }
+
+  async function getCartTotalAsync(userIdArg) {
+    const summary = await getCartPricingSummaryAsync(userIdArg);
+    return summary.total;
   }
 
   async function linkPaymentProofToApplicationAsync(appIdArg, proofDoc, userIdArg) {
@@ -5778,6 +16153,11 @@
     const next = buildPaymentProofState(app, proofDoc);
     const updated = await updateApplicationAsync(app.id, next);
     await pushNotificationAsync(updated.userId, 'Proof of payment uploaded', 'Your proof of payment was saved and sent for verification.', 'info').catch(() => {});
+    await notifyStaffForApplicationEventAsync(updated, {
+      title: 'Learner uploaded proof of payment',
+      message: `${buildLearnerAlertMessage(updated, 'A learner')} uploaded proof of payment${updated.payment?.reference ? ` for reference ${updated.payment.reference}` : ''}. Open the payment review lane to verify it.`,
+      type: 'warning'
+    }).catch(() => {});
     return updated;
   }
 
@@ -5785,50 +16165,61 @@
     const user = requireRole([ROLES.USER]);
     const ctx = await resolveSupabaseContext(user.id);
     if (!ctx) return submitApplicationFromCart(paymentData);
-    try {
-      const cart = await getCartAsync(user.id);
-      if (!cart.length) throw new Error('Your cart is empty.');
-
-      const app = await ensureDraftAsync(user.id);
-      const packageItem = cart.find((item) => item.type === 'application_pack') || null;
-      const serviceItems = cart.filter((item) => item.type === 'service' || item.type === 'service_request');
-      const institutions = safeArray(packageItem?.institutions).length ? clone(packageItem.institutions) : safeArray(app.institutions);
-      const amount = await getCartTotalAsync(user.id);
-      const submittedPayment = normalizePaymentDetails({
-        payerName: paymentData?.payerName || '',
-        phone: paymentData?.phone || '',
-        reference: paymentData?.reference || '',
-        note: paymentData?.note || '',
-        method: paymentData?.method || '',
-        amount,
-        submittedAt: nowISO(),
-        status: STATUS.payment.PENDING_VERIFICATION
-      }, STATUS.payment.PENDING_VERIFICATION);
-
-      const updated = await updateApplicationAsync(app.id, {
-        package: packageItem || app.package || null,
-        institutions,
-        services: serviceItems,
-        payment: submittedPayment,
-        status: STATUS.application.PROCESSING,
-        paymentStatus: STATUS.payment.PENDING_VERIFICATION,
-        submittedAt: nowISO()
-      });
-
-      await clearCartAsync(user.id);
-      await pushNotificationAsync(
-        user.id,
-        'Payment received',
-        'Your application is being processed and payment is pending verification.',
-        'success'
-      ).catch(() => {
-        pushNotification(user.id, 'Payment received', 'Your application is being processed and payment is pending verification.', 'success');
-      });
-      return getApplicationByIdAsync(updated.id, user.id);
-    } catch (error) {
-      console.warn('Falling back to local payment submission because remote checkout failed.', error);
-      return submitApplicationFromCart(paymentData);
+    const cart = await getCartAsync(user.id);
+    const packageItem = cart.find(item => item.type === 'application_pack');
+    if (!packageItem || cart.some(item => !['application_pack','institution'].includes(item.type)) || safeArray(packageItem.selectedAddons || packageItem.package?.selectedAddons).length) {
+      throw new Error('Manual payment currently supports a single application package. Services, add-ons, and discounts need a confirmed server quote.');
     }
+    const pack = await findRemotePackRecord(packageItem);
+    if (!pack?.id) throw new Error('Choose a package from the live catalog before submitting payment.');
+    const app = await applicationForCartPackageAsync(packageItem, user.id);
+    const recorded = await ctx.client.rpc('record_manual_payment', {
+      p_application_id: app.id, p_owner_id: ctx.remoteSelfId, p_pack_id: pack.id,
+      p_payer_name: paymentData?.payerName || '', p_phone: paymentData?.phone || '',
+      p_reference: paymentData?.reference || '', p_method: paymentData?.method === 'Bank Transfer' ? 'EFT' : paymentData?.method || 'EFT', p_note: paymentData?.note || ''
+    });
+    if (recorded.error) throw new Error(recorded.error.message || 'The manual payment was not submitted. Existing records are preserved.');
+    return getApplicationByIdAsync(app.id, user.id);
+  }
+
+  function submitApplicationDetails(applicationId) {
+    const app = getApplicationById(applicationId);
+    if (!app) throw new Error('Application not found.');
+    const issues = getApplicationCompletionIssues(app);
+    if (issues.length) {
+      const incomplete = updateApplication(app.id, { status: STATUS.application.INCOMPLETE });
+      pushNotification(incomplete.userId, 'Application details incomplete', 'Complete all required details before Kagie can review your application.', 'warning');
+      throw new Error(`Complete required fields before final submission: ${issues.join(' ')}`);
+    }
+    const updated = updateApplication(app.id, {
+      status: STATUS.application.SUBMITTED,
+      submittedAt: nowISO()
+    });
+    pushNotification(updated.userId, 'Application submitted', 'Your completed application details were submitted for Kagie review.', 'success');
+    return updated;
+  }
+
+  async function submitApplicationDetailsAsync(applicationId) {
+    if (!isUuid(applicationId)) return submitApplicationDetails(applicationId);
+    const actor = requireRole([ROLES.USER, ROLES.ASSISTANT, ROLES.MASTER]);
+    const app = await getApplicationByIdAsync(applicationId, actor.id);
+    if (!app) throw new Error('Application not found.');
+    const issues = getApplicationCompletionIssues(app);
+    if (issues.length) {
+      const incomplete = await updateApplicationAsync(app.id, { status: STATUS.application.INCOMPLETE });
+      await pushNotificationAsync(incomplete.userId, 'Application details incomplete', 'Complete all required details before Kagie can review your application.', 'warning').catch(() => {
+        pushNotification(incomplete.userId, 'Application details incomplete', 'Complete all required details before Kagie can review your application.', 'warning');
+      });
+      throw new Error(`Complete required fields before final submission: ${issues.join(' ')}`);
+    }
+    const updated = await updateApplicationAsync(app.id, {
+      status: STATUS.application.SUBMITTED,
+      submittedAt: nowISO()
+    });
+    await pushNotificationAsync(updated.userId, 'Application submitted', 'Your completed application details were submitted for Kagie review.', 'success').catch(() => {
+      pushNotification(updated.userId, 'Application submitted', 'Your completed application details were submitted for Kagie review.', 'success');
+    });
+    return updated;
   }
 
   async function getDashboardSummaryAsync(userIdArg) {
@@ -5881,10 +16272,12 @@
     if (latest?.paymentStatus === STATUS.payment.PENDING && !latest?.payment?.proofUploadedAt) pendingTasks.push('Upload proof of payment');
     if (latest?.paymentStatus === STATUS.payment.PENDING_VERIFICATION) pendingTasks.push('Wait for payment verification');
     if (latest?.paymentStatus === STATUS.payment.REJECTED) pendingTasks.push('Re-upload proof of payment');
+    if ([STATUS.application.PENDING_DETAILS, STATUS.application.INCOMPLETE].includes(latest?.status)) pendingTasks.push('Complete application details');
     if (latest?.status === STATUS.application.MISSING_DOCUMENTS) pendingTasks.push('Resolve missing documents');
 
     const smartAlerts = [];
     if (unreadNotifications) smartAlerts.push(`${unreadNotifications} unread notification${unreadNotifications === 1 ? '' : 's'}`);
+    if ([STATUS.application.PENDING_DETAILS, STATUS.application.INCOMPLETE].includes(latest?.status)) smartAlerts.push('Your application is waiting for the remaining details');
     if (latest?.status === STATUS.application.PROCESSING) smartAlerts.push('Your application is being processed');
     if (latest?.paymentStatus === STATUS.payment.REJECTED) smartAlerts.push(latest?.payment?.rejectionReason ? `Payment proof rejected: ${latest.payment.rejectionReason}` : 'Your payment proof was rejected and needs a re-upload');
     if (latest?.paymentStatus === STATUS.payment.PENDING_VERIFICATION && latest?.payment?.proofUploadedAt) smartAlerts.push('Proof of payment uploaded and waiting for verification');
@@ -5972,6 +16365,9 @@
       province: item?.province || '',
       institutionType: item?.institutionType || item?.type || '',
       year: item?.year || matchedInstitution?.year || String(new Date().getFullYear()),
+      applicationFee: roundMoney(item?.applicationFee ?? matchedInstitution?.applicationFee ?? 0),
+      applicationFeeLabel: item?.applicationFeeLabel || matchedInstitution?.applicationFeeLabel || '',
+      applicationFeeNote: item?.applicationFeeNote || matchedInstitution?.applicationFeeNote || '',
       institutionStatus: item?.institutionStatus || item?.status || matchedInstitution?.status || 'open',
       closingDate: item?.closingDate || matchedInstitution?.closingDate || matchedInstitution?.applicationDeadline || '',
       faculty: item?.faculty || '',
@@ -6080,19 +16476,41 @@
   }
 
   function getSharedProfilePhoto() {
-    return (
+    const photo = (
       currentUser()?.profileImage ||
       localStorage.getItem('kagie_profile_photo') ||
       localStorage.getItem('kagieProfileImage') ||
       localStorage.getItem('kagie_profile_avatar_v1') ||
       ''
     );
+    const text = String(photo || '');
+    if (
+      text.startsWith('data:image/svg+xml')
+      && (
+        text.includes('d50000')
+        || text.includes('2f7cff')
+        || text.includes('linearGradient')
+        || text.includes('url(%23bg)')
+        || text.includes('url(#bg)')
+      )
+    ) {
+      try {
+        localStorage.removeItem('kagie_profile_avatar_v1');
+      } catch (_error) {
+        // Ignore storage cleanup failures and continue with an empty fallback.
+      }
+      return '';
+    }
+    return photo;
   }
 
   function getCatalog() {
     const data = getKagieData();
     return {
       ...clone(data),
+      applicationPacks: getPackCatalog(),
+      accommodationListings: getMergedAccommodationListingRecords(),
+      transportOptions: getMergedTransportOptionRecords(),
       institutions: getInstitutionCatalog({ includeInactive: true }),
       prospectus: getProspectusCatalog(),
       institutionYears: getInstitutionYears()
@@ -6101,45 +16519,72 @@
 
   function createAssistant(data) {
     requireRole([ROLES.MASTER]);
-
-    const settings = getSettings();
-    if (settings.supabase.adminCreateAssistantEndpoint) {
-      return createAssistantAccount(data);
-    }
-
-    const fullName = String(data?.fullName || '').trim();
-    const email = normalizeEmail(data?.email);
-    const password = String(data?.password || '123456');
-    const phone = String(data?.phone || '').trim();
-
-    if (!fullName) throw new Error('Assistant full name is required.');
-    if (!email) throw new Error('Assistant email is required.');
-    if (getUserByEmail(email)) throw new Error('An account with this email already exists.');
-
-    const assistant = {
-      id: uid('assistant'),
-      supabaseUserId: '',
-      fullName,
-      email,
-      password,
-      phone,
-      role: ROLES.ASSISTANT,
-      profileImage: '',
-      source: 'local',
-      profile: {},
-      createdAt: nowISO(),
-      updatedAt: nowISO()
-    };
-
-    upsertLocalUser(assistant);
-    return sanitizeUser(assistant);
+    return createAssistantAccount(data);
   }
 
-  function removeAssistant(userId) {
+  async function removeAssistant(userId) {
     requireRole([ROLES.MASTER]);
-    const user = getUserById(userId);
-    if (!user || user.role !== ROLES.ASSISTANT) throw new Error('Assistant not found.');
-    return deleteUserByAdmin(userId);
+    const assistant = getUserByIdentity(userId);
+    if (!assistant || assistant.role !== ROLES.ASSISTANT) throw new Error('Assistant not found.');
+
+    const removeLocalAssistant = () => {
+      clearAssistantReferencesLocally(assistant.id);
+      deleteUserByAdmin(assistant.id);
+      return true;
+    };
+
+    const settings = getSettings();
+    const endpoint = String(settings?.supabase?.adminCreateAssistantEndpoint || '').trim();
+    const remoteAssistantId = String(assistant.supabaseUserId || '').trim();
+
+    if (!endpoint || !remoteAssistantId) {
+      return removeLocalAssistant();
+    }
+
+    try {
+      const session = await getSupabaseSession().catch(() => read(KEYS.supabaseSessionCache, null));
+      const accessToken = session?.access_token || read(KEYS.supabaseSessionCache, null)?.access_token || '';
+      if (!accessToken && isLocalEnvironment()) {
+        return removeLocalAssistant();
+      }
+
+      const headers = { 'Content-Type': 'application/json' };
+      if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+        headers,
+        body: JSON.stringify({
+          assistantId: remoteAssistantId,
+          email: assistant.email
+        })
+      });
+      const rawBody = await response.text().catch(() => '');
+      let payload = null;
+      if (rawBody) {
+        try {
+          payload = JSON.parse(rawBody);
+        } catch (_error) {
+          payload = { message: String(rawBody).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() };
+        }
+      }
+
+      if (!response.ok) {
+        if (isLocalEnvironment()) {
+          console.warn('Secure assistant removal failed locally, removing local assistant only.', payload?.message || rawBody || response.statusText);
+          return removeLocalAssistant();
+        }
+        throw new Error(payload?.message || payload?.error || response.statusText || 'Assistant removal failed.');
+      }
+
+      return removeLocalAssistant();
+    } catch (err) {
+      if (isLocalEnvironment()) {
+        console.warn('Assistant removal fell back to local cleanup:', err?.message || err);
+        return removeLocalAssistant();
+      }
+      throw new Error(err?.message || 'Could not remove assistant account.');
+    }
   }
 
   function stats() {
@@ -6198,6 +16643,7 @@
   ensureSeedAdmins();
   write(KEYS.settings, mergeDeep(DEFAULT_SETTINGS, read(KEYS.settings, DEFAULT_SETTINGS)));
   sanitizeStoredUsers();
+  purgeLocalAssistantDrafts();
 
   window.KagieAPI = {
     KEYS,
@@ -6208,19 +16654,71 @@
     saveSettings,
     getCatalog,
     getPackCatalog,
+    getPackCatalogAsync,
+    getPacksForAdmin,
+    getPacksForAdminAsync,
+    updatePackByAdmin,
+    updatePackByAdminAsync,
+    getPromoCampaigns,
+    getPromoCampaignsAsync,
+    getPromoCampaignByCode,
+    getPromoCampaignByCodeAsync,
+    getPromoCodesForAdmin,
+    getPromoCodesForAdminAsync,
+    createPromoCampaignByAdmin,
+    createPromoCampaignByAdminAsync,
+    updatePromoCampaignByAdmin,
+    updatePromoCampaignByAdminAsync,
+    deletePromoCampaignByAdmin,
+    deletePromoCampaignByAdminAsync,
+    applyPromoCode,
+    applyPromoCodeAsync,
+    clearAppliedPromoCode,
+    clearAppliedPromoCodeAsync,
+    syncAppliedPromoCode,
+    syncAppliedPromoCodeAsync,
+    getCartPricingSummary,
+    getCartPricingSummaryAsync,
+    getPromoBenefitLabel,
     getServiceCatalog,
     getAccommodationListings,
     getAccommodationListingsAsync,
+    getAccommodationListingsForAdmin,
+    getAccommodationListingsForAdminAsync,
+    addAccommodationListingByAdmin,
+    updateAccommodationListingByAdmin,
+    deleteAccommodationListingByAdmin,
+    saveAccommodationListingByAdminAsync,
+    deleteAccommodationListingByAdminAsync,
     getTransportOptions,
     getTransportOptionsAsync,
     getInstitutionCatalog,
+    getInstitutionCatalogAsync,
     getInstitutionYears,
     getInstitutionById,
     getInstitutionsForAdmin,
+    getInstitutionsForAdminAsync,
     refreshCatalogCaches,
     addInstitutionByAdmin,
+    addInstitutionByAdminAsync,
     updateInstitutionByAdmin,
+    updateInstitutionByAdminAsync,
     deleteInstitutionByAdmin,
+    deleteInstitutionByAdminAsync,
+    getQuestionPapers,
+    getQuestionPapersAsync,
+    getQuestionPapersForAdmin,
+    getQuestionPapersForAdminAsync,
+    saveQuestionPaperByAdminAsync,
+    updateQuestionPaperByAdminAsync,
+    deleteQuestionPaperByAdminAsync,
+    getCareerArticles,
+    getCareerArticlesAsync,
+    getCareerArticlesForAdmin,
+    getCareerArticlesForAdminAsync,
+    saveCareerArticleByAdminAsync,
+    uploadCareerAssetByAdminAsync,
+    deleteCareerArticleByAdminAsync,
     getHighSchoolCatalog,
     getSubjectCatalog,
     calculateNscLevel,
@@ -6228,13 +16726,30 @@
     getApplicationRecommendations,
     getPackageUsageSummary,
     getProspectusCatalog,
+    getProspectusDocuments,
+    getProspectusDocumentsAsync,
+    saveProspectusDocumentByStaffAsync,
+    deleteProspectusDocumentByStaffAsync,
+    getPastPaperBlueprint,
+    getPastPaperCatalog,
+    getPastPaperCatalogAsync,
+    savePastPaperByStaffAsync,
+    deletePastPaperByStaffAsync,
+    getPastPaperPracticeHistory,
+    markPastPaperPractised,
+    setPastPaperQuestionProgress,
+    savePastPaperPerformance,
     getUpdateFeed,
     configureSupabase,
+    getLiveAdminSetupStatus,
     isSupabaseEnabled,
     initSupabaseClient,
     getSupabaseSession,
     getSupabaseVerifiedUser,
     restoreSession,
+    resolveSessionUser,
+    setLoginPersistence,
+    shouldRememberLogin,
 
     registerUser,
     login,
@@ -6260,15 +16775,20 @@
     getUsersByRoleAsync,
     getAllUsers,
     getAllUsersAsync,
+    getAdminUserDirectoryAsync,
+    getAdminUserDetailAsync,
     updateUserByAdmin,
     deleteUserByAdmin,
     createAssistantAccount,
+    bootstrapMasterAdminAccount,
     createMasterAdminAccount,
     createAssistant,
     removeAssistant,
 
     ensureDraft,
     ensureDraftAsync,
+    ensureApplicationDraft,
+    ensureApplicationDraftAsync,
     getApplicationById,
     getApplicationByIdAsync,
     getApplication,
@@ -6281,6 +16801,12 @@
     getApplicationsByAssistantAsync,
     getAllApplicationsForAdmin,
     getAllApplicationsForAdminAsync,
+    getApplicationFormTypes,
+    getApplicationFormTypesAsync,
+    getAssistantFormPermissions,
+    getAssistantFormPermissionsAsync,
+    saveAssistantFormPermissions,
+    saveAssistantFormPermissionsAsync,
     updateApplication,
     updateApplicationAsync,
     saveApplication,
@@ -6292,15 +16818,29 @@
     removeInstitutionFromDraftAsync,
     submitApplicationFromCart,
     submitApplicationFromCartAsync,
+    submitApplicationDetails,
+    submitApplicationDetailsAsync,
     submitPayment,
+    startYocoCheckoutAsync,
+    getYocoPaymentStatusAsync,
+    getPaymentHistoryAsync,
     assignAssistant,
     assignAssistantAsync,
+    assignUserToAssistantAsync,
     reviewPaymentByAdmin,
     reviewPaymentByAdminAsync,
     addApplicationNote,
     addApplicationNoteAsync,
     getApplicationNotes,
     getApplicationNotesAsync,
+    getApplicationLearnerSupport,
+    getApplicationLearnerSupportAsync,
+    saveApplicationLearnerSupport,
+    saveApplicationLearnerSupportAsync,
+    getApplicationPortalAccess,
+    getApplicationPortalAccessAsync,
+    saveApplicationPortalAccess,
+    saveApplicationPortalAccessAsync,
     getNotes,
     addNote,
     getDashboardSummary,
@@ -6316,6 +16856,9 @@
     getCartAsync,
     addCartItem,
     addCartItemAsync,
+    replaceApplicationPackCartItemAsync,
+    updateCartItem,
+    updateCartItemAsync,
     removeCartItem,
     removeCartItemAsync,
     clearCart,
@@ -6343,7 +16886,21 @@
     getNotificationsAsync,
     pushNotification,
     pushNotificationAsync,
+    sendDirectLearnerNotification,
+    sendDirectLearnerNotificationAsync,
     pushGlobalNotification,
+    getMarketingCampaigns,
+    sendMarketingBroadcast,
+    sendMarketingBroadcastAsync,
+    getAdminContent,
+    getAdminContentAsync,
+    saveAdminContentByAdminAsync,
+    getAnnouncementsForAdmin,
+    getAnnouncementsForAdminAsync,
+    getAnnouncementsForUser,
+    getAnnouncementsForUserAsync,
+    saveAnnouncementByAdminAsync,
+    deleteAnnouncementByAdminAsync,
     markNotificationRead,
     markNotificationReadAsync,
     markAllNotificationsRead,
@@ -6358,11 +16915,28 @@
     setDocumentReviewAsync,
     getDocumentReviewsForUser,
     getDocumentReviewsForUserAsync,
+    getAssignedDocumentReviewQueueAsync,
 
     getSupportMessages,
     getSupportMessagesAsync,
     sendSupportMessage,
     sendSupportMessageAsync,
+    getApplicationUpdates,
+    getApplicationUpdatesAsync,
+    postApplicationUpdate,
+    postApplicationUpdateAsync,
+    markApplicationUpdateRead,
+    markApplicationUpdateReadAsync,
+    createSupportTicket,
+    createSupportTicketAsync,
+    getSupportTickets,
+    getSupportTicketsAsync,
+    updateSupportTicketStatus,
+    updateSupportTicketStatusAsync,
+    getSupportTicketMessages,
+    getSupportTicketMessagesAsync,
+    replySupportTicket,
+    replySupportTicketAsync,
     requestCallback,
     requestCallbackAsync,
     getCallRequests,
@@ -6382,4 +16956,602 @@
 
     resetAllData
   };
+
+  (function initKagieUxToolkit() {
+    if (window.KagieUX?.__initialized) return;
+
+    const locks = new Set();
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    const ensureStyles = () => {
+      if (typeof document === "undefined" || document.getElementById("kagie-ux-styles")) return;
+      const style = document.createElement("style");
+      style.id = "kagie-ux-styles";
+      style.textContent = `
+        .kagie-btn-loading,
+        .kagie-btn-loading:disabled,
+        [aria-busy="true"].kagie-btn-loading {
+          cursor: progress !important;
+          opacity: .76 !important;
+          pointer-events: none !important;
+          transition: opacity .18s ease, transform .18s ease, filter .18s ease;
+        }
+        .kagie-btn-content {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: .58rem;
+          min-height: 1em;
+        }
+        .kagie-btn-spinner {
+          width: 1em;
+          height: 1em;
+          border-radius: 999px;
+          border: 2px solid transparent;
+          border-top-color: #2d9df9;
+          border-right-color: #2d9df9;
+          opacity: 1;
+          transform-origin: center center;
+          animation: kagie-spin 1.2s linear infinite;
+          flex: 0 0 auto;
+        }
+        .kagie-skeleton-shell {
+          position: relative;
+          overflow: hidden;
+        }
+        .kagie-skeleton,
+        .kagie-skeleton-circle {
+          position: relative;
+          overflow: hidden;
+          background: #e6ebf1;
+        }
+        .kagie-skeleton {
+          border-radius: 16px;
+        }
+        .kagie-skeleton-circle {
+          border-radius: 999px;
+        }
+        .kagie-skeleton::after,
+        .kagie-skeleton-circle::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          transform: translateX(-100%);
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .58), transparent);
+          animation: kagie-shimmer 1.32s ease-in-out infinite;
+        }
+        .kagie-skeleton-stack {
+          display: grid;
+          gap: 10px;
+        }
+        .kagie-skeleton-line {
+          height: 12px;
+          border-radius: 999px;
+        }
+        .kagie-skeleton-line.sm {
+          height: 10px;
+        }
+        .kagie-skeleton-line.lg {
+          height: 16px;
+        }
+        .kagie-skeleton-line.w-100 { width: 100%; }
+        .kagie-skeleton-line.w-92 { width: 92%; }
+        .kagie-skeleton-line.w-88 { width: 88%; }
+        .kagie-skeleton-line.w-80 { width: 80%; }
+        .kagie-skeleton-line.w-72 { width: 72%; }
+        .kagie-skeleton-line.w-64 { width: 64%; }
+        .kagie-skeleton-line.w-56 { width: 56%; }
+        .kagie-skeleton-line.w-48 { width: 48%; }
+        .kagie-skeleton-line.w-40 { width: 40%; }
+        .kagie-inline-error {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 14px 16px;
+          border-radius: 18px;
+          border: 1px solid rgba(148, 163, 184, .26);
+          background: rgba(248, 250, 252, .96);
+          color: #334155;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
+        }
+        .kagie-inline-error-copy {
+          display: grid;
+          gap: 4px;
+        }
+        .kagie-inline-error-copy strong {
+          font-size: .95rem;
+          font-weight: 700;
+          color: #0f172a;
+        }
+        .kagie-inline-error-copy span {
+          font-size: .88rem;
+          line-height: 1.45;
+        }
+        .kagie-inline-retry {
+          border: 0;
+          border-radius: 999px;
+          padding: .72rem 1rem;
+          background: #0f172a;
+          color: #fff;
+          font: inherit;
+          font-weight: 700;
+          cursor: pointer;
+          transition: opacity .18s ease, transform .18s ease;
+        }
+        .kagie-inline-retry:hover:not(:disabled) {
+          transform: translateY(-1px);
+        }
+        .kagie-dashboard-boot {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          background: rgba(248, 250, 252, .96);
+          backdrop-filter: blur(10px);
+          opacity: 1;
+          transition: opacity .28s ease, visibility .28s ease;
+        }
+        .kagie-dashboard-boot.is-hidden {
+          opacity: 0;
+          visibility: hidden;
+          pointer-events: none;
+        }
+        .kagie-dashboard-boot-card {
+          width: min(360px, 100%);
+          padding: 28px 26px;
+          border-radius: 28px;
+          background: #fff;
+          border: 1px solid rgba(148, 163, 184, .18);
+          box-shadow: 0 28px 70px rgba(15, 23, 42, .09);
+          text-align: center;
+          display: grid;
+          gap: 14px;
+        }
+        .kagie-dashboard-boot-logo {
+          width: 56px;
+          height: 56px;
+          margin: 0 auto;
+          border-radius: 18px;
+          display: grid;
+          place-items: center;
+          font-size: 1.2rem;
+          font-weight: 800;
+          color: #fff;
+          background: #fd0505;
+          box-shadow: 0 14px 32px rgba(253, 5, 5, .18);
+        }
+        .kagie-dashboard-boot h2 {
+          margin: 0;
+          font-size: 1.1rem;
+          font-weight: 800;
+          color: #0f172a;
+        }
+        .kagie-dashboard-boot p {
+          margin: 0;
+          color: #64748b;
+          font-size: .95rem;
+          line-height: 1.55;
+        }
+        .kagie-dashboard-boot-loader {
+          width: 34px;
+          height: 34px;
+          margin: 0 auto;
+          border-radius: 999px;
+          background: conic-gradient(from 36deg, #2d9df9 0deg 302deg, transparent 302deg 360deg);
+          -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+          transform-origin: center center;
+          animation: kagie-spin 1.2s linear infinite;
+        }
+        .kagie-fade-in {
+          animation: kagie-fade-in .24s ease;
+        }
+        @keyframes kagie-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes kagie-shimmer {
+          100% { transform: translateX(100%); }
+        }
+        @keyframes kagie-fade-in {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .kagie-btn-loading,
+          .kagie-inline-retry,
+          .kagie-dashboard-boot,
+          .kagie-dashboard-boot-loader,
+          .kagie-btn-spinner,
+          .kagie-skeleton::after,
+          .kagie-skeleton-circle::after,
+          .kagie-fade-in {
+            animation: none !important;
+            transition: none !important;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    };
+
+    const setButtonLoading = (button, loading, options = {}) => {
+      if (!button) return;
+      ensureStyles();
+      const busyText = String(options.busyText || options.label || "Working...").trim() || "Working...";
+      if (loading) {
+        if (!button.dataset.kagieOriginalHtml) button.dataset.kagieOriginalHtml = button.innerHTML;
+        if (!button.dataset.kagieOriginalMinWidth) button.dataset.kagieOriginalMinWidth = button.style.minWidth || "";
+        if (!button.dataset.kagieLockedWidth) button.dataset.kagieLockedWidth = `${Math.max(button.offsetWidth || 0, 92)}px`;
+        button.style.minWidth = button.dataset.kagieLockedWidth;
+        button.classList.add("kagie-btn-loading");
+        button.dataset.kagieBusy = "1";
+        button.setAttribute("aria-busy", "true");
+        button.setAttribute("aria-disabled", "true");
+        if ("disabled" in button) button.disabled = true;
+        button.innerHTML = `<span class="kagie-btn-content"><span class="kagie-btn-spinner" aria-hidden="true"></span><span class="kagie-btn-label">${escapeHtml(busyText)}</span></span>`;
+        return;
+      }
+      if (button.dataset.kagieOriginalHtml) {
+        button.innerHTML = button.dataset.kagieOriginalHtml;
+      }
+      button.classList.remove("kagie-btn-loading");
+      delete button.dataset.kagieBusy;
+      button.removeAttribute("aria-busy");
+      button.removeAttribute("aria-disabled");
+      if ("disabled" in button) button.disabled = Boolean(options.keepDisabled);
+      button.style.minWidth = button.dataset.kagieOriginalMinWidth || "";
+      delete button.dataset.kagieOriginalHtml;
+      delete button.dataset.kagieOriginalMinWidth;
+      delete button.dataset.kagieLockedWidth;
+    };
+
+    const setFormLoading = (form, loading, options = {}) => {
+      if (!form) return;
+      ensureStyles();
+      const controls = Array.from(form.querySelectorAll("input, select, textarea, button"));
+      form.setAttribute("aria-busy", loading ? "true" : "false");
+      form.dataset.kagieBusy = loading ? "1" : "0";
+      controls.forEach((control) => {
+        if (!control.dataset.kagieOriginalDisabled) {
+          control.dataset.kagieOriginalDisabled = control.disabled ? "1" : "0";
+        }
+        const isActionButton = options.button && control === options.button;
+        if (loading) {
+          if (!isActionButton) control.disabled = true;
+          return;
+        }
+        const wasDisabled = control.dataset.kagieOriginalDisabled === "1";
+        control.disabled = wasDisabled;
+        delete control.dataset.kagieOriginalDisabled;
+      });
+      if (options.button) {
+        setButtonLoading(options.button, loading, {
+          busyText: options.busyText,
+          keepDisabled: loading || Boolean(options.keepDisabled)
+        });
+      }
+    };
+
+    const isActionLocked = (key, button) => {
+      const lockKey = String(key || button?.dataset?.action || button?.id || button?.textContent || "kagie-action");
+      return locks.has(lockKey) || button?.dataset?.kagieBusy === "1";
+    };
+
+    const withButtonLock = async (button, key, busyText, task, options = {}) => {
+      const lockKey = String(key || button?.dataset?.action || button?.id || button?.textContent || "kagie-action");
+      if (isActionLocked(lockKey, button)) return null;
+      locks.add(lockKey);
+      let completed = false;
+      let slowTimer = 0;
+      setButtonLoading(button, true, { busyText });
+      if (options.slowMs !== 0) {
+        slowTimer = window.setTimeout(() => {
+          if (typeof options.onSlow === "function") options.onSlow();
+        }, Number(options.slowMs || 3200));
+      }
+      try {
+        const result = await task();
+        completed = true;
+        return result;
+      } finally {
+        if (slowTimer) window.clearTimeout(slowTimer);
+        locks.delete(lockKey);
+        if (!options.keepLockedOnSuccess || !completed) {
+          setButtonLoading(button, false, { keepDisabled: false });
+        }
+      }
+    };
+
+    const withFormLock = async ({
+      event,
+      form,
+      key,
+      busyText,
+      task,
+      button,
+      statusNode,
+      slowText = "Still processing, please wait...",
+      slowMs = 3200,
+      keepLockedOnSuccess = false
+    }) => {
+      event?.preventDefault?.();
+      const targetForm = form || event?.currentTarget;
+      if (!targetForm) return null;
+      const lockKey = String(key || targetForm.id || targetForm.dataset.action || busyText || "kagie-form-action");
+      if (locks.has(lockKey) || targetForm.dataset.kagieBusy === "1") return null;
+      targetForm.dataset.kagieBusy = "1";
+      const actionButton = button || event?.submitter || targetForm.querySelector('button[type="submit"], .panel-link, .action-button, .topbar-button, .table-action');
+      setFormLoading(targetForm, true, { button: actionButton, busyText });
+      try {
+        locks.add(lockKey);
+        let completed = false;
+        let slowTimer = 0;
+        if (slowMs !== 0) {
+          slowTimer = window.setTimeout(() => {
+            if (!statusNode) return;
+            statusNode.className = "status-message info";
+            statusNode.textContent = slowText;
+          }, Number(slowMs || 3200));
+        }
+        try {
+          const result = await task();
+          completed = true;
+          return result;
+        } finally {
+          if (slowTimer) window.clearTimeout(slowTimer);
+          locks.delete(lockKey);
+          if (!keepLockedOnSuccess || !completed) {
+            setFormLoading(targetForm, false, { button: actionButton, keepDisabled: false });
+          }
+        }
+      } finally {
+        targetForm.dataset.kagieBusy = "0";
+      }
+    };
+
+    const debounce = (fn, delay = 180) => {
+      let timer = 0;
+      const debounced = (...args) => {
+        if (timer) window.clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          timer = 0;
+          fn(...args);
+        }, delay);
+      };
+      debounced.cancel = () => {
+        if (timer) window.clearTimeout(timer);
+        timer = 0;
+      };
+      return debounced;
+    };
+
+    const showBootScreen = ({
+      id = "kagie-dashboard-boot",
+      title = "Kagie",
+      message = "Loading your dashboard...",
+      logo = "K"
+    } = {}) => {
+      if (typeof document === "undefined") return { hide() {}, update() {} };
+      ensureStyles();
+      let node = document.getElementById(id);
+      if (!node) {
+        node = document.createElement("div");
+        node.id = id;
+        node.className = "kagie-dashboard-boot";
+        document.body.appendChild(node);
+      }
+      node.innerHTML = `
+        <div class="kagie-dashboard-boot-card">
+          <div class="kagie-dashboard-boot-logo">${escapeHtml(logo)}</div>
+          <div class="kagie-dashboard-boot-loader" aria-hidden="true"></div>
+          <h2>${escapeHtml(title)}</h2>
+          <p>${escapeHtml(message)}</p>
+        </div>
+      `;
+      node.classList.remove("is-hidden");
+      return {
+        hide() {
+          node.classList.add("is-hidden");
+          window.setTimeout(() => {
+            if (node?.parentNode) node.parentNode.removeChild(node);
+          }, 320);
+        },
+        update(nextTitle, nextMessage) {
+          const heading = node.querySelector("h2");
+          const copy = node.querySelector("p");
+          if (heading && nextTitle) heading.textContent = nextTitle;
+          if (copy && nextMessage) copy.textContent = nextMessage;
+        }
+      };
+    };
+
+    const skeletonLine = (widthClass = "w-100", sizeClass = "") => `<div class="kagie-skeleton kagie-skeleton-line ${sizeClass} ${widthClass}"></div>`;
+    const skeletonStatCards = (count = 4) => Array.from({ length: count }, () => `
+      <article class="stat-card kagie-skeleton-shell">
+        <div class="stat-icon blue kagie-skeleton-circle" style="width:56px;height:56px"></div>
+        <div class="kagie-skeleton-stack" style="width:100%">
+          ${skeletonLine("w-48", "sm")}
+          ${skeletonLine("w-72", "lg")}
+          ${skeletonLine("w-92", "sm")}
+        </div>
+      </article>
+    `).join("");
+    const skeletonQueueRows = ({ rows = 4, columns = 7 } = {}) => Array.from({ length: rows }, () => `
+      <div class="queue-row kagie-skeleton-shell">
+        ${Array.from({ length: columns }, (_value, index) => `
+          <div class="queue-cell" data-label="">
+            ${index === 0
+              ? `<div class="queue-user"><div class="queue-avatar kagie-skeleton-circle" style="width:42px;height:42px"></div><div class="kagie-skeleton-stack" style="width:min(180px,100%)">${skeletonLine("w-72")}${skeletonLine("w-48", "sm")}</div></div>`
+              : skeletonLine(index === columns - 1 ? "w-56" : "w-80")}
+          </div>
+        `).join("")}
+      </div>
+    `).join("");
+    const skeletonList = ({ rows = 4, avatar = true, lines = 2, pill = true } = {}) => Array.from({ length: rows }, () => `
+      <article class="assistant-item kagie-skeleton-shell">
+        ${avatar ? '<div class="queue-avatar kagie-skeleton-circle" style="width:42px;height:42px"></div>' : ""}
+        <div class="item-copy" style="flex:1 1 auto">
+          <div class="kagie-skeleton-stack">
+            ${Array.from({ length: lines }, (_entry, index) => skeletonLine(index === 0 ? "w-64" : "w-88", index === 0 ? "" : "sm")).join("")}
+          </div>
+        </div>
+        ${pill ? '<div class="kagie-skeleton" style="width:72px;height:28px;border-radius:999px"></div>' : ""}
+      </article>
+    `).join("");
+    const skeletonInspector = () => `
+      <section class="inspector-profile kagie-skeleton-shell">
+        <div class="inspector-profile-head">
+          <div class="queue-avatar kagie-skeleton-circle" style="width:56px;height:56px"></div>
+          <div class="inspector-profile-copy" style="flex:1 1 auto">
+            <div class="kagie-skeleton-stack">
+              ${skeletonLine("w-56")}
+              ${skeletonLine("w-40", "sm")}
+              ${skeletonLine("w-72", "sm")}
+            </div>
+          </div>
+          <div class="kagie-skeleton" style="width:96px;height:32px;border-radius:999px"></div>
+        </div>
+      </section>
+      <div class="detail-list kagie-fade-in">
+        ${Array.from({ length: 8 }, () => `
+          <div class="detail-item kagie-skeleton-shell">
+            <span class="detail-label">${skeletonLine("w-48", "sm")}</span>
+            <span class="detail-value">${skeletonLine("w-80")}</span>
+          </div>
+        `).join("")}
+      </div>
+    `;
+    const skeletonOverview = () => `
+      <div class="summary-layout kagie-skeleton-shell">
+        <div class="kagie-skeleton-circle" style="width:150px;height:150px;margin-inline:auto"></div>
+        <div class="legend-list">
+          ${Array.from({ length: 3 }, () => `
+            <div class="legend-row">
+              ${skeletonLine("w-56")}
+              ${skeletonLine("w-24")}
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+    const skeletonQuickLinks = (count = 4) => Array.from({ length: count }, () => `
+      <div class="quick-link kagie-skeleton-shell" aria-hidden="true">
+        <div class="kagie-skeleton-stack">
+          ${skeletonLine("w-40", "sm")}
+          ${skeletonLine("w-72", "lg")}
+          ${skeletonLine("w-100", "sm")}
+        </div>
+      </div>
+    `).join("");
+    const skeletonInsightCards = (count = 3) => Array.from({ length: count }, () => `
+      <article class="insight-card kagie-skeleton-shell">
+        <div class="kagie-skeleton-stack">
+          ${skeletonLine("w-36", "sm")}
+          ${skeletonLine("w-80")}
+          ${skeletonLine("w-96", "sm")}
+          ${skeletonLine("w-72", "sm")}
+        </div>
+      </article>
+    `).join("");
+
+    window.KagieUX = {
+      __initialized: true,
+      ensureStyles,
+      escapeHtml,
+      debounce,
+      setButtonLoading,
+      setFormLoading,
+      isActionLocked,
+      withButtonLock,
+      withFormLock,
+      showBootScreen,
+      buildInlineError(message, retryLabel = "Retry", retryAction = "retry") {
+        ensureStyles();
+        return `
+          <div class="kagie-inline-error kagie-fade-in">
+            <div class="kagie-inline-error-copy">
+              <strong>Something needs attention</strong>
+              <span>${escapeHtml(message || "This section could not load right now.")}</span>
+            </div>
+            <button class="kagie-inline-retry" type="button" data-kagie-retry="${escapeHtml(retryAction)}">${escapeHtml(retryLabel)}</button>
+          </div>
+        `;
+      },
+      skeletonStatCards,
+      skeletonQueueRows,
+      skeletonList,
+      skeletonInspector,
+      skeletonOverview,
+      skeletonQuickLinks,
+      skeletonInsightCards
+    };
+  })();
+
+  [
+    'saveProfileAsync',
+    'saveFormSectionAsync',
+    'updateApplicationAsync',
+    'submitApplicationFromCartAsync',
+    'submitApplicationDetailsAsync',
+    'saveDocumentsAsync',
+    'saveQuestionPaperByAdminAsync',
+    'updateQuestionPaperByAdminAsync',
+    'uploadCareerAssetByAdminAsync',
+    'addInstitutionByAdminAsync',
+    'updateInstitutionByAdminAsync',
+    'saveAdminContentByAdminAsync',
+    'saveAnnouncementByAdminAsync',
+    'submitAccommodationRequestAsync',
+    'submitTransportRequestAsync',
+    'saveProspectusDocumentByStaffAsync',
+    'savePastPaperByStaffAsync',
+    'startYocoCheckoutAsync',
+    'getYocoPaymentStatusAsync',
+    'getPaymentHistoryAsync',
+    'applyPromoCodeAsync',
+    'updateCartItemAsync',
+    'addCartItemAsync',
+    'removeCartItemAsync',
+    'clearCartAsync',
+    'sendSupportMessageAsync',
+    'getApplicationFormTypesAsync',
+    'getAssistantFormPermissionsAsync',
+    'saveAssistantFormPermissionsAsync',
+    'getApplicationUpdatesAsync',
+    'postApplicationUpdateAsync',
+    'markApplicationUpdateReadAsync',
+    'createSupportTicketAsync',
+    'getSupportTicketsAsync',
+    'updateSupportTicketStatusAsync',
+    'getSupportTicketMessagesAsync',
+    'replySupportTicketAsync',
+    'requestCallbackAsync',
+    'setDocumentReviewAsync',
+    'updateCallRequestAsync'
+  ].forEach((methodName) => {
+    const original = window.KagieAPI?.[methodName];
+    if (typeof original !== 'function' || original.__kagieTimed) return;
+    const timed = async function timedKagieApiMethod(...args) {
+      const shouldLog = (() => {
+        try {
+          return localStorage.getItem('kagie_perf_debug') === '1';
+        } catch (_error) {
+          return false;
+        }
+      })();
+      const startedAt = shouldLog && typeof performance !== 'undefined' ? performance.now() : 0;
+      try {
+        return await original.apply(this, args);
+      } finally {
+        if (shouldLog && typeof performance !== 'undefined') {
+          console.info(`Kagie API timing: ${methodName}`, `${Math.round(performance.now() - startedAt)}ms`);
+        }
+      }
+    };
+    timed.__kagieTimed = true;
+    window.KagieAPI[methodName] = timed;
+  });
 })();

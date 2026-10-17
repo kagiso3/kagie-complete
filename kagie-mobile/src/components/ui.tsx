@@ -10,11 +10,12 @@ import {
   View,
   ViewStyle
 } from "react-native";
-import { colors, shadows } from "../theme";
+import { colors, radii, shadows } from "../theme";
 
 export function ScreenScroll({ children }: { children: React.ReactNode }) {
   return (
     <ScrollView
+      style={styles.screen}
       contentContainerStyle={styles.screenContent}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -33,6 +34,37 @@ export function SectionTitle({ title, hint }: { title: string; hint?: string }) 
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {hint ? <Text style={styles.sectionHint}>{hint}</Text> : null}
+    </View>
+  );
+}
+
+export function HeroPanel({
+  eyebrow = "Kagie",
+  title,
+  copy,
+  meta,
+  tone = "brand"
+}: {
+  eyebrow?: string;
+  title: string;
+  copy: string;
+  meta?: string;
+  tone?: "brand" | "navy";
+}) {
+  const dark = tone === "navy";
+  return (
+    <View style={[styles.hero, dark && styles.heroNavy]}>
+      <View style={styles.heroAccent} />
+      <View style={styles.heroHeader}>
+        <View style={styles.heroBadge}>
+          <Text style={styles.heroBadgeText}>K</Text>
+          <View style={styles.heroBadgeAccent} />
+        </View>
+        <Text style={[styles.heroEyebrow, dark && styles.heroEyebrowDark]}>{eyebrow}</Text>
+      </View>
+      <Text style={[styles.heroTitle, dark && styles.heroTitleDark]}>{title}</Text>
+      <Text style={[styles.heroCopy, dark && styles.heroCopyDark]}>{copy}</Text>
+      {meta ? <Text style={[styles.heroMeta, dark && styles.heroMetaDark]}>{meta}</Text> : null}
     </View>
   );
 }
@@ -58,6 +90,7 @@ export function Field({
     <View style={styles.fieldWrap}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
+        accessibilityLabel={label}
         style={[styles.input, multiline && styles.multiline, !editable && styles.inputDisabled]}
         placeholder={placeholder}
         placeholderTextColor={colors.textMuted}
@@ -86,16 +119,35 @@ export function Button({
   loading?: boolean;
   loadingLabel?: string;
 }) {
+  const actionLockedRef = React.useRef(false);
   const [localLoading, setLocalLoading] = React.useState(false);
   const isLoading = Boolean(loading || localLoading);
   const locked = Boolean(disabled || isLoading);
 
   const handlePress = React.useCallback(() => {
-    if (locked) return;
-    const result = onPress();
-    if (result && typeof result.then === "function") {
+    if (locked || actionLockedRef.current) return;
+    actionLockedRef.current = true;
+    setLocalLoading(true);
+    try {
+      const result = onPress();
+      if (!result || typeof result.then !== "function") {
+        actionLockedRef.current = false;
+        setLocalLoading(false);
+        return;
+      }
       setLocalLoading(true);
-      void result.finally(() => setLocalLoading(false)).catch(() => {});
+      void result
+        .catch((error) => {
+          console.warn("Kagie action failed:", error);
+        })
+        .finally(() => {
+          actionLockedRef.current = false;
+          setLocalLoading(false);
+        });
+    } catch (error) {
+      actionLockedRef.current = false;
+      setLocalLoading(false);
+      console.warn("Kagie action failed:", error);
     }
   }, [locked, onPress]);
 
@@ -104,6 +156,9 @@ export function Button({
       disabled={locked}
       onPress={handlePress}
       android_ripple={{ color: "rgba(15, 23, 42, 0.06)" }}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: locked, busy: isLoading }}
+      accessibilityLabel={isLoading ? (loadingLabel || "Please wait...") : label}
       style={({ pressed }) => [
         styles.button,
         tone === "primary" && styles.buttonPrimary,
@@ -128,7 +183,7 @@ export function Button({
             tone === "ghost" && styles.buttonGhostText
           ]}
         >
-          {isLoading ? (loadingLabel || label) : label}
+          {isLoading ? (loadingLabel || "Please wait...") : label}
         </Text>
       </View>
     </Pressable>
@@ -152,6 +207,8 @@ export function Chip({
     <Pressable
       disabled={disabled}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: Boolean(active), disabled: Boolean(disabled) }}
       android_ripple={{ color: "rgba(15, 23, 42, 0.05)" }}
       style={[
         styles.chip,
@@ -223,7 +280,7 @@ export function SyncBanner({
 export function SkeletonBlock({
   height,
   width = "100%",
-  radius = 18,
+  radius = radii.card,
   style
 }: {
   height: number;
@@ -282,26 +339,125 @@ export function DashboardSectionSkeleton({
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.bg
+  },
   screenContent: {
-    padding: 18,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     gap: 16,
-    paddingBottom: 110
+    paddingBottom: 122
   },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: 24,
-    padding: 18,
+    backgroundColor: colors.surfaceGlass,
+    borderRadius: radii.card,
+    padding: 20,
     gap: 12,
     borderWidth: 1,
-    borderColor: "rgba(217,227,241,0.85)",
+    borderColor: colors.borderSoft,
     ...shadows.card
+  },
+  hero: {
+    backgroundColor: colors.surfaceGlass,
+    borderRadius: radii.card,
+    overflow: "hidden",
+    paddingHorizontal: 21,
+    paddingVertical: 22,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    ...shadows.lift
+  },
+  heroNavy: {
+    backgroundColor: colors.navy
+  },
+  heroAccent: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 5,
+    backgroundColor: colors.sky
+  },
+  heroHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  heroBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: colors.brand,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden"
+  },
+  heroBadgeAccent: {
+    position: "absolute",
+    right: -7,
+    bottom: -7,
+    width: 20,
+    height: 20,
+    borderRadius: 8,
+    backgroundColor: colors.sky
+  },
+  heroBadgeText: {
+    color: "#ffffff",
+    fontSize: 20,
+    fontWeight: "700"
+  },
+  heroEyebrow: {
+    color: colors.brand,
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase"
+  },
+  heroEyebrowDark: {
+    color: colors.gold
+  },
+  heroTitle: {
+    color: colors.text,
+    fontSize: 28,
+    lineHeight: 33,
+    fontWeight: "700",
+    maxWidth: "92%"
+  },
+  heroTitleDark: {
+    color: "#ffffff"
+  },
+  heroCopy: {
+    color: colors.textMuted,
+    fontSize: 15,
+    lineHeight: 22,
+    maxWidth: "96%"
+  },
+  heroCopyDark: {
+    color: "rgba(255,255,255,0.86)"
+  },
+  heroMeta: {
+    alignSelf: "flex-start",
+    color: "#2d9df9",
+    backgroundColor: colors.skySoft,
+    borderRadius: 999,
+    overflow: "hidden",
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  heroMetaDark: {
+    color: "#ffffff",
+    backgroundColor: "rgba(45, 157, 249,0.24)"
   },
   sectionHeader: {
     gap: 4
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "900",
+    fontSize: 19,
+    fontWeight: "700",
     color: colors.text
   },
   sectionHint: {
@@ -313,20 +469,19 @@ const styles = StyleSheet.create({
     gap: 6
   },
   fieldLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
+    fontSize: 13,
+    fontWeight: "600",
     color: colors.textMuted
   },
   input: {
-    minHeight: 50,
-    borderRadius: 16,
+    minHeight: 48,
+    borderRadius: radii.control,
     borderWidth: 1,
+    fontSize: 16,
     borderColor: colors.border,
-    backgroundColor: "#f9fbff",
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 15,
+    paddingVertical: 14,
     color: colors.text
   },
   inputDisabled: {
@@ -337,21 +492,23 @@ const styles = StyleSheet.create({
     textAlignVertical: "top"
   },
   button: {
-    borderRadius: 18,
-    paddingVertical: 14,
+    borderRadius: radii.control,
+    paddingVertical: 15,
     paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 52
   },
   buttonPrimary: {
-    backgroundColor: colors.sky
+    backgroundColor: colors.brand
   },
   buttonSecondary: {
-    backgroundColor: colors.goldSoft
+    backgroundColor: colors.gold,
+    borderWidth: 1,
+    borderColor: colors.border
   },
   buttonGhost: {
-    backgroundColor: "#eef4ff"
+    backgroundColor: colors.skySoft
   },
   buttonDanger: {
     backgroundColor: colors.danger
@@ -374,10 +531,10 @@ const styles = StyleSheet.create({
     fontSize: 14
   },
   buttonSecondaryText: {
-    color: "#7d5800"
+    color: colors.text
   },
   buttonGhostText: {
-    color: colors.sky
+    color: colors.navy
   },
   chip: {
     borderRadius: 999,
@@ -386,20 +543,20 @@ const styles = StyleSheet.create({
     borderWidth: 1
   },
   chipSky: {
-    backgroundColor: "#f3f8ff",
-    borderColor: "#c9defd"
+    backgroundColor: "#eff8ff",
+    borderColor: "#c5e4fd"
   },
   chipGold: {
     backgroundColor: colors.goldSoft,
-    borderColor: "#f6d883"
+    borderColor: "#ffb500"
   },
   chipOrange: {
     backgroundColor: colors.orangeSoft,
-    borderColor: "#ffc29c"
+    borderColor: "#feafaf"
   },
   chipActive: {
-    backgroundColor: colors.sky,
-    borderColor: colors.sky
+    backgroundColor: colors.navy,
+    borderColor: colors.navy
   },
   chipDisabled: {
     opacity: 0.55
@@ -414,11 +571,13 @@ const styles = StyleSheet.create({
   },
   notice: {
     borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: colors.border
   },
   noticeInfo: {
-    backgroundColor: "#e6f4ff"
+    backgroundColor: "#e7f4fe"
   },
   noticeSuccess: {
     backgroundColor: colors.successSoft
@@ -449,10 +608,10 @@ const styles = StyleSheet.create({
     gap: 10
   },
   skeletonRowCard: {
-    borderRadius: 18,
+    borderRadius: radii.card,
     padding: 14,
     backgroundColor: "#f8fbff",
     borderWidth: 1,
-    borderColor: "rgba(217,227,241,0.7)"
+    borderColor: "rgba(201, 230, 253,0.7)"
   }
 });

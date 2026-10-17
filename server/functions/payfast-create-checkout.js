@@ -1,3 +1,5 @@
+const { reserveCheckout, completeCheckout } = require('./_payment-reservation');
+const { priceCart, snapshot, orderSnapshot, safeReturnUrl } = require("./_payment-checkout");
 const crypto = require("crypto");
 
 const PAYMENT_NOTE_PREFIX = "__KAGIE_PAYMENT_META__";
@@ -5,6 +7,11 @@ const PAYMENT_NOTE_PREFIX = "__KAGIE_PAYMENT_META__";
 const STATUS = {
   application: {
     DRAFT: "Draft",
+    PACKAGE_SELECTED: "Package Selected",
+    AWAITING_PAYMENT: "Awaiting Payment",
+    PENDING_DETAILS: "Pending Details",
+    INCOMPLETE: "Incomplete",
+    DOCUMENTS_MISSING: "Documents Missing",
     MISSING_DOCUMENTS: "Missing Documents",
     PROCESSING: "Application being processed"
   },
@@ -44,6 +51,39 @@ function trim(value) {
   return String(value || "").trim();
 }
 
+function normalizeApplicationTypeKey(value) {
+  const type = trim(value).toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
+  if (!type) return "";
+  if (["late", "late_application", "late_applications"].includes(type)) return "late";
+  if (["bridging", "bridge", "bridging_programme", "bridging_programmes"].includes(type)) return "bridging";
+  if (["postgraduate", "post_graduate", "post_graduate_application", "post_graduate_applications", "post_grad", "postgrad"].includes(type)) return "postgraduate";
+  if (["undergraduate", "undergrad", "under_graduate", "undergraduate_application", "undergraduate_applications", "under_graduate_application", "under_graduate_applications"].includes(type)) return "undergraduate";
+  if (type.includes("transfer")) return "transfer";
+  return type;
+}
+
+function remoteApplicationTypeKey(value) {
+  const type = normalizeApplicationTypeKey(value);
+  if (type === "postgraduate") return "POST_GRADUATE";
+  if (type === "bridging") return "BRIDGING";
+  if (type === "transfer") return "TRANSFER";
+  if (type === "late") return "LATE";
+  return "UNDERGRADUATE";
+}
+
+function cartPackageApplicationType(packageItem) {
+  return normalizeApplicationTypeKey(
+    packageItem?.applicationType ||
+    packageItem?.application_type ||
+    packageItem?.forms?.applicationType?.type ||
+    packageItem?.formValues?.applicationType?.type ||
+    packageItem?.package?.applicationType ||
+    packageItem?.selectedPackage?.applicationType ||
+    packageItem?.typeKey ||
+    ""
+  );
+}
+
 function nowISO() {
   return new Date().toISOString();
 }
@@ -53,7 +93,7 @@ function toAmount(value) {
 }
 
 function urlEncode(value) {
-  return encodeURIComponent(String(value || "").trim()).replace(/%20/g, "+");
+  return encodeURIComponent(String(value || "").trim()).replace(/[!'()*~]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`).replace(/%20/g, "+");
 }
 
 async function readResponse(response) {
@@ -109,6 +149,8 @@ function parsePaymentNoteState(rawNote) {
     promoCode: "",
     promoTitle: "",
     offerNote: "",
+    checkoutCartId: "",
+    checkoutCartItemIds: [],
     discountAmount: 0
   };
 
@@ -133,6 +175,8 @@ function parsePaymentNoteState(rawNote) {
       promoCode: String(payload?.promoCode || ""),
       promoTitle: String(payload?.promoTitle || ""),
       offerNote: String(payload?.offerNote || ""),
+      checkoutCartId: trim(payload?.checkoutCartId),
+      checkoutCartItemIds: Array.isArray(payload?.checkoutCartItemIds) ? payload.checkoutCartItemIds.map(trim).filter(Boolean) : [],
       discountAmount: Number(payload?.discountAmount || 0)
     };
   } catch (_error) {
@@ -157,6 +201,8 @@ function serializePaymentNoteState(payment) {
     promoCode: trim(payment?.promoCode),
     promoTitle: trim(payment?.promoTitle),
     offerNote: trim(payment?.offerNote),
+    checkoutCartId: trim(payment?.checkoutCartId),
+    checkoutCartItemIds: Array.isArray(payment?.checkoutCartItemIds) ? payment.checkoutCartItemIds.map(trim).filter(Boolean) : [],
     discountAmount: Number(payment?.discountAmount || 0)
   };
   const hasMeta = Object.entries(meta).some(([key, value]) => key !== "customerNote" && value);
@@ -172,7 +218,7 @@ function normalizeCartItem(row) {
     type: trim(row?.item_type || metadata.type || "custom"),
     name: trim(row?.name || metadata.name || metadata.packName || metadata.serviceName || metadata.institutionName || "Cart item"),
     price: Number(row?.price ?? metadata.price ?? metadata.packPrice ?? metadata.servicePrice ?? 0),
-    quantity: Number(row?.quantity || metadata.quantity || 1),
+    quantity: Number(row?.quantity ?? metadata.quantity ?? 1),
     createdAt: row?.created_at || metadata.createdAt || nowISO()
   };
 }
@@ -204,9 +250,9 @@ function normalizeInstitutionNameKey(value) {
 }
 
 function isInstitutionClosed(row) {
-  const manualStatus = trim(row?.manual_status).toLowerCase();
+  const manualStatus = trim(row?.manual_status || row?.application_status).toLowerCase();
   const closingDate = trim(row?.closing_date);
-  if (row?.is_active === false) return true;
+  if (row?.is_active === false || row?.is_visible === false) return true;
   if (manualStatus === "closed") return true;
   if (closingDate && /^\d{4}-\d{2}-\d{2}$/.test(closingDate)) {
     const today = new Date().toISOString().slice(0, 10);
@@ -224,18 +270,9 @@ async function assertInstitutionsOpen(supabaseUrl, serviceRoleKey, institutions)
     .filter((item) => item.name);
   if (!requested.length) return;
 
-  let rows = [];
-  try {
-    rows = await supabaseFetch(
-      supabaseUrl,
-      "/rest/v1/institutions?select=name,year,is_active,manual_status,closing_date&limit=1000",
-      { method: "GET", headers: adminHeaders(serviceRoleKey) }
-    );
-  } catch (error) {
-    const message = String(error?.message || "").toLowerCase();
-    if (message.includes("institutions") || message.includes("does not exist") || message.includes("could not find")) return;
-    throw error;
-  }
+  const rows = await supabaseFetch(supabaseUrl,
+    "/rest/v1/institutions?select=*&limit=1000",
+    { method: "GET", headers: adminHeaders(serviceRoleKey) });
 
   const catalog = new Map();
   (Array.isArray(rows) ? rows : []).forEach((row) => {
@@ -247,9 +284,13 @@ async function assertInstitutionsOpen(supabaseUrl, serviceRoleKey, institutions)
 
   const closed = requested.find((item) => {
     const match = catalog.get(`${normalizeInstitutionNameKey(item.name)}|${item.year}`) || catalog.get(`${normalizeInstitutionNameKey(item.name)}|`);
-    return match && isInstitutionClosed(match);
+    return !match || isInstitutionClosed(match);
   });
-  if (closed) throw new Error("Applications for this institution are currently closed.");
+  if (closed) {
+    const error = new Error("This institution is unavailable or applications are currently closed.");
+    error.status = 409;
+    throw error;
+  }
 }
 
 async function getOrCreateCart(supabaseUrl, serviceRoleKey, userId) {
@@ -274,20 +315,74 @@ async function getOrCreateCart(supabaseUrl, serviceRoleKey, userId) {
   }).then((rows) => (Array.isArray(rows) ? rows[0] || null : null));
 }
 
-async function getOrCreateDraftApplication(supabaseUrl, serviceRoleKey, userId) {
+const APPLICATION_SELECT = "id,user_id,status,payment_status,payer_name,payer_phone,payment_reference,payment_method,payment_note,payment_amount,submitted_at,package_id,application_type";
+
+async function getApplicationByIdForUser(supabaseUrl, serviceRoleKey, applicationId, userId) {
+  const appId = trim(applicationId);
+  if (!appId) return null;
+
   const rows = await supabaseFetch(
     supabaseUrl,
-    `/rest/v1/applications?user_id=eq.${encodeFilter(userId)}&select=id,user_id,status,payment_status,payer_name,payer_phone,payment_reference,payment_method,payment_note,payment_amount,submitted_at,package_id&order=updated_at.desc&limit=10`,
+    `/rest/v1/applications?id=eq.${encodeFilter(appId)}&user_id=eq.${encodeFilter(userId)}&select=${APPLICATION_SELECT}&limit=1`,
+    {
+      method: "GET",
+      headers: adminHeaders(serviceRoleKey)
+    }
+  );
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getOrCreateDraftApplication(supabaseUrl, serviceRoleKey, userId, packageItem = null) {
+  const requestedApplicationId = trim(
+    packageItem?.applicationId ||
+    packageItem?.appId ||
+    packageItem?.draftId ||
+    packageItem?.application?.id
+  );
+  const requestedApplicationType = cartPackageApplicationType(packageItem);
+
+  const requestedApplication = await getApplicationByIdForUser(
+    supabaseUrl,
+    serviceRoleKey,
+    requestedApplicationId,
+    userId
+  );
+  if (requestedApplication) return requestedApplication;
+  if (requestedApplicationId) {
+    const error = new Error("This application is unavailable for your account.");
+    error.status = 403;
+    throw error;
+  }
+
+  const rows = await supabaseFetch(
+    supabaseUrl,
+    `/rest/v1/applications?user_id=eq.${encodeFilter(userId)}&select=${APPLICATION_SELECT}&order=updated_at.desc&limit=20`,
     {
       method: "GET",
       headers: adminHeaders(serviceRoleKey)
     }
   );
 
+  const reusableStatuses = new Set([
+    STATUS.application.DRAFT,
+    STATUS.application.PACKAGE_SELECTED,
+    STATUS.application.AWAITING_PAYMENT,
+    STATUS.application.PENDING_DETAILS,
+    STATUS.application.INCOMPLETE,
+    STATUS.application.MISSING_DOCUMENTS,
+    STATUS.application.DOCUMENTS_MISSING
+  ]);
   const draft = (Array.isArray(rows) ? rows : []).find((row) =>
-    row.status === STATUS.application.DRAFT || row.status === STATUS.application.MISSING_DOCUMENTS
+    reusableStatuses.has(row.status) &&
+    row.payment_status !== STATUS.payment.VERIFIED &&
+    (!requestedApplicationType || normalizeApplicationTypeKey(row.application_type) === requestedApplicationType)
   );
   if (draft) return draft;
+
+  const createPayload = { user_id: userId };
+  if (requestedApplicationType) {
+    createPayload.application_type = remoteApplicationTypeKey(requestedApplicationType);
+  }
 
   return supabaseFetch(supabaseUrl, "/rest/v1/applications", {
     method: "POST",
@@ -295,7 +390,7 @@ async function getOrCreateDraftApplication(supabaseUrl, serviceRoleKey, userId) 
       "Content-Type": "application/json",
       Prefer: "return=representation"
     }),
-    body: JSON.stringify([{ user_id: userId }])
+    body: JSON.stringify([createPayload])
   }).then((createdRows) => (Array.isArray(createdRows) ? createdRows[0] || null : null));
 }
 
@@ -350,31 +445,6 @@ async function saveApplicationInstitutions(supabaseUrl, serviceRoleKey, applicat
 }
 
 async function savePaymentRecord(supabaseUrl, serviceRoleKey, applicationId, paymentPayload) {
-  const existing = await supabaseFetch(
-    supabaseUrl,
-    `/rest/v1/payments?application_id=eq.${encodeFilter(applicationId)}&select=*&order=created_at.desc&limit=1`,
-    {
-      method: "GET",
-      headers: adminHeaders(serviceRoleKey)
-    }
-  );
-
-  if (Array.isArray(existing) && existing[0]) {
-    await supabaseFetch(
-      supabaseUrl,
-      `/rest/v1/payments?id=eq.${encodeFilter(existing[0].id)}`,
-      {
-        method: "PATCH",
-        headers: adminHeaders(serviceRoleKey, {
-          "Content-Type": "application/json",
-          Prefer: "return=minimal"
-        }),
-        body: JSON.stringify(paymentPayload)
-      }
-    );
-    return existing[0].id;
-  }
-
   return supabaseFetch(supabaseUrl, "/rest/v1/payments", {
     method: "POST",
     headers: adminHeaders(serviceRoleKey, {
@@ -398,23 +468,6 @@ function buildCheckoutUrls(body) {
   };
 }
 
-function isPublicHttpUrl(url) {
-  if (!url) return false;
-  try {
-    const parsed = new URL(url);
-    if (!/^https?:$/.test(parsed.protocol)) return false;
-    const host = parsed.hostname.toLowerCase();
-    return !(
-      host === "localhost" ||
-      host === "127.0.0.1" ||
-      host === "0.0.0.0" ||
-      host.endsWith(".local")
-    );
-  } catch (_error) {
-    return false;
-  }
-}
-
 function splitName(fullName) {
   const value = trim(fullName);
   if (!value) return { firstName: "Kagie", lastName: "Student" };
@@ -423,24 +476,6 @@ function splitName(fullName) {
     firstName: parts[0] || "Kagie",
     lastName: parts.slice(1).join(" ") || "Student"
   };
-}
-
-function normalizeSiteEnvUrl(value) {
-  const normalized = trim(value);
-  if (!normalized) return "";
-  return /^https?:\/\//i.test(normalized) ? normalized : `https://${normalized}`;
-}
-
-function buildSiteBaseUrl(event, successUrl) {
-  if (process.env.URL) return normalizeSiteEnvUrl(process.env.URL);
-  if (process.env.DEPLOY_PRIME_URL) return normalizeSiteEnvUrl(process.env.DEPLOY_PRIME_URL);
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return normalizeSiteEnvUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL);
-  if (process.env.VERCEL_URL) return normalizeSiteEnvUrl(process.env.VERCEL_URL);
-  try {
-    return new URL(successUrl).origin;
-  } catch (_error) {
-    return trim(event.headers.origin || "");
-  }
 }
 
 function buildItemName(cartItems) {
@@ -486,7 +521,7 @@ function buildPayFastFields(baseFields, passphrase) {
 }
 
 exports.handler = async (event) => {
-  const origin = event.headers.origin || "*";
+  const origin = event.headers?.origin || event.headers?.Origin || "*";
 
   if (event.httpMethod === "OPTIONS") {
     return json(200, { ok: true }, origin);
@@ -534,7 +569,7 @@ exports.handler = async (event) => {
   if (!urls.successUrl || !urls.cancelUrl || !urls.failureUrl) {
     return validationError("Success, cancel, and failure URLs are required.", origin);
   }
-  if (!isPublicHttpUrl(urls.successUrl) || !isPublicHttpUrl(urls.cancelUrl) || !isPublicHttpUrl(urls.failureUrl)) {
+  if (![urls.successUrl, urls.cancelUrl, urls.failureUrl].every(url => safeReturnUrl(url, origin, { publicOnly: true }))) {
     return validationError("PayFast needs a live public Kagie URL. Please deploy Kagie before using PayFast.", origin);
   }
 
@@ -554,7 +589,7 @@ exports.handler = async (event) => {
 
     const profiles = await supabaseFetch(
       supabaseUrl,
-      `/rest/v1/profiles?id=eq.${encodeFilter(actorId)}&select=id,role,is_active,full_name,email,phone&limit=1`,
+      `/rest/v1/profiles?id=eq.${encodeFilter(actorId)}&select=*&limit=1`,
       {
         method: "GET",
         headers: adminHeaders(serviceRoleKey)
@@ -565,9 +600,7 @@ exports.handler = async (event) => {
     if (!profile || profile.role !== "user") {
       return json(403, { message: "Only student accounts can start a PayFast checkout." }, origin);
     }
-    if (profile.is_active === false) {
-      return json(403, { message: "This Kagie account is currently inactive." }, origin);
-    }
+    require('./_admin-auth').assertActiveActor(actor, profile);
 
     const cart = await getOrCreateCart(supabaseUrl, serviceRoleKey, actorId);
     const cartItemsRaw = await supabaseFetch(
@@ -578,23 +611,29 @@ exports.handler = async (event) => {
         headers: adminHeaders(serviceRoleKey)
       }
     );
-    const cartItems = (Array.isArray(cartItemsRaw) ? cartItemsRaw : []).map(normalizeCartItem);
+    const normalizedItems = (Array.isArray(cartItemsRaw) ? cartItemsRaw : []).map(normalizeCartItem);
+    const pricing = await priceCart(normalizedItems, { userId: actorId, read: path => supabaseFetch(supabaseUrl, path, { method: "GET", headers: adminHeaders(serviceRoleKey) }) });
+    const cartItems = pricing.items;
     if (!cartItems.length) {
       return validationError("Your cart is empty. Add a package or service before paying.", origin);
     }
 
     const promoItem = getPromoCartItem(cartItems);
-    const amount = cartItems.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
+    const amount = pricing.amount;
     if (amount < 5) {
       return validationError("PayFast needs a minimum Kagie payment amount of R5.00.", origin);
     }
 
-    const application = await getOrCreateDraftApplication(supabaseUrl, serviceRoleKey, actorId);
+    const packageItem = cartItems.find((item) => item.type === "application_pack") || null;
+    const application = await getOrCreateDraftApplication(supabaseUrl, serviceRoleKey, actorId, packageItem);
     if (!application?.id) {
       return json(500, { message: "Kagie could not prepare your application draft for payment." }, origin);
     }
 
-    const packageItem = cartItems.find((item) => item.type === "application_pack") || null;
+    if (application.payment_status === STATUS.payment.VERIFIED) {
+      return validationError("This application is already paid. Start a new application before paying again.", origin, 409);
+    }
+
     const institutionItems = cartItems.filter((item) => item.type === "institution");
     const institutions = Array.isArray(packageItem?.institutions) && packageItem.institutions.length
       ? packageItem.institutions
@@ -611,14 +650,22 @@ exports.handler = async (event) => {
           applicationFeeNote: trim(item?.applicationFeeNote)
         }));
 
+    await assertInstitutionsOpen(supabaseUrl, serviceRoleKey, institutions);
     const packageId = packageItem ? await findApplicationPackId(supabaseUrl, serviceRoleKey, packageItem) : null;
 
+    const reservation = await reserveCheckout(supabaseUrl, serviceRoleKey, {
+      applicationId: application.id, userId: actorId, provider: 'payfast', items: cartItems, cartId: cart.id,
+      payerName, phone, reference, amount, urls
+    });
+    if (reservation.response) return json(200, { data: reservation.response }, origin);
+    const checkoutAttemptId = reservation.payment_id;
     const baseNoteState = parsePaymentNoteState(application.payment_note || "");
     const paymentMeta = {
       ...baseNoteState,
       customerNote: note,
+      ...snapshot(cartItems, cart.id),
       gatewayProvider: "payfast",
-      gatewayCheckoutId: application.id,
+      gatewayCheckoutId: checkoutAttemptId,
       gatewayStatus: "creating",
       promoCode: trim(promoItem?.promoCode),
       promoTitle: trim(promoItem?.promoTitle || promoItem?.title || promoItem?.name),
@@ -626,14 +673,14 @@ exports.handler = async (event) => {
       discountAmount: Math.abs(Number(promoItem?.price || 0))
     };
 
-    await supabaseFetch(
+    const preparedRows = await supabaseFetch(
       supabaseUrl,
-      `/rest/v1/applications?id=eq.${encodeFilter(application.id)}`,
+      `/rest/v1/applications?id=eq.${encodeFilter(application.id)}&payment_status=not.in.(Verified,Refunded)`,
       {
         method: "PATCH",
         headers: adminHeaders(serviceRoleKey, {
           "Content-Type": "application/json",
-          Prefer: "return=minimal"
+          Prefer: "return=representation"
         }),
         body: JSON.stringify({
           package_id: packageId,
@@ -647,10 +694,20 @@ exports.handler = async (event) => {
         })
       }
     );
+    if (!Array.isArray(preparedRows) || preparedRows.length !== 1) {
+      return validationError("This application payment changed. Refresh before paying again.", origin, 409);
+    }
 
     await saveApplicationInstitutions(supabaseUrl, serviceRoleKey, application.id, institutions);
 
     const paymentPayload = {
+      checkout_snapshot: orderSnapshot(cartItems, cart.id),
+      id: checkoutAttemptId,
+      user_id: actorId,
+      provider: "payfast",
+      gateway_checkout_id: checkoutAttemptId,
+      gateway_status: "created",
+      currency: "ZAR",
       payer_name: payerName,
       phone,
       reference,
@@ -660,9 +717,10 @@ exports.handler = async (event) => {
       status: STATUS.payment.PENDING
     };
 
-    await savePaymentRecord(supabaseUrl, serviceRoleKey, application.id, paymentPayload);
+    // The durable reservation already owns the payment record.
 
-    const baseUrl = buildSiteBaseUrl(event, urls.successUrl);
+
+    const baseUrl = new URL(urls.successUrl).origin;
     const notifyUrl = `${baseUrl.replace(/\/$/, "")}/v1/payments/payfast/itn`;
     const { firstName, lastName } = splitName(payerName || profile.full_name || "Kagie Student");
     const fields = buildPayFastFields({
@@ -675,7 +733,7 @@ exports.handler = async (event) => {
       name_last: lastName,
       email_address: trim(profile.email || actor?.email || ""),
       cell_number: phone,
-      m_payment_id: application.id,
+      m_payment_id: checkoutAttemptId,
       amount: toAmount(amount),
       item_name: buildItemName(cartItems),
       item_description: buildItemDescription(cartItems),
@@ -688,7 +746,7 @@ exports.handler = async (event) => {
 
     await supabaseFetch(
       supabaseUrl,
-      `/rest/v1/applications?id=eq.${encodeFilter(application.id)}`,
+      `/rest/v1/applications?id=eq.${encodeFilter(application.id)}&payment_status=not.in.(Verified,Refunded)`,
       {
         method: "PATCH",
         headers: adminHeaders(serviceRoleKey, {
@@ -701,15 +759,14 @@ exports.handler = async (event) => {
       }
     );
 
-    return json(200, {
-      data: {
+    const completed = await completeCheckout(supabaseUrl, serviceRoleKey, reservation.payment_id, checkoutAttemptId, paymentPayload.note, {
         applicationId: application.id,
         processUrl,
         fields
-      }
-    }, origin);
+    });
+    return json(200, { data: completed }, origin);
   } catch (error) {
     const statusCode = typeof error?.status === "number" ? error.status : 500;
-    return json(statusCode, { message: error?.message || "Kagie could not start PayFast checkout." }, origin);
+    return json(statusCode, { message: statusCode < 500 ? error?.message || "Kagie could not start PayFast checkout." : "Kagie could not prepare this payment. Please try again or contact support." }, origin);
   }
 };

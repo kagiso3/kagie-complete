@@ -18,6 +18,9 @@
   const actionLocks = new Set();
 
   async function runButtonAction(button, key, busyText, task) {
+    if (window.KagieUX?.withButtonLock) {
+      return window.KagieUX.withButtonLock(button, key, busyText, task);
+    }
     const lockKey = String(key || button?.dataset?.action || button?.id || "button-action");
     if (actionLocks.has(lockKey)) return;
     actionLocks.add(lockKey);
@@ -372,7 +375,13 @@
     $("questionPapersRefreshBtn")?.addEventListener("click", (event) => {
       runButtonAction(event.currentTarget, "question-papers-refresh", "Refreshing...", refresh);
     });
-    $("questionPapersSignOut")?.addEventListener("click", () => state.api.logoutReal?.() || state.api.logout?.());
+    $("questionPapersSignOut")?.addEventListener("click", (event) => {
+      runButtonAction(event.currentTarget, "question-papers-signout", "Signing out...", async () => {
+        if (state.api.logoutReal) await state.api.logoutReal();
+        else if (state.api.logout) await Promise.resolve(state.api.logout());
+        window.location.replace("../../login.html?switch=1");
+      });
+    });
     $("questionPaperSaveBtn")?.addEventListener("click", (event) => {
       runButtonAction(event.currentTarget, "question-paper-save", "Saving...", savePaper);
     });
@@ -417,6 +426,7 @@
     fillFormDefaults();
     bindEvents();
     await refresh();
+    if (new URLSearchParams(window.location.search).get("create") === "1") openCreateModal();
   }
 
   document.addEventListener("DOMContentLoaded", () => {

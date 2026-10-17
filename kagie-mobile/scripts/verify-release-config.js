@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const projectRoot = path.resolve(__dirname, "..");
-const retiredHostPattern = /(?:kagie\.co\.za)/i;
+const placeholderApiPattern = /(?:your-vercel-production-domain|example\.com|your-domain)/i;
 const localHostPattern = /(?:^https?:\/\/)?(?:10\.0\.2\.2|127\.0\.0\.1|localhost|192\.168\.|172\.(?:1[6-9]|2\d|3[0-1])\.)/i;
 const forbiddenPublicSecretPattern = /EXPO_PUBLIC_.*(?:SECRET|SERVICE_ROLE|PRIVATE|TOKEN|YOCO_SECRET|SUPABASE_SERVICE_ROLE)/i;
 
@@ -33,9 +33,14 @@ const env = {
 };
 
 const apiBaseUrl = String(env.EXPO_PUBLIC_KAGIE_API_BASE_URL || env.EXPO_PUBLIC_API_BASE_URL || "").trim();
+const webAppUrl = String(env.EXPO_PUBLIC_KAGIE_WEB_APP_URL || "https://kagie.app").trim();
 
 if (!apiBaseUrl) {
   fail("Set EXPO_PUBLIC_KAGIE_API_BASE_URL to the stable production Kagie /v1 API URL.");
+}
+
+if (!webAppUrl) {
+  fail("Set EXPO_PUBLIC_KAGIE_WEB_APP_URL to the stable production Kagie web app URL.");
 }
 
 let parsedUrl;
@@ -45,16 +50,35 @@ try {
   fail(`EXPO_PUBLIC_KAGIE_API_BASE_URL is not a valid URL: ${apiBaseUrl}`);
 }
 
+let parsedWebUrl;
+try {
+  parsedWebUrl = new URL(webAppUrl);
+} catch {
+  fail(`EXPO_PUBLIC_KAGIE_WEB_APP_URL is not a valid URL: ${webAppUrl}`);
+}
+
 if (!/^https:$/.test(parsedUrl.protocol)) {
   fail("The Play Store release API URL must use HTTPS.");
+}
+
+if (!/^https:$/.test(parsedWebUrl.protocol)) {
+  fail("The Play Store release web app URL must use HTTPS.");
 }
 
 if (localHostPattern.test(apiBaseUrl)) {
   fail("The Play Store release cannot point at localhost, emulator, or LAN API URLs.");
 }
 
-if (retiredHostPattern.test(apiBaseUrl)) {
-  fail("The Play Store release cannot point at kagie.co.za. Use your live Vercel API/backend URL.");
+if (localHostPattern.test(webAppUrl)) {
+  fail("The Play Store release cannot point the WebView at localhost, emulator, or LAN URLs.");
+}
+
+if (placeholderApiPattern.test(apiBaseUrl)) {
+  fail("Replace the placeholder API URL with the live Kagie production /v1 URL.");
+}
+
+if (placeholderApiPattern.test(webAppUrl)) {
+  fail("Replace the placeholder web app URL with the live Kagie production web app URL.");
 }
 
 if (!parsedUrl.pathname.replace(/\/+$/, "").endsWith("/v1")) {
@@ -72,4 +96,4 @@ if (appJson.expo?.android?.package !== "com.kagie.app") {
   fail("app.json must keep android.package as com.kagie.app.");
 }
 
-console.log(`Kagie Android release config ok: ${apiBaseUrl}`);
+console.log(`Kagie Android release config ok: ${apiBaseUrl} | web app ${webAppUrl}`);

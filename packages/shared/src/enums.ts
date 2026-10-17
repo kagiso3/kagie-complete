@@ -8,23 +8,43 @@ export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 export const APPLICATION_STATUSES = {
   DRAFT: "Draft",
+  PACKAGE_SELECTED: "Package Selected",
+  AWAITING_PAYMENT: "Awaiting Payment",
+  PAID: "Paid",
+  PENDING_DETAILS: "Pending Details",
+  INCOMPLETE: "Incomplete",
   SUBMITTED: "Submitted",
   UNDER_REVIEW: "Under Review",
+  DOCUMENTS_REQUIRED: "Documents Required",
+  DOCUMENTS_MISSING: "Documents Missing",
   MISSING_DOCUMENTS: "Missing Documents",
+  INSTITUTION_SUBMITTED: "Institution Submitted",
+  AWAITING_INSTITUTION_FEEDBACK: "Awaiting Institution Feedback",
+  AWAITING_INSTITUTION_FEE: "Awaiting Institution Fee",
+  SUBMITTED_TO_INSTITUTION: "Submitted to Institution",
   READY_TO_APPLY: "Ready to Apply",
   APPLIED: "Applied",
   PENDING_FEEDBACK: "Pending Feedback",
   ACCEPTED: "Accepted",
   REJECTED: "Rejected",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
   PROCESSING: "Application being processed"
 } as const;
 
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[keyof typeof APPLICATION_STATUSES];
 
 export const PAYMENT_STATUSES = {
+  UNPAID: "Unpaid",
+  PENDING: "Pending",
+  PAID: "Paid",
   PAYMENT_PENDING: "Payment Pending",
   PENDING_VERIFICATION: "Pending Verification",
-  VERIFIED: "Verified"
+  VERIFIED: "Verified",
+  REJECTED: "Rejected",
+  FAILED: "Failed",
+  CANCELLED: "Cancelled",
+  REFUNDED: "Refunded"
 } as const;
 
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[keyof typeof PAYMENT_STATUSES];

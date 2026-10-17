@@ -1,330 +1,89 @@
+const { getBearerToken, assertActiveActor, actorRole } = require("./_admin-auth");
+
 function json(statusCode, payload, origin = "*") {
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": origin,
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      "Access-Control-Allow-Methods": "POST, OPTIONS"
-    },
-    body: JSON.stringify(payload)
-  };
+  return { statusCode, headers: {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Cache-Control": "private, no-store"
+  }, body: JSON.stringify(payload) };
 }
 
-function normalizeEmail(email) {
-  return String(email || "").trim().toLowerCase();
-}
-
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
-}
-
-function validationError(message, origin) {
-  return json(400, { message }, origin);
-}
-
-async function readResponse(response) {
+async function request(supabaseUrl, path, headers, method = "GET", body) {
+  const response = await fetch(supabaseUrl + path, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const text = await response.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch (_error) {
-    return { message: text };
-  }
-}
-
-async function supabaseFetch(supabaseUrl, path, options) {
-  const response = await fetch(`${supabaseUrl}${path}`, options);
-  const payload = await readResponse(response);
+  let payload;
+  try { payload = text ? JSON.parse(text) : {}; } catch (_error) { payload = {}; }
   if (!response.ok) {
-    const error = new Error(
-      payload.msg ||
-      payload.message ||
-      payload.error_description ||
-      payload.error ||
-      `Supabase request failed with ${response.status}`
-    );
+    const error = new Error(payload.msg || payload.message || payload.error_description || "Master admin provisioning failed.");
     error.status = response.status;
-    error.payload = payload;
     throw error;
   }
   return payload;
 }
 
-function adminHeaders(serviceRoleKey, extras = {}) {
-  return {
-    apikey: serviceRoleKey,
-    Authorization: `Bearer ${serviceRoleKey}`,
-    ...extras
-  };
-}
-
-function encodeFilter(value) {
-  return encodeURIComponent(String(value || ""));
-}
-
-async function getProfileSnapshot(supabaseUrl, serviceRoleKey, userId) {
-  if (!userId) return null;
-  const rows = await supabaseFetch(
-    supabaseUrl,
-    `/rest/v1/profiles?id=eq.${encodeFilter(userId)}&select=id,role,full_name&limit=1`,
-    {
-      method: "GET",
-      headers: adminHeaders(serviceRoleKey)
-    }
-  );
-  return Array.isArray(rows) ? rows[0] || null : null;
-}
-
-async function findAuthUserByEmail(supabaseUrl, serviceRoleKey, email) {
-  const normalizedEmail = normalizeEmail(email);
-  if (!normalizedEmail) return null;
-
-  for (let page = 1; page <= 5; page += 1) {
-    const payload = await supabaseFetch(
-      supabaseUrl,
-      `/auth/v1/admin/users?page=${page}&per_page=200`,
-      {
-        method: "GET",
-        headers: adminHeaders(serviceRoleKey)
-      }
-    );
-
-    const users = Array.isArray(payload?.users)
-      ? payload.users
-      : Array.isArray(payload)
-        ? payload
-        : [];
-
-    const match = users.find((user) => normalizeEmail(user?.email) === normalizedEmail);
-    if (match) return match;
-    if (users.length < 200) break;
-  }
-
-  return null;
-}
-
-async function ensureProfileRecord(supabaseUrl, serviceRoleKey, userId, role, fullName, phone) {
-  if (!userId) return null;
-
-  const existing = await getProfileSnapshot(supabaseUrl, serviceRoleKey, userId).catch(() => null);
-  if (existing) return existing;
-
-  await supabaseFetch(
-    supabaseUrl,
-    "/rest/v1/profiles?on_conflict=id",
-    {
-      method: "POST",
-      headers: adminHeaders(serviceRoleKey, {
-        "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=representation"
-      }),
-      body: JSON.stringify({
-        id: userId,
-        full_name: fullName,
-        role
-      })
-    }
-  ).catch(() => null);
-
-  return getProfileSnapshot(supabaseUrl, serviceRoleKey, userId).catch(() => null);
-}
-
 exports.handler = async (event) => {
-  const origin = event.headers.origin || "*";
+  const origin = event.headers?.origin || "*";
+  if (event.httpMethod === "OPTIONS") return json(200, { ok: true }, origin);
+  if (event.httpMethod !== "POST") return json(405, { message: "Method not allowed." }, origin);
 
-  if (event.httpMethod === "OPTIONS") {
-    return json(200, { ok: true }, origin);
-  }
-
-  if (event.httpMethod !== "POST") {
-    return json(405, { message: "Method not allowed." }, origin);
-  }
-
-  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    return json(500, { message: "Live admin setup is not complete on this site yet. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to the server environment, then redeploy." }, origin);
-  }
-
-  let body;
-  try {
-    body = JSON.parse(event.body || "{}");
-  } catch (_error) {
-    return validationError("Request body must be valid JSON.", origin);
-  }
-
-  const fullName = String(body.fullName || "").trim();
-  const email = normalizeEmail(body.email);
-  const phone = String(body.phone || "").trim();
-  const password = String(body.password || "");
-
-  if (fullName.length < 2) return validationError("Master admin full name is required.", origin);
-  if (!isValidEmail(email)) return validationError("Use a valid dedicated master admin email address, for example masteradmin@kagie.app.", origin);
-  if (password.length < 6) return validationError("Master admin password must be at least 6 characters.", origin);
+  // Initial setup belongs to the server operator. A public first-admin race or
+  // an email-address match must never authorize account creation or recovery.
+  const token = getBearerToken(event.headers);
+  if (!token) return json(401, { message: "Sign in as an active Kagie master admin to provision another master admin. Initial setup requires the server operator." }, origin);
+  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
+  const key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+  if (!supabaseUrl || !key) return json(500, { message: "Secure admin provisioning is not configured." }, origin);
+  const adminHeaders = { apikey: key, Authorization: "Bearer " + key, "Content-Type": "application/json" };
 
   try {
-    const existingMasters = await supabaseFetch(
-      supabaseUrl,
-      `/rest/v1/profiles?role=eq.${encodeFilter("master_admin")}&select=id,full_name&limit=1`,
-      {
-        method: "GET",
-        headers: adminHeaders(serviceRoleKey)
-      }
-    );
+    const actor = await request(supabaseUrl, "/auth/v1/user", { apikey: key, Authorization: "Bearer " + token });
+    if (!actor?.id) return json(401, { message: "Supabase session could not be verified." }, origin);
+    const actorRows = await request(supabaseUrl, "/rest/v1/profiles?id=eq." + encodeURIComponent(actor.id) + "&select=*&limit=1", adminHeaders);
+    const actorProfile = Array.isArray(actorRows) ? actorRows[0] : null;
+    assertActiveActor(actor, actorProfile);
+    if (actorRole(actor, actorProfile) !== "master_admin") return json(403, { message: "Only an active Kagie master admin can provision another master admin." }, origin);
 
-    const existingMaster = Array.isArray(existingMasters) ? existingMasters[0] || null : null;
-    if (existingMaster) {
-      const existingUserId = String(existingMaster.id || "").trim();
-      const existingAuthUser = existingUserId
-        ? await supabaseFetch(
-            supabaseUrl,
-            `/auth/v1/admin/users/${encodeURIComponent(existingUserId)}`,
-            {
-              method: "GET",
-              headers: adminHeaders(serviceRoleKey)
-            }
-          ).catch(() => null)
-        : null;
-      const existingEmail = normalizeEmail(existingAuthUser?.email);
-      if (
-        existingEmail &&
-        existingEmail !== email &&
-        existingEmail !== "kagie@app" &&
-        existingEmail !== "kagie@kagie.app" &&
-        existingEmail !== "kagisowitness79@gmail.com"
-      ) {
-        return json(409, { message: "A Kagie master admin already exists. Please use the normal login page." }, origin);
-      }
-
-      try {
-        await supabaseFetch(
-          supabaseUrl,
-          `/auth/v1/admin/users/${encodeURIComponent(existingUserId)}`,
-          {
-            method: "GET",
-            headers: adminHeaders(serviceRoleKey)
-          }
-        );
-
-        await supabaseFetch(
-          supabaseUrl,
-          `/auth/v1/admin/users/${encodeURIComponent(existingUserId)}`,
-          {
-            method: "PUT",
-            headers: adminHeaders(serviceRoleKey, {
-              "Content-Type": "application/json"
-            }),
-            body: JSON.stringify({
-              email,
-              password,
-              email_confirm: true,
-              user_metadata: {
-                full_name: fullName,
-                phone,
-                role: "master_admin"
-              },
-              app_metadata: {
-                role: "master_admin"
-              }
-            })
-          }
-        );
-
-        const repaired = await ensureProfileRecord(
-          supabaseUrl,
-          serviceRoleKey,
-          existingUserId,
-          "master_admin",
-          fullName,
-          phone
-        ).catch(() => null);
-        return json(200, {
-          data: {
-            id: existingUserId,
-            role: "master_admin",
-            fullName: repaired.full_name || fullName,
-            email,
-            phone,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            alreadyExists: true,
-            repaired: true
-          }
-        }, origin);
-      } catch (lookupError) {
-        const status = typeof lookupError?.status === "number" ? lookupError.status : 500;
-        if (status !== 404) throw lookupError;
-
-        await supabaseFetch(
-          supabaseUrl,
-          `/rest/v1/profiles?id=eq.${encodeFilter(existingMaster.id)}`,
-          {
-            method: "DELETE",
-            headers: adminHeaders(serviceRoleKey, { Prefer: "return=minimal" })
-          }
-        );
-      }
-    }
-
-    const created = await supabaseFetch(supabaseUrl, "/auth/v1/admin/users", {
-      method: "POST",
-      headers: adminHeaders(serviceRoleKey, {
-        "Content-Type": "application/json"
-      }),
-      body: JSON.stringify({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: fullName,
-          phone,
-          role: "master_admin"
-        },
-        app_metadata: {
-          role: "master_admin"
-        }
-      })
-    });
-
-    const userId = created.id;
-
+    let body;
     try {
-      const profile = await ensureProfileRecord(
-        supabaseUrl,
-        serviceRoleKey,
-        userId,
-        "master_admin",
-        fullName,
-        phone
-      ).catch(() => null);
+      body = JSON.parse(event.body || "{}");
+      if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Invalid body");
+    } catch (_error) { return json(400, { message: "Request body must be a JSON object." }, origin); }
+    const fullName = String(body.fullName || "").trim();
+    const email = String(body.email || "").trim().toLowerCase();
+    const phone = String(body.phone || "").trim();
+    const password = String(body.password || "");
+    if (fullName.length < 2) return json(400, { message: "Master admin full name is required." }, origin);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(400, { message: "Use a valid master admin email address." }, origin);
+    if (password.length < 8) return json(400, { message: "Master admin password must be at least 8 characters." }, origin);
 
-      return json(201, {
-        data: {
-          id: userId,
-          role: "master_admin",
-          fullName: profile.full_name || fullName,
-          email,
-          phone,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      }, origin);
+    // Auth's unique email constraint makes concurrent requests safe. Existing
+    // accounts are never updated, renamed, password-reset, or deleted here.
+    const created = await request(supabaseUrl, "/auth/v1/admin/users", adminHeaders, "POST", {
+      email, password, email_confirm: true,
+      user_metadata: { full_name: fullName, phone },
+      app_metadata: { role: "master_admin" }
+    });
+    if (!created?.id) throw new Error("The master admin account could not be created.");
+    try {
+      await request(supabaseUrl, "/rest/v1/profiles?on_conflict=id", { ...adminHeaders, Prefer: "resolution=merge-duplicates,return=minimal" }, "POST", {
+        id: created.id, full_name: fullName, role: "master_admin"
+      });
     } catch (error) {
-      await fetch(`${supabaseUrl}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
-        method: "DELETE",
-        headers: adminHeaders(serviceRoleKey)
-      }).catch(() => {});
-
+      // Roll back only the account created by this request, never an existing
+      // account. A failed rollback is reported to the operator through logs.
+      await request(supabaseUrl, "/auth/v1/admin/users/" + encodeURIComponent(created.id), adminHeaders, "DELETE").catch(() => {
+        console.error("New master admin profile could not be saved; account cleanup requires operator attention.");
+      });
       throw error;
     }
+    return json(201, { data: { id: created.id, role: "master_admin", fullName, email, phone, createdAt: created.created_at || new Date().toISOString() } }, origin);
   } catch (error) {
-    const statusCode = typeof error === "object" && error && "status" in error && typeof error.status === "number"
-      ? error.status
-      : 500;
-
-    const message = error instanceof Error ? error.message : "Master admin setup failed.";
-    return json(statusCode, { message }, origin);
+    const status = Number(error?.status) || 500;
+    if ([409, 422].includes(status) || /already|registered|exists/i.test(String(error?.message || ""))) {
+      return json(409, { message: "This email already belongs to a Kagie account. Use normal sign-in or password recovery; provisioning does not reset existing accounts." }, origin);
+    }
+    return json(status, { message: status >= 500 ? "Master admin provisioning could not be completed." : error?.message || "Master admin provisioning failed." }, origin);
   }
 };

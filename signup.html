@@ -5,215 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kagie | Create Account</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    :root{
-      --bg-left:#ebe4e6;
-      --bg-right:#e5e7eb;
-      --card:rgba(248,248,249,.82);
-      --text:#0f1836;
-      --muted:#6f7e98;
-      --line:#363636;
-      --red1:#ff4d4d;
-      --red2:#df0000;
-      --shadow:0 28px 60px rgba(0,0,0,.10);
-      --button-shadow:0 18px 32px rgba(223,0,0,.22);
-    }
-
-    *{box-sizing:border-box}
-    html,body{height:100%}
-
-    body{
-      margin:0;
-      font-family:"Poppins",sans-serif;
-      background:
-        radial-gradient(circle at left top, rgba(255,255,255,.55), transparent 32%),
-        linear-gradient(90deg,var(--bg-left) 0%, var(--bg-right) 100%);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
-      overflow:auto;
-    }
-
-    .auth-card{
-      width:100%;
-      max-width:620px;
-      background:var(--card);
-      border-radius:34px;
-      padding:40px 36px 34px;
-      box-shadow:var(--shadow);
-      backdrop-filter:blur(10px);
-      border:1px solid rgba(255,255,255,.65);
-    }
-
-    h1{
-      margin:0;
-      text-align:center;
-      font-size:54px;
-      line-height:.95;
-      font-weight:900;
-      color:var(--text);
-      letter-spacing:-.03em;
-    }
-
-    .top-text{
-      text-align:center;
-      margin:14px 0 28px;
-      color:var(--muted);
-      font-size:16px;
-    }
-
-    .top-text a{
-      color:#111827;
-      text-decoration:none;
-      font-weight:800;
-    }
-
-    .field{
-      margin-bottom:22px;
-      position:relative;
-    }
-
-    .input{
-      width:100%;
-      height:64px;
-      border:2.5px solid var(--line);
-      border-radius:10px;
-      background:rgba(255,255,255,.2);
-      padding:0 20px;
-      font-size:16px;
-      font-weight:700;
-      outline:none;
-      transition:.25s ease;
-      font-family:inherit;
-    }
-
-    .input::placeholder{
-      color:#777b87;
-      text-transform:uppercase;
-      letter-spacing:.18em;
-      font-weight:700;
-    }
-
-    .input:focus{
-      border-color:#d00000;
-      box-shadow:0 0 0 4px rgba(224,0,0,.08);
-      transform:translateY(-1px);
-    }
-
-    .field-label{
-      position:absolute;
-      top:-10px;
-      left:14px;
-      background:rgba(250,250,251,.95);
-      padding:0 8px;
-      font-size:12px;
-      letter-spacing:.24em;
-      font-weight:800;
-      color:#d00000;
-      text-transform:uppercase;
-    }
-
-    .input-wrap{
-      position:relative;
-    }
-
-    .toggle-pass{
-      position:absolute;
-      right:16px;
-      top:50%;
-      transform:translateY(-50%);
-      border:none;
-      background:transparent;
-      cursor:pointer;
-      font-weight:700;
-      color:#6b7280;
-      font-family:inherit;
-    }
-
-    .btn{
-      width:100%;
-      height:64px;
-      border:none;
-      border-radius:10px;
-      background:linear-gradient(180deg,var(--red1),var(--red2));
-      color:#fff;
-      font-size:18px;
-      font-weight:900;
-      letter-spacing:.05em;
-      cursor:pointer;
-      box-shadow:var(--button-shadow);
-      margin-top:8px;
-      transition:.25s ease;
-      font-family:inherit;
-    }
-
-    .btn:hover{transform:translateY(-2px)}
-    .btn:disabled{opacity:.7;cursor:not-allowed;transform:none}
-
-    .message{
-      min-height:24px;
-      text-align:center;
-      font-size:14px;
-      font-weight:600;
-      margin-top:14px;
-    }
-
-    .message.error{color:#b00020}
-    .message.success{color:#0f8a43}
-
-    @media (max-width:700px){
-      .auth-card{padding:32px 20px 26px}
-      h1{font-size:42px}
-    }
-  </style>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/auth-pages.css?v=20261014-google-login">
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
+  <script src="js/auth-experience.js?v=20261014-google-login"></script>
 </head>
-<body>
-  <main class="auth-card">
-    <h1>Create new<br>Account</h1>
-    <p class="top-text">Already Registered? <a href="login.html">Log in here.</a></p>
-
-    <form id="signupForm">
-      <div class="field">
-        <input class="input" id="fullName" type="text" placeholder="Name" required>
-      </div>
-
-      <div class="field">
-        <input class="input" id="email" type="email" placeholder="Email" required>
-      </div>
-
-      <div class="field">
-        <div class="input-wrap">
-          <input class="input" id="password" type="password" placeholder="Password" required minlength="6">
-          <button class="toggle-pass" type="button" id="togglePassword">Show</button>
-        </div>
-      </div>
-
-      <div class="field">
-        <span class="field-label">Date of Birth</span>
-        <input class="input" id="dob" type="text" inputmode="none" autocomplete="bday" placeholder="Day / Month / Year" data-dob-wheel data-min-age="13" required readonly>
-      </div>
-
-      <div class="field">
-        <input class="input" id="schoolAttended" type="text" placeholder="High School" required>
-      </div>
-
-      <button class="btn" id="signupBtn" type="submit">SIGN UP</button>
-      <div class="message" id="message"></div>
-    </form>
-  </main>
+<body class="kagie-account-page" data-kagie-page="signup">
+  <a class="kagie-skip-link" href="#authCard">Skip to account form</a>
+  <div class="auth-page-shell"><header class="auth-site-header"><a class="auth-brand" href="index.html" aria-label="Kagie homepage"><span class="auth-brand-mark" aria-hidden="true">K</span>Kagie</a><span class="auth-header-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 9 10-6 10 6-10 6Z"/><path d="M6 12v6q6 5 12 0 5-2 6-4v-6M22 9v8"/></svg>Apply once. Go further.</span></header><div class="auth-frame"><aside class="auth-story" aria-labelledby="authStoryTitle"><div><span class="auth-eyebrow">Your next chapter</span><h2 id="authStoryTitle">One application.<br>More possibilities.</h2><p>Take your next step with Kagie. Find your courses, prepare your documents and reach multiple institutions in one place.</p></div><div class="auth-story-art"><div class="auth-story-row"><span class="auth-story-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 9 10-6 10 6-10 6Z"/><path d="M6 12v6q6 5 12 0 5-2 6-4v-6M22 9v8"/></svg></span><div><strong>Find your path</strong><small>Explore courses and institutions</small></div></div><div class="auth-story-row"><span class="auth-story-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18H5ZM8 8h8M8 12h8M8 16h5"/></svg></span><div><strong>Apply with confidence</strong><small>Keep your details and documents together</small></div></div><div class="auth-story-row"><span class="auth-story-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m7 12 3 3 7-7"/></svg></span><div><strong>Stay on track</strong><small>Follow your applications and next steps</small></div></div></div><div class="auth-story-foot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 3 7v5c0 5 9 10 9 10s9-5 9-10V7ZM8 12l3 3 5-6"/></svg><span>Built for your tertiary journey</span></div></aside><main class="auth-card" id="authCard" tabindex="-1" aria-labelledby="authTitle"><div class="auth-step-kicker">Start your next chapter</div><h1 id="authTitle">Create your account</h1><p class="top-text">A few details now, more opportunities ahead.</p><form id="signupForm" novalidate><div class="field"><label class="auth-field-label" for="fullName">Full name</label><input class="input" id="fullName" type="text" autocomplete="name" placeholder="Your full name" aria-describedby="fullNameError" required><span class="auth-field-error" id="fullNameError" hidden></span></div><div class="field"><label class="auth-field-label" for="email">Email address</label><input class="input" id="email" type="email" placeholder="you@example.com" autocomplete="email" aria-describedby="emailError" required><span class="auth-field-error" id="emailError" hidden></span></div><div class="field"><label class="auth-field-label" for="password">Create a password</label><div class="input-wrap"><input class="input" id="password" type="password" placeholder="At least 6 characters" autocomplete="new-password" minlength="6" aria-describedby="passwordHint passwordError" required><button class="toggle-pass" type="button" id="togglePassword" aria-label="Show password" aria-pressed="false">Show</button></div><p class="auth-field-hint" id="passwordHint">Use at least 6 characters.</p><span class="auth-field-error" id="passwordError" hidden></span></div><div class="auth-fields-pair"><div class="field"><label class="auth-field-label" for="dob">Date of birth</label><div class="auth-date-control"><input class="input" id="dob" type="text" inputmode="none" autocomplete="bday" placeholder="DD / MM / YYYY" data-dob-wheel data-min-age="13" aria-describedby="dobHint dobError" required readonly><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18M7 14h2M13 14h2M7 18h2"/></svg></div><p class="auth-field-hint" id="dobHint">You must be 13 or older.</p><span class="auth-field-error" id="dobError" hidden></span></div><div class="field"><label class="auth-field-label" for="schoolAttended">High school</label><input class="input" id="schoolAttended" type="text" placeholder="Your school's name" aria-describedby="schoolAttendedError" required><span class="auth-field-error" id="schoolAttendedError" hidden></span></div></div><div class="message" id="message" role="status" aria-live="polite"></div><button class="btn" id="signupBtn" type="submit"><span class="auth-button-label">Create account</span> <svg class="auth-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></button><p class="auth-account-note">These details help Kagie prepare your applications.</p></form><section class="auth-reset-result" id="signupSuccess" aria-live="polite" hidden><div class="auth-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg></div><h2 id="signupSuccessTitle" tabindex="-1">Check your email</h2><p>Use the confirmation link in your inbox to finish setting up your Kagie account.</p><p class="auth-field-hint">If you cannot see the email, check your spam folder.</p><a class="btn auth-primary-link" id="signupLoginButton" href="login.html?app=1">Continue to log in <svg class="auth-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></a></section><div class="links"><span>Already have an account?</span><a href="login.html?app=1" id="loginLink">Log in</a></div></main></div><footer class="auth-page-footer"><span>Your future. Our priority.</span><nav aria-label="Account information"><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav></footer></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/backend.js?v=20260426a"></script>
-<script src="js/supabase-config.js?v=20260405k"></script>
-<script src="js/dob-wheel-picker.js?v=20260426a"></script>
+<script src="js/backend.js?v=20261015-backend-audit"></script>
+<script src="js/supabase-config.js?v=20261014-palette-blue"></script>
+<script src="js/dob-wheel-picker.js?v=20261014-palette-blue"></script>
   <script>
     const form = document.getElementById("signupForm");
     const password = document.getElementById("password");
     const togglePassword = document.getElementById("togglePassword");
     const signupBtn = document.getElementById("signupBtn");
     const message = document.getElementById("message");
+    const loginLink = document.getElementById("loginLink");
+    const accountUI = window.KagieAccountUI;
+    accountUI.bindFieldFeedback(form);
+    const signupNextRoute = accountUI.safeNext(new URLSearchParams(window.location.search).get("next"));
+    const loginDestination = `login.html?app=1${signupNextRoute ? `&next=${encodeURIComponent(signupNextRoute)}` : ""}`;
+    if (loginLink) loginLink.href = loginDestination;
+    document.getElementById("signupLoginButton").href = loginDestination;
     let signupInFlight = false;
 
     function ensureApiReady() {
@@ -225,21 +43,42 @@
     function formatSignupMessage(raw, fallback = "Signup failed.") {
       const text = String(raw || "").trim();
       if (!text) return fallback;
-      if (/email.*confirm|email_not_confirmed/i.test(text)) {
-        return "Check your email and confirm your Kagie account before first login.";
+      if (/already registered|already been registered|already exists|user already exists|account with this email/i.test(text)) {
+        return "We could not create the account with those details. If you already have a Kagie account, please log in or use Forgot Password.";
       }
-      return text;
+      if (/email.*confirm|email_not_confirmed/i.test(text)) {
+        return "If you already started creating a Kagie account, check your email for the next step.";
+      }
+      if (/date of birth|at least 13|valid date|required fields|password.*(?:least|characters|short|weak)/i.test(text)) return text;
+      if (/network|fetch|connection/i.test(text)) return "Could not connect to Kagie. Check your internet connection and try again.";
+      return "Could not create your account right now. Please try again or contact Kagie support.";
     }
 
     togglePassword.addEventListener("click", () => {
       const nextType = password.type === "password" ? "text" : "password";
       password.type = nextType;
       togglePassword.textContent = nextType === "password" ? "Show" : "Hide";
+      togglePassword.setAttribute("aria-label", nextType === "password" ? "Show password" : "Hide password");
+      togglePassword.setAttribute("aria-pressed", String(nextType !== "password"));
     });
 
     function setMessage(text, type = "") {
-      message.textContent = text;
-      message.className = type ? `message ${type}` : "message";
+      accountUI.showMessage(message, text, type);
+    }
+
+    function setSignupLoading(isLoading) {
+      const ux = window.KagieUX;
+      if (ux?.setFormLoading) {
+        ux.setFormLoading(form, isLoading, { button: signupBtn, busyText: "Creating account..." });
+        return;
+      }
+
+      form.setAttribute("aria-busy", isLoading ? "true" : "false");
+      form.querySelectorAll("input, select, textarea, button").forEach((control) => {
+        control.disabled = isLoading;
+      });
+      signupBtn.disabled = isLoading;
+      accountUI.buttonLabel(signupBtn, isLoading ? "Creating account..." : "Create account");
     }
 
     function normalizeDobInput(raw) {
@@ -281,7 +120,7 @@
 
       const iso = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       const parsed = new Date(`${iso}T00:00:00`);
-      if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== iso) {
+      if (Number.isNaN(parsed.getTime()) || parsed.getFullYear() !== Number(year) || parsed.getMonth() + 1 !== Number(month) || parsed.getDate() !== Number(day)) {
         throw new Error("Enter a valid date of birth.");
       }
       const today = new Date();
@@ -297,24 +136,40 @@
       e.preventDefault();
       if (signupInFlight) return;
       setMessage("");
+      accountUI.clearErrors(form);
       const api = ensureApiReady();
       if (!api) return;
 
-      signupInFlight = true;
-      signupBtn.disabled = true;
-      signupBtn.textContent = "Creating...";
-
+      const fullNameInput = document.getElementById("fullName");
+      const emailInput = document.getElementById("email");
+      const dobInput = document.getElementById("dob");
+      const schoolInput = document.getElementById("schoolAttended");
+      const invalid = (input, text) => {
+        accountUI.fieldError(input, text);
+        setMessage(text, "error");
+        input.focus();
+      };
+      if (!fullNameInput.value.trim()) return invalid(fullNameInput, "Enter your full name.");
+      if (!emailInput.value.trim() || !emailInput.validity.valid) return invalid(emailInput, "Enter a valid email address.");
+      if (password.value.length < 6) return invalid(password, "Use at least 6 characters for your password.");
+      let dob;
       try {
-        const fullName = document.getElementById("fullName").value.trim();
-        const email = document.getElementById("email").value.trim().toLowerCase();
-        const dob = normalizeDobInput(document.getElementById("dob").value);
-        const schoolAttended = document.getElementById("schoolAttended").value.trim();
+        dob = normalizeDobInput(dobInput.value);
+        if (!dob) throw new Error("Choose your date of birth.");
+      } catch (error) {
+        return invalid(dobInput, error.message || "Choose a valid date of birth.");
+      }
+      if (!schoolInput.value.trim()) return invalid(schoolInput, "Enter your high school's name.");
 
-        if (!fullName || !email || !password.value) {
-          throw new Error("Please fill all required fields");
-        }
+      signupInFlight = true;
+      setSignupLoading(true);
 
-        await api.registerUser({
+      let redirecting = false;
+      try {
+        const fullName = fullNameInput.value.trim();
+        const email = emailInput.value.trim().toLowerCase();
+        const schoolAttended = schoolInput.value.trim();
+        const user = await api.registerUser({
           fullName,
           email,
           password: password.value,
@@ -322,17 +177,31 @@
           schoolName: schoolAttended
         });
 
-        setMessage("Account created successfully. Redirecting...", "success");
+        let confirmationRequired = Boolean(user?.verificationRequired || user?.emailConfirmationRequired);
+        if (user?.source === "supabase" && !confirmationRequired) {
+          confirmationRequired = true;
+          try { confirmationRequired = !(await api.getSupabaseSession?.()); } catch (_) {}
+        }
+        if (confirmationRequired) {
+          form.hidden = true;
+          document.getElementById("signupSuccess").hidden = false;
+          document.getElementById("signupSuccessTitle").focus();
+          return;
+        }
+        setMessage("Account created. Opening Kagie...", "success");
 
+        redirecting = true;
         setTimeout(() => {
-          window.location.href = "login.html";
+          window.location.href = signupNextRoute || "home.html";
         }, 1000);
       } catch (err) {
-        console.error("Signup error:", err);
+        console.warn("Signup failed.");
         setMessage(formatSignupMessage(err.message, "Signup failed."), "error");
-        signupInFlight = false;
-        signupBtn.disabled = false;
-        signupBtn.textContent = "SIGN UP";
+      } finally {
+        if (!redirecting) {
+          signupInFlight = false;
+          setSignupLoading(false);
+        }
       }
     });
   </script>

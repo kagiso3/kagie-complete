@@ -37,14 +37,14 @@
 
     const style = document.createElement("style");
     style.textContent = [
-      ".kagie-install-bar{position:fixed;left:12px;right:12px;bottom:16px;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:20px;background:linear-gradient(135deg,#cf111d,#ef4444);color:#fff;box-shadow:0 18px 42px rgba(207,17,29,.28)}",
+      ".kagie-install-bar{position:fixed;left:12px;right:12px;bottom:16px;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:20px;background:linear-gradient(135deg,#fd0505,#fd0505);color:#fff;box-shadow:0 18px 42px rgba(253, 5, 5,.28)}",
       ".kagie-install-copy{display:flex;flex-direction:column;gap:4px;min-width:0}",
       ".kagie-install-copy strong{font:800 15px/1.2 Inter,Arial,sans-serif}",
       ".kagie-install-copy span{font:500 12px/1.35 Inter,Arial,sans-serif;opacity:.94}",
       ".kagie-install-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}",
       ".kagie-install-btn{border:none;border-radius:999px;padding:10px 14px;font:700 13px/1 Inter,Arial,sans-serif;cursor:pointer}",
       ".kagie-install-dismiss{background:rgba(255,255,255,.18);color:#fff}",
-      ".kagie-install-main{background:#fff;color:#cf111d}",
+      ".kagie-install-main{background:#fff;color:#fd0505}",
       ".kagie-install-hide{display:none !important}",
       "@media (max-width:640px){.kagie-install-bar{left:10px;right:10px;bottom:12px;padding:12px 14px;align-items:flex-start;flex-direction:column}.kagie-install-actions{width:100%}.kagie-install-btn{flex:1}}",
     ].join("");

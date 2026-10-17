@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Kagie | Prospectus Library</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/images/logos/app-icon.png" />
+  <link rel="stylesheet" href="css/bottom-nav.css?v=20261014-palette-blue" />
+  <link rel="stylesheet" href="css/prospectus-page.css?v=20261014-palette-blue" />
+  <script defer src="js/data.js?v=20261014-palette-blue"></script>
+  <script defer src="js/prospectus-catalog.js?v=20261014-palette-blue"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.1"></script>
+  <script defer src="js/backend.js?v=20261015-backend-audit"></script>
+  <script defer src="js/supabase-config.js?v=20261014-palette-blue"></script>
+  <script defer src="js/bottom-nav.js?v=20261014-palette-blue"></script>
+  <script defer src="js/prospectus-model.js?v=20261014-palette-blue"></script>
+  <script defer src="js/prospectus-page.js?v=20261014-palette-blue"></script>
+  <script defer src="js/pwa-init.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+</head>
+<body class="prospectus-page" data-kagie-page="prospectus">
+  <main class="pr-screen" id="prospectusScreen">
+    <header class="pr-header" id="prospectusHeader"></header>
+    <div id="prospectusContent" aria-busy="true"><p class="pr-empty" role="status">Loading the prospectus library…</p></div>
+    <noscript><p>Please enable JavaScript to browse prospectuses.</p><a href="home.html">Back to Home</a></noscript>
+  </main>
+  <p class="pr-toast" id="prospectusToast" role="status" aria-live="polite"></p>
+</body>
+</html>

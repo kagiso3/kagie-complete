@@ -8,6 +8,7 @@
 
   const state = {
     content: null,
+    articles: [],
     papers: [],
     results: [],
     selectedIndex: 0
@@ -56,9 +57,38 @@
     const strip = document.querySelector(".strip");
     const notice = document.createElement("div");
     notice.id = "careerAdminNotice";
-    notice.style.cssText = "max-width:960px;margin:14px auto 0;padding:14px 18px;border:1px solid rgba(214,40,40,.18);border-radius:16px;background:#fff7f7;color:#10233d;font-family:'DM Sans',sans-serif;box-shadow:0 10px 24px rgba(16,35,61,.06)";
-    notice.innerHTML = `<strong style="display:block;margin-bottom:4px;color:#db0f16">${esc(title)}</strong><span>${esc(message || content.settings?.featuredTopic || "Career Hub content is available.")}</span>`;
+    notice.style.cssText = "max-width:960px;margin:14px auto 0;padding:14px 18px;border:1px solid rgba(253, 5, 5,.18);border-radius:16px;background:#fff7f7;color:#10233d;font-family:'DM Sans',sans-serif;box-shadow:0 10px 24px rgba(16,35,61,.06)";
+    notice.innerHTML = `<strong style="display:block;margin-bottom:4px;color:#fd0505">${esc(title)}</strong><span>${esc(message || content.settings?.featuredTopic || "Career Hub content is available.")}</span>`;
     if (strip?.parentNode) strip.parentNode.insertBefore(notice, strip.nextSibling);
+  }
+
+  function renderCareerArticles() {
+    const articles = Array.isArray(state.articles) ? state.articles : [];
+    if (!articles.length || document.getElementById("careerPublishedArticles")) return;
+    const anchor = document.getElementById("careerAdminNotice") || document.querySelector(".strip");
+    if (!anchor?.parentNode) return;
+    const section = document.createElement("section");
+    section.id = "careerPublishedArticles";
+    section.style.cssText = "max-width:960px;margin:16px auto;padding:18px;border:1px solid rgba(16,35,61,.12);border-radius:18px;background:#fff;font-family:'DM Sans',sans-serif;box-shadow:0 12px 28px rgba(16,35,61,.06)";
+    section.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:12px">
+        <div>
+          <strong style="display:block;color:#10233d;font-size:18px">Career guidance articles</strong>
+          <span style="display:block;color:#516072;font-size:13px;margin-top:4px">Published guidance from the Kagie team.</span>
+        </div>
+        <span style="font-size:12px;font-weight:700;color:#fd0505">${esc(`${articles.length} published`)}</span>
+      </div>
+      <div style="display:grid;gap:10px">
+        ${articles.slice(0, 6).map((article) => `
+          <article style="padding:14px;border:1px solid rgba(16,35,61,.1);border-radius:14px;background:#fafbfd">
+            <strong style="display:block;color:#10233d">${esc(article.title)}</strong>
+            <p style="margin:6px 0;color:#516072;font-size:13px;line-height:1.55">${esc(article.summary || article.body || "Open this guidance note inside Career Hub.")}</p>
+            ${article.fileUrl ? `<a href="${esc(article.fileUrl)}" target="_blank" rel="noopener" style="font-size:13px;font-weight:700;color:#fd0505">Open resource</a>` : ""}
+          </article>
+        `).join("")}
+      </div>
+    `;
+    anchor.parentNode.insertBefore(section, anchor.nextSibling);
   }
 
   function filterRecords() {
@@ -216,6 +246,10 @@
         ? await api.getAdminContentAsync("career_hub").catch(() => null)
         : null;
       applyAdminContent();
+      state.articles = api.getCareerArticlesAsync
+        ? await api.getCareerArticlesAsync().catch(() => [])
+        : [];
+      renderCareerArticles();
       const records = api.getQuestionPapersAsync
         ? await api.getQuestionPapersAsync()
         : [];

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kagie | Language</title>
+  <script src="js/backend.js?v=20261015-backend-audit"></script>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/information-pages.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
+</head>
+<body class="kagie-information-page" data-kagie-page="language">
+  <main class="card">
+    <h1>Language Preference</h1>
+    <p>Choose the language label used for your Kagie experience in this browser.</p>
+
+    <label for="language">Preferred Language</label>
+    <select id="language">
+      <option value="English">English</option>
+      <option value="isiXhosa">isiXhosa</option>
+      <option value="isiZulu">isiZulu</option>
+      <option value="Sesotho">Sesotho</option>
+      <option value="Sepulana">Sepulana</option>
+      <option value="Tshivenda">Tshivenda</option>
+      <option value="Xitsonga">Xitsonga</option>
+      <option value="Sepedi">Sepedi</option>
+      <option value="Setswana">Setswana</option>
+      <option value="isiNdebele">isiNdebele</option>
+      <option value="Siswati">Siswati</option>
+      <option value="Afrikaans">Afrikaans</option>
+    </select>
+
+    <div class="actions">
+      <button type="button" id="saveBtn">Save Preference</button>
+      <a href="profile.html">Back to Profile</a>
+    </div>
+
+    <div class="message" id="message" aria-live="polite"></div>
+  </main>
+
+  <script>
+    const user = window.KagieAPI?.currentUser?.();
+    const storageKey = user ? `kagie_language_${user.id}` : "kagie_language";
+    const select = document.getElementById("language");
+    const message = document.getElementById("message");
+
+    select.value = localStorage.getItem(storageKey) || "English";
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      localStorage.setItem(storageKey, select.value);
+      message.textContent = "Language preference saved.";
+    });
+  </script>
+</body>
+</html>

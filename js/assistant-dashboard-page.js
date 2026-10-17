@@ -86,10 +86,118 @@
   }
 
   function shortApplicationId(app) {
-    const candidate = firstFilled(app?.applicationNumber, app?.applicationId, app?.referenceNumber, app?.code, app?.id);
+    const candidate = firstFilled(app?.applicationNumber, app?.applicationId, app?.referenceNumber, app?.reference, app?.applicationEngine?.reference, app?.lateApplication?.reference, app?.code, app?.id);
     if (!candidate) return "APP-UNSET";
     if (/^APP-/i.test(candidate)) return candidate;
     return `APP-${String(candidate).replace(/[^a-z0-9]/gi, "").slice(0, 8).toUpperCase() || "UNSET"}`;
+  }
+
+  function normalizeApplicationTypeKey(value) {
+    const type = String(value || "").trim().toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
+    if (!type) return "";
+    if (["late", "late_application", "late_applications"].includes(type)) return "late";
+    if (["bridging", "bridge", "bridging_programme", "bridging_programmes"].includes(type)) return "bridging";
+    if (["postgraduate", "post_graduate", "post_graduate_application", "post_graduate_applications", "post_grad", "postgrad"].includes(type)) return "postgraduate";
+    if (["undergraduate", "undergrad", "under_graduate", "undergraduate_application", "undergraduate_applications", "under_graduate_application", "under_graduate_applications"].includes(type)) return "undergraduate";
+    if (type.includes("transfer")) return "transfer";
+    return type;
+  }
+  function applicationTypeLabel(app) {
+    const type = normalizeApplicationTypeKey(app?.applicationType || app?.forms?.applicationType?.type || app?.applicationTypeLabel || app?.forms?.applicationType?.label || app?.applicationEngine?.type || app?.lateApplication?.type) || "undergraduate";
+    const labels = {
+      undergraduate: "Undergraduate Applications",
+      late: "Late Applications",
+      postgraduate: "Postgraduate Applications",
+      transfer: "Transfer Applications",
+      bridging: "Bridging Programmes"
+    };
+    return labels[type] || firstFilled(app?.applicationTypeLabel, app?.forms?.applicationType?.label, "Undergraduate Applications");
+  }
+
+  function isPlainObject(value) {
+    return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  }
+
+  function asRecord(value) {
+    return isPlainObject(value) ? value : {};
+  }
+
+  function hasVisibleValue(value) {
+    if (Array.isArray(value)) return value.some(hasVisibleValue);
+    if (isPlainObject(value)) return Object.values(value).some(hasVisibleValue);
+    return value === false || value === 0 || Boolean(String(value ?? "").trim());
+  }
+
+  function mergeFilledRecords(...sources) {
+    const output = {};
+    sources.forEach((sourceArg) => {
+      Object.entries(asRecord(sourceArg)).forEach(([key, value]) => {
+        if (hasVisibleValue(value) || !Object.prototype.hasOwnProperty.call(output, key)) {
+          output[key] = value;
+        }
+      });
+    });
+    return output;
+  }
+
+  function firstNonEmptyArray(...values) {
+    return values.find((value) => Array.isArray(value) && value.length) || [];
+  }
+
+  function mergedApplicationForms(appArg) {
+    const app = appArg || {};
+    const payloadForms = asRecord(app.applicationPayload?.forms);
+    const forms = asRecord(app.forms);
+    const engineData = asRecord(app.applicationEngine?.formData);
+    const lateData = asRecord(app.lateApplication?.data || app.lateApplication);
+    const latePersonal = asRecord(lateData.personal || engineData.personal);
+    const lateDetails = asRecord(lateData.details || engineData.details);
+    const institutions = firstNonEmptyArray(
+      asArray(forms.institutions),
+      asArray(payloadForms.institutions),
+      asArray(app.applicationPayload?.institutions),
+      asArray(engineData.institutions),
+      asArray(lateData.institutions),
+      asArray(app.institutions),
+      asArray(app.items)
+    );
+    return {
+      ...payloadForms,
+      ...forms,
+      applicationType: mergeFilledRecords(payloadForms.applicationType, forms.applicationType),
+      packageSelection: mergeFilledRecords(payloadForms.packageSelection, forms.packageSelection),
+      dynamicApplications: {
+        ...asRecord(payloadForms.dynamicApplications),
+        ...asRecord(forms.dynamicApplications)
+      },
+      learner: mergeFilledRecords(
+        payloadForms.learner,
+        forms.learner,
+        engineData.learner,
+        latePersonal,
+        { cellphone: latePersonal.phone || lateDetails.phone, address: latePersonal.address || lateDetails.address }
+      ),
+      parent: mergeFilledRecords(payloadForms.parent, forms.parent, engineData.parent),
+      school: mergeFilledRecords(
+        payloadForms.school,
+        forms.school,
+        engineData.school,
+        {
+          schoolName: latePersonal.schoolName || lateDetails.schoolName,
+          schoolProvince: latePersonal.province || lateDetails.province,
+          completionYear: latePersonal.examYear || lateDetails.examYear,
+          educationLevel: latePersonal.educationLevel || lateDetails.educationLevel
+        }
+      ),
+      current: mergeFilledRecords(payloadForms.current, forms.current, engineData),
+      specialisedApplication: mergeFilledRecords(payloadForms.specialisedApplication, forms.specialisedApplication),
+      institutions
+    };
+  }
+
+  function extractLateApplicationData(app) {
+    const engineData = app?.applicationEngine?.type === "late" ? app.applicationEngine.formData : null;
+    return engineData || app?.forms?.dynamicApplications?.late || app?.lateApplication?.data || null;
   }
 
   function normalizeCategory(status) {
@@ -139,6 +247,22 @@
       const name = firstFilled(item?.institutionName, item?.name, item?.institution);
       if (name) names.push(name);
     });
+    [
+      app?.institutionChoice1,
+      app?.institutionChoice2,
+      app?.forms?.current?.institution,
+      app?.forms?.current?.institutionName,
+      app?.forms?.current?.targetInstitution,
+      app?.forms?.specialisedApplication?.values?.institution,
+      app?.forms?.specialisedApplication?.values?.institutionName,
+      app?.forms?.specialisedApplication?.values?.targetInstitution,
+      app?.applicationEngine?.formData?.institution,
+      app?.applicationEngine?.formData?.institutionName,
+      app?.applicationEngine?.formData?.targetInstitution
+    ].forEach((entry) => {
+      const value = String(entry || "").trim();
+      if (value) names.push(value);
+    });
     return [...new Set(names)];
   }
 
@@ -146,45 +270,79 @@
     const items = asArray(app?.items || app?.institutions);
     const names = [];
     items.forEach((item) => {
-      [item?.choice1, item?.choice2, item?.choice3, item?.courseName, item?.name].forEach((entry) => {
+      [item?.choice1, item?.choice2, item?.choice3, item?.courseName, item?.course, item?.programme, item?.program, item?.name].forEach((entry) => {
         const value = String(entry || "").trim();
         if (value) names.push(value);
       });
+    });
+    [
+      app?.programmeChoice,
+      app?.programme,
+      app?.forms?.current?.course,
+      app?.forms?.current?.courseName,
+      app?.forms?.current?.programme,
+      app?.forms?.specialisedApplication?.values?.course,
+      app?.forms?.specialisedApplication?.values?.courseName,
+      app?.forms?.specialisedApplication?.values?.programme,
+      app?.applicationEngine?.formData?.course,
+      app?.applicationEngine?.formData?.courseName,
+      app?.applicationEngine?.formData?.programme
+    ].forEach((entry) => {
+      const value = String(entry || "").trim();
+      if (value) names.push(value);
     });
     return [...new Set(names)];
   }
 
   function buildApplicationView(app) {
-    const learnerForm = app?.forms?.learner || {};
-    const schoolForm = app?.forms?.school || {};
+    const forms = mergedApplicationForms(app);
+    const viewApp = { ...app, forms, items: firstNonEmptyArray(asArray(app?.items), asArray(app?.institutions), asArray(forms.institutions)) };
+    const learnerForm = forms.learner || {};
+    const schoolForm = forms.school || {};
+    const lateData = extractLateApplicationData(viewApp) || {};
+    const latePersonal = lateData.personal || {};
+    const lateDetails = lateData.details || {};
     const profile = findUserByRef(app?.userId) || {};
     const category = normalizeCategory(app?.status);
+    const typeLabel = applicationTypeLabel(viewApp);
+    const reference = firstFilled(app?.reference, app?.referenceNumber, app?.applicationEngine?.reference, app?.lateApplication?.reference, lateData.reference);
+    const extractedInstitutions = extractInstitutionNames(viewApp);
+    const extractedCourses = extractCourseNames(viewApp);
     const institutionNames = [...new Set(
-      extractInstitutionNames(app)
+      extractedInstitutions
+        .concat(asTextList(lateDetails.institution))
         .concat(asTextList(firstFilled(profile?.selectedInstitution, profile?.selected_institution)))
         .filter(Boolean)
     )];
     const courseNames = [...new Set(
-      extractCourseNames(app)
+      extractedCourses
+        .concat(extractedCourses.length ? [] : asTextList(lateDetails.course))
         .concat(asTextList(firstFilled(profile?.selectedCourses, profile?.selected_courses)))
         .filter(Boolean)
     )];
     const displayName = firstFilled(
       learnerForm?.fullNames,
       learnerForm?.fullName,
+      latePersonal?.fullName,
       profile?.fullName,
       profile?.name,
       "Learner"
     );
-    const email = firstFilled(learnerForm?.email, profile?.email);
-    const phone = firstFilled(learnerForm?.cellphone, learnerForm?.phone, profile?.phone, profile?.cellphone);
-    const idNumber = firstFilled(learnerForm?.idNumber, profile?.idNumber);
-    const surname = firstFilled(learnerForm?.surname, profile?.surname);
-    const province = firstFilled(learnerForm?.province, profile?.province, profile?.location, schoolForm?.schoolProvince);
-    const schoolName = firstFilled(schoolForm?.schoolName, schoolForm?.confirmName, profile?.schoolName);
-    const grade = firstFilled(schoolForm?.grade, schoolForm?.currentGrade, schoolForm?.completionYear, profile?.grade, profile?.completionYear);
+    const email = firstFilled(learnerForm?.email, latePersonal?.email, lateDetails?.email, profile?.email);
+    const phone = firstFilled(learnerForm?.cellphone, learnerForm?.phone, latePersonal?.phone, lateDetails?.phone, profile?.phone, profile?.cellphone);
+    const idNumber = firstFilled(learnerForm?.idNumber, latePersonal?.idNumber, profile?.idNumber);
+    const surname = firstFilled(learnerForm?.surname, latePersonal?.surname, profile?.surname);
+    const province = firstFilled(learnerForm?.province, latePersonal?.province, lateDetails?.province, profile?.province, profile?.location, schoolForm?.schoolProvince);
+    const schoolName = firstFilled(schoolForm?.schoolName, schoolForm?.confirmName, latePersonal?.schoolName, profile?.schoolName);
+    const grade = firstFilled(schoolForm?.grade, schoolForm?.currentGrade, schoolForm?.completionYear, latePersonal?.examYear, profile?.grade, profile?.completionYear);
     const institution = institutionNames[0] || firstFilled(app?.institutionName, "No institution selected");
     const applicationId = shortApplicationId(app);
+    const selectedPackage = app?.selectedPackage || app?.applicationPayload?.selectedPackage || app?.package || forms.packageSelection?.package || {};
+    const selectedAddons = asArray(app?.selectedAddons || app?.applicationPayload?.selectedAddons || forms.packageSelection?.addons);
+    const packageName = firstFilled(selectedPackage?.name, selectedPackage?.packName, "No package selected");
+    const packagePrice = Number(app?.packagePrice ?? selectedPackage?.price ?? selectedPackage?.packPrice ?? 0);
+    const addonsTotal = Number(app?.addonsTotal || 0);
+    const finalTotal = Number(app?.finalTotal || packagePrice + addonsTotal);
     return {
       raw: app,
       id: app?.id,
@@ -194,14 +352,23 @@
       email,
       phone,
       idNumber,
-      dob: firstFilled(learnerForm?.dateOfBirth, learnerForm?.dob, profile?.dateOfBirth),
+      dob: firstFilled(learnerForm?.dateOfBirth, learnerForm?.dob, latePersonal?.dob, profile?.dateOfBirth),
       province,
       schoolName,
       grade,
       applicationId,
+      reference,
       institution,
       institutionNames,
       courseNames,
+      applicationTypeLabel: typeLabel,
+      packageName,
+      packagePrice,
+      selectedAddons,
+      addonsTotal,
+      finalTotal,
+      paymentStatus: firstFilled(app?.paymentStatus, "Unpaid"),
+      applicationReference: firstFilled(app?.applicationReference, reference),
       status: firstFilled(app?.status, "Submitted"),
       category,
       categoryLabel: categoryLabel(category),
@@ -220,10 +387,40 @@
         grade,
         institution,
         applicationId,
+        reference,
+        typeLabel,
+        packageName,
+        selectedAddons.map((addon) => firstFilled(addon?.name, addon?.code)).join(" "),
         firstFilled(app?.status, ""),
         courseNames.join(" ")
       ].join(" ").toLowerCase()
     };
+  }
+
+  function buildAssignedUsersFromApplications(applications) {
+    const rows = [];
+    const seen = new Set();
+
+    asArray(applications).forEach((app) => {
+      const forms = mergedApplicationForms(app);
+      const learner = forms.learner || {};
+      const local = window.KagieAPI?.getUserById?.(app?.userId) || window.KagieAPI?.getUserBySupabaseId?.(app?.userId) || {};
+      const id = firstFilled(local?.id, app?.userId);
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+
+      rows.push({
+        ...local,
+        id,
+        supabaseUserId: firstFilled(local?.supabaseUserId),
+        fullName: firstFilled(local?.fullName, learner?.fullNames, learner?.fullName, app?.applicant, "Learner"),
+        email: firstFilled(local?.email, learner?.email),
+        phone: firstFilled(local?.phone, learner?.cellphone, learner?.phone),
+        cellphone: firstFilled(local?.cellphone, learner?.cellphone, learner?.phone)
+      });
+    });
+
+    return rows;
   }
 
   function getVisibleApplications() {
@@ -362,6 +559,8 @@
             <div>
               <div class="queue-user-name">${esc(app.name)}</div>
               <div class="queue-user-meta">${esc(app.applicationId)}</div>
+              <div class="queue-user-meta">${esc(app.applicationTypeLabel)}</div>
+              <div class="queue-user-meta">${esc(app.packageName)} | ${esc(`R${Number(app.finalTotal || 0).toLocaleString("en-ZA")}`)}</div>
               <div class="queue-user-meta">${esc(app.email || "Email pending")}</div>
             </div>
           </div>
@@ -377,6 +576,7 @@
         </div>
         <div class="queue-cell" data-label="Status">
           <span class="status-pill ${esc(app.category === "pending" ? "pending" : app.category === "completed" ? "completed" : "in-progress")}">${esc(app.categoryLabel)}</span>
+          <div class="queue-user-meta">${esc(app.paymentStatus || "Unpaid")}</div>
         </div>
         <div class="queue-cell" data-label="Progress">
           <div class="progress-inline">
@@ -460,6 +660,13 @@
         <div class="detail-item"><span class="detail-label">School</span><span class="detail-value">${esc(app.schoolName || "Not provided")}</span></div>
         <div class="detail-item"><span class="detail-label">Grade / completion year</span><span class="detail-value">${esc(app.grade || "Not provided")}</span></div>
         <div class="detail-item"><span class="detail-label">Province</span><span class="detail-value">${esc(app.province || "Not provided")}</span></div>
+        <div class="detail-item"><span class="detail-label">Application type</span><span class="detail-value">${esc(app.applicationTypeLabel || "Undergraduate Applications")}</span></div>
+        <div class="detail-item"><span class="detail-label">Selected package</span><span class="detail-value">${esc(app.packageName)}</span></div>
+        <div class="detail-item"><span class="detail-label">Package price</span><span class="detail-value">${esc(`R${Number(app.packagePrice || 0).toLocaleString("en-ZA")}`)}</span></div>
+        <div class="detail-item"><span class="detail-label">Selected add-ons</span><span class="detail-value">${esc(app.selectedAddons.length ? app.selectedAddons.map((addon) => firstFilled(addon?.name, addon?.code)).join(", ") : "None")}</span></div>
+        <div class="detail-item"><span class="detail-label">Final total</span><span class="detail-value">${esc(`R${Number(app.finalTotal || 0).toLocaleString("en-ZA")}`)}</span></div>
+        <div class="detail-item"><span class="detail-label">Payment status</span><span class="detail-value">${esc(app.paymentStatus)}</span></div>
+        <div class="detail-item"><span class="detail-label">Reference</span><span class="detail-value">${esc(app.reference || app.applicationId || "Not provided")}</span></div>
         <div class="detail-item"><span class="detail-label">Application status</span><span class="detail-value">${esc(app.status || "Pending")}</span></div>
         <div class="detail-item"><span class="detail-label">Submitted / created</span><span class="detail-value">${esc(formatDate(app.createdAt))}</span></div>
         <div class="detail-item"><span class="detail-label">Institution choices</span><div class="detail-value">${institutionsMarkup}</div></div>
@@ -664,14 +871,11 @@
     renderDashboardLoadingState();
     bootScreen?.update?.("Kagie", "Loading your dashboard...");
 
-    const coreTask = Promise.all([
-      api.getApplicationsByAssistantAsync(state.user.id)
-        .then((items) => asArray(items))
-        .catch((error) => {
-          throw new Error(error?.message || "Failed to load your assigned learners.");
-        }),
-      api.getAllUsersAsync().then((items) => asArray(items)).catch(() => [])
-    ]);
+    const coreTask = api.getApplicationsByAssistantAsync(state.user.id)
+      .then((items) => asArray(items))
+      .catch((error) => {
+        throw new Error(error?.message || "Failed to load your assigned learners.");
+      });
     const noticesTask = api.getNotificationsAsync(state.user.id)
       .then((items) => asArray(items))
       .catch((error) => {
@@ -684,9 +888,9 @@
       });
 
     try {
-      const [applications, users] = await coreTask;
+      const applications = await coreTask;
       state.applications = asArray(applications).sort((left, right) => new Date(right?.updatedAt || right?.createdAt || 0) - new Date(left?.updatedAt || left?.createdAt || 0));
-      state.users = asArray(users);
+      state.users = buildAssignedUsersFromApplications(state.applications);
       renderStats();
       renderQueue();
       renderInspector();
@@ -735,12 +939,13 @@
     const rows = getVisibleApplications();
     if (!rows.length) return;
     const csv = [
-      ["Learner", "Email", "Phone", "Application ID", "Institution", "Courses", "Status", "Progress"].join(","),
+      ["Learner", "Email", "Phone", "Application ID", "Application Type", "Institution", "Courses", "Status", "Progress"].join(","),
       ...rows.map((item) => [
         item.name,
         item.email,
         item.phone,
         item.applicationId,
+        item.applicationTypeLabel,
         item.institution,
         item.courseNames.join(" | "),
         item.categoryLabel,
@@ -880,8 +1085,28 @@
             task: async () => {
               const nextStatus = $("assistantStatusSelect").value;
               const noteText = $("assistantStatusNote").value.trim();
+              const previousStatus = selected.status || "Pending";
               setStatusMessage("Saving update...", "info");
               await api.updateApplicationAsync(selected.id, { status: nextStatus });
+              if (nextStatus !== previousStatus && (api.postApplicationUpdateAsync || api.postApplicationUpdate)) {
+                await (api.postApplicationUpdateAsync
+                  ? api.postApplicationUpdateAsync({
+                    applicationId: selected.id,
+                    title: "Application status updated",
+                    message: `Your Kagie application status changed from ${previousStatus} to ${nextStatus}.`,
+                    status: nextStatus,
+                    actionLabel: "Open dashboard",
+                    actionUrl: "dashboard.html"
+                  })
+                  : Promise.resolve(api.postApplicationUpdate({
+                    applicationId: selected.id,
+                    title: "Application status updated",
+                    message: `Your Kagie application status changed from ${previousStatus} to ${nextStatus}.`,
+                    status: nextStatus,
+                    actionLabel: "Open dashboard",
+                    actionUrl: "dashboard.html"
+                  })));
+              }
               if (noteText) await api.addApplicationNoteAsync(selected.id, noteText);
               setStatusMessage("Application status updated.", "ok");
               await refreshDashboard(api);
@@ -894,8 +1119,28 @@
         event.preventDefault();
         const nextStatus = $("assistantStatusSelect").value;
         const noteText = $("assistantStatusNote").value.trim();
+        const previousStatus = selected.status || "Pending";
         setStatusMessage("Saving update...", "info");
         await api.updateApplicationAsync(selected.id, { status: nextStatus });
+        if (nextStatus !== previousStatus && (api.postApplicationUpdateAsync || api.postApplicationUpdate)) {
+          await (api.postApplicationUpdateAsync
+            ? api.postApplicationUpdateAsync({
+              applicationId: selected.id,
+              title: "Application status updated",
+              message: `Your Kagie application status changed from ${previousStatus} to ${nextStatus}.`,
+              status: nextStatus,
+              actionLabel: "Open dashboard",
+              actionUrl: "dashboard.html"
+            })
+            : Promise.resolve(api.postApplicationUpdate({
+              applicationId: selected.id,
+              title: "Application status updated",
+              message: `Your Kagie application status changed from ${previousStatus} to ${nextStatus}.`,
+              status: nextStatus,
+              actionLabel: "Open dashboard",
+              actionUrl: "dashboard.html"
+            })));
+        }
         if (noteText) await api.addApplicationNoteAsync(selected.id, noteText);
         setStatusMessage("Application status updated.", "ok");
         await refreshDashboard(api);

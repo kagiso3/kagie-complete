@@ -5,8 +5,8 @@ This file is the handoff for taking Kagie Mobile to Google Play as a native Andr
 ## What is already prepared
 
 - Android package name: `com.kagie.app`
-- Version: `1.2.0`
-- Version code: `6`
+- Version: `1.2.1`
+- Version code: `8`
 - Target SDK: Android API `36` (meets the Android 15 / API 35+ Play requirement)
 - EAS config: `kagie-mobile/eas.json`
 - App icon: `kagie-mobile/assets/icon.png`
@@ -18,7 +18,7 @@ This file is the handoff for taking Kagie Mobile to Google Play as a native Andr
 
 ## 1. Make sure the live Kagie API is ready
 
-The Android app is native and now depends on the Kagie API instead of loading the website inside a WebView.
+The Android app is native and depends on the Kagie API.
 
 Use:
 
@@ -27,10 +27,10 @@ Use:
 Production should point to:
 
 ```env
-EXPO_PUBLIC_KAGIE_API_BASE_URL=https://your-vercel-production-domain.vercel.app/v1
+EXPO_PUBLIC_KAGIE_API_BASE_URL=https://kagie.app/v1
 ```
 
-Play Store builds should point to the live Kagie API on Vercel, preferably a custom domain or your production Vercel deployment URL ending in `/v1`. Do not point Play Store builds at retired Kagie domains such as `kagie.co.za`.
+Play Store builds should point to the live Kagie API on Vercel, preferably `https://kagie.app/v1` after DNS is fixed and the Vercel domain is assigned.
 
 ## 2. Install Expo EAS CLI
 
@@ -62,11 +62,11 @@ Guarded Play Store build option:
 
 ```powershell
 $env:JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"
-$env:EXPO_PUBLIC_KAGIE_API_BASE_URL="https://your-vercel-production-domain.vercel.app/v1"
+$env:EXPO_PUBLIC_KAGIE_API_BASE_URL="https://kagie.app/v1"
 npm run build:android:play-aab
 ```
 
-The guarded command refuses to build if the API URL is missing, non-HTTPS, local/emulator/LAN, `kagie.co.za`, or not ending in `/v1`.
+The guarded command refuses to build if the API URL is missing, non-HTTPS, local/emulator/LAN, a placeholder domain, or not ending in `/v1`.
 
 ## 4. Create the Play Console app
 

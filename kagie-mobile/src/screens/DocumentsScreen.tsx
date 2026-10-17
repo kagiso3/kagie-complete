@@ -2,7 +2,7 @@ import type { DocumentRecord } from "@kagie/shared";
 import * as DocumentPicker from "expo-document-picker";
 import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Button, Card, Chip, Notice, SectionTitle, ScreenScroll } from "../components/ui";
+import { Button, Card, Chip, HeroPanel, Notice, SectionTitle, ScreenScroll } from "../components/ui";
 import { useKagieData } from "../data/KagieDataProvider";
 import { colors } from "../theme";
 
@@ -79,10 +79,12 @@ export function DocumentsScreen() {
 
   return (
     <ScreenScroll>
-      <View style={styles.hero}>
-        <Text style={styles.heroTitle}>Documents</Text>
-        <Text style={styles.heroText}>Upload the files Kagie needs for your applications without storing document contents in the app.</Text>
-      </View>
+      <HeroPanel
+        eyebrow="Document tracker"
+        title="Keep your files ready"
+        copy="Upload application documents for Kagie review and see what has already reached the support team."
+        tone="navy"
+      />
 
       {notice ? <Notice tone={notice.tone} message={notice.text} /> : null}
 
@@ -95,7 +97,9 @@ export function DocumentsScreen() {
           ))}
         </View>
         <Button
-          label={syncing ? "Uploading..." : "Choose and upload file"}
+          label="Choose and upload file"
+          loadingLabel="Uploading..."
+          loading={syncing}
           onPress={pickAndUploadDocument}
           disabled={syncing}
         />
@@ -130,21 +134,6 @@ export function DocumentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    backgroundColor: "#102a56",
-    borderRadius: 28,
-    padding: 22,
-    gap: 8
-  },
-  heroTitle: {
-    color: "#ffffff",
-    fontSize: 26,
-    fontWeight: "900"
-  },
-  heroText: {
-    color: "rgba(255,255,255,0.88)",
-    lineHeight: 20
-  },
   smallLabel: {
     fontSize: 12,
     fontWeight: "800",
@@ -171,7 +160,7 @@ const styles = StyleSheet.create({
   documentRow: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 8,
     flexDirection: "row",

@@ -4,7 +4,7 @@
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
   const PROVINCES = ["Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo", "Mpumalanga", "North West", "Northern Cape", "Western Cape"];
-  const TYPES = ["University", "TVET", "College", "Private Institution"];
+  const TYPES = ["University", "TVET college", "Private college", "College", "Other"];
 
   const state = {
     api: null,
@@ -16,6 +16,9 @@
   const actionLocks = new Set();
 
   async function runButtonAction(button, key, busyText, task) {
+    if (window.KagieUX?.withButtonLock) {
+      return window.KagieUX.withButtonLock(button, key, busyText, task);
+    }
     const lockKey = String(key || button?.dataset?.action || button?.id || "institution-action");
     if (actionLocks.has(lockKey)) return;
     actionLocks.add(lockKey);
@@ -100,6 +103,13 @@
     return "new";
   }
 
+  function normalizeInstitutionTypeForForm(type) {
+    const value = String(type || "").trim();
+    if (/^tvet$/i.test(value)) return "TVET college";
+    if (/private institution/i.test(value)) return "Private college";
+    return TYPES.includes(value) ? value : value || "University";
+  }
+
   function filteredInstitutions() {
     const query = String($("institutionsSearch")?.value || "").trim().toLowerCase();
     const type = String($("institutionsTypeFilter")?.value || "").trim();
@@ -116,7 +126,10 @@
           institution.shortName,
           institution.type,
           institution.province,
+          institution.city,
           institution.website,
+          institution.contactEmail,
+          institution.description,
           institution.notes,
           lifecycleLabel(displayStatus)
         ].join(" ").toLowerCase();
@@ -128,9 +141,9 @@
 
   function renderStats() {
     const visible = state.institutions.filter((institution) => institution.isActive !== false);
-    $("institutionsTotalStat").textContent = String(visible.length);
+    $("institutionsTotalStat").textContent = String(state.institutions.length);
     $("institutionsOpenStat").textContent = String(visible.filter((institution) => lifecycleStatus(institution) === "open").length);
-    $("institutionsClosingStat").textContent = String(visible.filter((institution) => lifecycleStatus(institution) === "closing_soon").length);
+    $("institutionsClosingStat").textContent = String(visible.filter((institution) => lifecycleStatus(institution) === "closed").length);
     $("institutionsDisabledStat").textContent = String(state.institutions.filter((institution) => institution.isActive === false).length);
   }
 
@@ -163,16 +176,17 @@
           <div class="queue-cell">
             <div class="institution-meta">
               <strong>${esc(institution.name)}</strong>
-              <span class="queue-muted">${esc(institution.shortName || institution.website || "No website yet")}</span>
+              <span class="queue-muted">${esc([institution.shortName, institution.city, institution.website].filter(Boolean).join(" - ") || "No website yet")}</span>
             </div>
           </div>
           <div class="queue-cell"><div class="queue-user-name">${esc(institution.type || "Institution")}</div></div>
-          <div class="queue-cell"><div class="queue-user-name">${esc(institution.province || "No province")}</div></div>
+          <div class="queue-cell"><div class="queue-user-name">${esc([institution.province, institution.city].filter(Boolean).join(" - ") || "No province")}</div></div>
           <div class="queue-cell"><span class="status-pill ${statusClass(status)}">${esc(lifecycleLabel(status))}</span></div>
           <div class="queue-cell"><span class="switch-chip ${institution.isActive === false ? "off" : ""}">${institution.isActive === false ? "Hidden" : "Visible"}</span></div>
           <div class="queue-cell"><div class="queue-user-name">${esc(institution.closingDate || "Not set")}</div></div>
           <div class="queue-cell institution-actions">
             <button class="table-action" type="button" data-action="edit" data-institution-id="${esc(institution.id)}">Edit</button>
+            <button class="table-action" type="button" data-action="status" data-institution-id="${esc(institution.id)}">${status === "closed" ? "Open" : "Close"}</button>
             <button class="table-action" type="button" data-action="toggle" data-institution-id="${esc(institution.id)}">${institution.isActive === false ? "Enable" : "Disable"}</button>
             <button class="table-action danger" type="button" data-action="delete" data-institution-id="${esc(institution.id)}">Delete</button>
           </div>
@@ -212,9 +226,13 @@
     $("institutionModalSub").textContent = "Control what learners can see during institution selection without changing the Kagie learner form layout.";
     $("institutionFormName").value = "";
     $("institutionFormShortName").value = "";
+    $("institutionFormCity").value = "";
     $("institutionFormWebsite").value = "";
+    $("institutionFormContactEmail").value = "";
+    $("institutionFormLogo").value = "";
     $("institutionFormOpeningDate").value = "";
     $("institutionFormClosingDate").value = "";
+    $("institutionFormDescription").value = "";
     $("institutionFormNotes").value = "";
     fillDefaults();
     setFormMessage("info", "Changes here update the institution choices learners see when they select universities, TVET colleges, colleges, or private institutions.");
@@ -234,12 +252,16 @@
     fillDefaults();
     $("institutionFormName").value = institution.name || "";
     $("institutionFormShortName").value = institution.shortName || "";
-    $("institutionFormType").value = institution.type || "University";
+    $("institutionFormType").value = normalizeInstitutionTypeForForm(institution.type);
     $("institutionFormProvince").value = institution.province || "Gauteng";
+    $("institutionFormCity").value = institution.city || "";
     $("institutionFormWebsite").value = institution.website || "";
+    $("institutionFormContactEmail").value = institution.contactEmail || "";
+    $("institutionFormLogo").value = institution.logo || institution.logoUrl || "";
     $("institutionFormStatus").value = institution.status || "open";
     $("institutionFormOpeningDate").value = institution.openingDate || "";
     $("institutionFormClosingDate").value = institution.closingDate || "";
+    $("institutionFormDescription").value = institution.description || "";
     $("institutionFormNotes").value = institution.notes || "";
     $("institutionFormVisible").checked = institution.isActive !== false;
     setFormMessage("info", "Save changes to control visibility, lifecycle badges, and learner-facing institution options.");
@@ -252,10 +274,14 @@
       shortName: $("institutionFormShortName")?.value || "",
       type: $("institutionFormType")?.value || "",
       province: $("institutionFormProvince")?.value || "",
+      city: $("institutionFormCity")?.value || "",
       website: $("institutionFormWebsite")?.value || "",
+      contactEmail: $("institutionFormContactEmail")?.value || "",
+      logo: $("institutionFormLogo")?.value || "",
       status: $("institutionFormStatus")?.value || "",
       openingDate: $("institutionFormOpeningDate")?.value || "",
       closingDate: $("institutionFormClosingDate")?.value || "",
+      description: $("institutionFormDescription")?.value || "",
       notes: $("institutionFormNotes")?.value || "",
       isActive: Boolean($("institutionFormVisible")?.checked)
     };
@@ -289,6 +315,18 @@
       await refresh();
     } catch (error) {
       $("institutionsMeta").textContent = error?.message || "Could not update institution visibility.";
+    }
+  }
+
+  async function toggleOpenClosed(institutionId) {
+    const institution = state.institutions.find((entry) => String(entry.id) === String(institutionId));
+    if (!institution) return;
+    const nextStatus = lifecycleStatus(institution) === "closed" ? "open" : "closed";
+    try {
+      await state.api.updateInstitutionByAdminAsync(institutionId, { status: nextStatus });
+      await refresh();
+    } catch (error) {
+      $("institutionsMeta").textContent = error?.message || "Could not update institution application status.";
     }
   }
 
@@ -338,7 +376,13 @@
     $("institutionsRefreshBtn")?.addEventListener("click", (event) => {
       runButtonAction(event.currentTarget, "institutions-refresh", "Refreshing...", refresh);
     });
-    $("institutionsSignOut")?.addEventListener("click", () => state.api.logoutReal?.() || state.api.logout?.());
+    $("institutionsSignOut")?.addEventListener("click", (event) => {
+      runButtonAction(event.currentTarget, "institutions-signout", "Signing out...", async () => {
+        if (state.api.logoutReal) await state.api.logoutReal();
+        else if (state.api.logout) await Promise.resolve(state.api.logout());
+        window.location.replace("../../login.html?switch=1");
+      });
+    });
     $("institutionSaveBtn")?.addEventListener("click", (event) => {
       runButtonAction(event.currentTarget, "institution-save", "Saving...", saveInstitution);
     });
@@ -349,6 +393,9 @@
       if (button.dataset.action === "edit") openEditModal(institutionId);
       if (button.dataset.action === "toggle") {
         runButtonAction(button, `institution-toggle:${institutionId}`, "Updating...", () => toggleVisibility(institutionId));
+      }
+      if (button.dataset.action === "status") {
+        runButtonAction(button, `institution-status:${institutionId}`, "Updating...", () => toggleOpenClosed(institutionId));
       }
       if (button.dataset.action === "delete") {
         runButtonAction(button, `institution-delete:${institutionId}`, "Deleting...", () => deleteInstitution(institutionId));
@@ -386,6 +433,7 @@
     fillDefaults();
     bindEvents();
     await refresh();
+    if (new URLSearchParams(window.location.search).get("create") === "1") openCreateModal();
   }
 
   document.addEventListener("DOMContentLoaded", () => {

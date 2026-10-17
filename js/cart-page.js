@@ -28,7 +28,59 @@
     }
     window.location.href = "login.html";
   };
-  const money = (value) => `R${Number(value || 0).toLocaleString("en-ZA")}`;
+  const money = (value) => `ZAR ${Number(value || 0).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const PACK_RECOVERY_TOMBSTONE_PREFIX = "kagie_pack_recovery_tombstone_";
+  const packRecoveryStorageKey = (userId) => {
+    const userKey = String(userId || "learner").replace(/[^a-z0-9_-]/gi, "").slice(-48) || "learner";
+    return `${PACK_RECOVERY_TOMBSTONE_PREFIX}${userKey}`;
+  };
+  const packRecoveryDescriptor = (source) => {
+    if (!source || typeof source !== "object") return null;
+    const isApplication = Boolean(source.package && String(source.type || "").trim().toLowerCase() !== "application_pack");
+    const applicationId = String(
+      source.applicationId || source.application?.id || (isApplication ? source.id : "") || ""
+    ).trim();
+    if (!applicationId) return null;
+    const pack = source.package && typeof source.package === "object"
+      ? source.package
+      : (source.selectedPackage && typeof source.selectedPackage === "object" ? source.selectedPackage : source);
+    const packKey = String(
+      source.packageCode || pack.code || source.packageId || pack.packageId || pack.id ||
+      source.packName || pack.packName || source.name || pack.name || ""
+    ).trim().toLowerCase();
+    const rawPrice = Number(source.packPrice ?? source.price ?? pack.packPrice ?? pack.price ?? 0);
+    return {
+      applicationId,
+      packKey,
+      price: Number.isFinite(rawPrice) ? rawPrice : 0
+    };
+  };
+  const suppressPackRecovery = (userId, source) => {
+    const descriptor = packRecoveryDescriptor(source);
+    if (!descriptor) return false;
+    try {
+      window.localStorage?.setItem(packRecoveryStorageKey(userId), JSON.stringify({
+        ...descriptor,
+        removedAt: new Date().toISOString()
+      }));
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  };
+  const isPackRecoverySuppressed = (userId, application) => {
+    const descriptor = packRecoveryDescriptor(application);
+    if (!descriptor) return false;
+    try {
+      const stored = JSON.parse(window.localStorage?.getItem(packRecoveryStorageKey(userId)) || "null");
+      if (!stored || String(stored.applicationId || "") !== descriptor.applicationId) return false;
+      if (stored.packKey && descriptor.packKey && stored.packKey !== descriptor.packKey) return false;
+      if (Number.isFinite(Number(stored.price)) && Number(stored.price) !== descriptor.price) return false;
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  };
   const TITLES = ["Mr", "Mrs", "Ms", "Miss", "Dr", "Prof"];
   const GENDERS = ["Male", "Female", "Other"];
   const PASSENGER_TYPES = {
@@ -240,28 +292,45 @@
       transportDirty: false,
       transportMessage: "",
       transportTone: "",
+      cartRecoveryMessage: "",
+      cartItems: [],
       billableCount: 0,
       payableTotal: 0
     };
     async function runCartAction(button, key, busyText, task) {
+      const run = async () => {
+        try { return await task(); }
+        catch (error) {
+          console.warn("Kagie cart action failed:", error);
+          const hint = $("cartHint");
+          if (hint) hint.textContent = `Kagie could not finish this action: ${error.message || "Please try again."}`;
+          return null;
+        }
+      };
       const ux = window.KagieUX;
       if (ux?.withButtonLock) {
-        return ux.withButtonLock(button, key, busyText, task);
+        return ux.withButtonLock(button, key, busyText, run);
       }
       if (button?.dataset?.kagieBusy === "1") return null;
       const originalText = button?.textContent || "";
+      const originalHTML = button?.innerHTML || "";
       if (button) {
+        button.dataset.kagieBusy = "1";
         button.disabled = true;
         button.setAttribute("aria-busy", "true");
         if (busyText) button.textContent = busyText;
       }
       try {
-        return await task();
+        return await run();
       } finally {
         if (button?.isConnected) {
+          delete button.dataset.kagieBusy;
           button.disabled = false;
           button.removeAttribute("aria-busy");
-          if (busyText) button.textContent = originalText;
+          if (busyText) {
+            if (originalHTML) button.innerHTML = originalHTML;
+            else button.textContent = originalText;
+          }
         }
       }
     }
@@ -430,6 +499,7 @@
     };
     const getPricing = async (cart) => {
       try {
+        if (Array.isArray(cart) && api.getCartPricingSummary) return api.getCartPricingSummary(user.id, cart);
         return api.getCartPricingSummaryAsync
           ? await api.getCartPricingSummaryAsync(user.id)
           : (api.getCartPricingSummary ? api.getCartPricingSummary(user.id, cart) : { subtotal: await getTotal(), discount: 0, total: await getTotal(), promo: null });
@@ -440,6 +510,104 @@
       }
     };
     const getLatestApplication = () => api.getLatestApplicationAsync ? api.getLatestApplicationAsync(user.id) : Promise.resolve(api.getLatestApplication(user.id));
+    const applicationEditHref = (item, step, application) => {
+      const applicationId = String(item.applicationId || item.application?.id || "").trim();
+      const type = String(item.applicationType || item.formValues?.applicationType?.type
+        || (applicationId === application?.id ? application.applicationType : "") || "undergraduate").trim().toLowerCase();
+      const specialized = ["late", "transfer", "bridging", "postgraduate"].includes(type);
+      const params = new URLSearchParams({step:specialized ? (type === "late" ? "late" : "dynamic") : step, applicationType:type});
+      if (applicationId) params.set("applicationId", applicationId);
+      if (specialized) params.set("section", step === "pack" ? "package" : "institutions");
+      return `forms.html?${params.toString()}`;
+    };
+    const hasBillableItems = (cart) => {
+      const { packs, services, others } = splitCart(Array.isArray(cart) ? cart : []);
+      return Boolean(packs.length + services.length + others.length);
+    };
+    const shouldRecoverPackFromApplication = (application) => {
+      if (!application || !application.package) return false;
+      const status = String(application.status || "").trim().toLowerCase();
+      const paymentStatus = String(application.paymentStatus || application.payment?.status || "").trim().toLowerCase();
+      if (["application being processed", "submitted", "under review", "applied"].includes(status)) return false;
+      if (["pending verification", "pending_verification", "verified"].includes(paymentStatus)) return false;
+      if (isPackRecoverySuppressed(user.id, application)) return false;
+      return true;
+    };
+    const resolvePackFromCatalog = async (packSource) => {
+      const packs = api.getPackCatalogAsync
+        ? await api.getPackCatalogAsync().catch(() => [])
+        : (api.getPackCatalog ? api.getPackCatalog() : []);
+      const sourceId = String(packSource?.id || packSource?.code || "").trim().toLowerCase();
+      const sourceName = String(packSource?.name || packSource?.packName || "").trim().toLowerCase();
+      return (Array.isArray(packs) ? packs : []).find((pack) => {
+        const id = String(pack?.id || pack?.code || "").trim().toLowerCase();
+        const name = String(pack?.name || pack?.packName || "").trim().toLowerCase();
+        return (sourceId && id === sourceId) || (sourceName && name === sourceName);
+      }) || null;
+    };
+    const buildRecoveredPackCartItem = async (application) => {
+      if (!shouldRecoverPackFromApplication(application)) return null;
+      const appPack = application.package || {};
+      const catalogPack = await resolvePackFromCatalog(appPack);
+      const packName = appPack.name || appPack.packName || catalogPack?.name || "Application Pack";
+      if (!String(packName || "").trim()) return null;
+      const institutions = Array.isArray(application.institutions) ? application.institutions : [];
+      const learner = application.forms?.learner || {};
+      const parent = application.forms?.parent || {};
+      const school = application.forms?.school || {};
+      const marks = Array.isArray(application.forms?.marks?.subjects) ? application.forms.marks.subjects : [];
+      const institutionLimit = appPack.institutionLimit ?? catalogPack?.institutionLimit ?? 0;
+      const price = Number(appPack.price ?? appPack.packPrice ?? catalogPack?.price ?? 0);
+      return {
+        id: `pack_${application.id || user.id}`,
+        clientKey: `pack_${application.id || user.id}`,
+        applicationId: application.id || "",
+        type: "application_pack",
+        packageId: appPack.id || catalogPack?.id || "",
+        packageCode: appPack.code || catalogPack?.code || "",
+        name: packName,
+        packName,
+        price,
+        packPrice: price,
+        institutionLimit,
+        institutionCount: institutions.length,
+        institutions,
+        learner,
+        parentData: parent,
+        school,
+        marks,
+        syncState: "recovered"
+      };
+    };
+    const recoverCartFromLatestApplication = async (application) => {
+      const recovered = await buildRecoveredPackCartItem(application);
+      if (!recovered) return null;
+      try {
+        if (api.replaceApplicationPackCartItemAsync) {
+          const saved = await api.replaceApplicationPackCartItemAsync(recovered, user.id);
+          state.cartRecoveryMessage = "We restored your selected package from your saved application draft.";
+          return saved || recovered;
+        }
+      } catch (error) {
+        console.warn("Kagie cart live recovery fallback:", error);
+      }
+      try {
+        const existing = api.getCart ? (api.getCart(user.id) || []) : [];
+        if (api.removeCartItem) {
+          for (const entry of existing.filter((item) => item.type === "application_pack")) {
+            api.removeCartItem(entry.id, user.id);
+          }
+        }
+        if (api.addCartItem) {
+          api.addCartItem({ ...recovered, syncState: "local_recovered" }, user.id);
+          state.cartRecoveryMessage = "We restored your selected package from this device.";
+          return { ...recovered, syncState: "local_recovered" };
+        }
+      } catch (error) {
+        console.warn("Kagie cart local recovery failed:", error);
+      }
+      return null;
+    };
     const syncTransportState = (item) => {
       if (!item) {
         state.transportItem = null;
@@ -481,9 +649,19 @@
       const notice = $("transportCartNotice");
       const saveBtn = $("transportSaveBtn");
       const checkoutBtn = $("checkoutBtn");
-      if (sheet) sheet.classList.toggle("hidden", !state.transportItem);
+      if (sheet) {
+        sheet.classList.toggle("transport-empty", !state.transportItem);
+        sheet.classList.toggle("transport-ready", Boolean(state.transportItem));
+      }
       if (summary && (rerenderForms || !summary.innerHTML)) {
-        summary.innerHTML = state.transportItem ? transportSummaryMarkup(state.transportItem, state.transportDraft) : "";
+        summary.innerHTML = state.transportItem ? transportSummaryMarkup(state.transportItem, state.transportDraft) : `
+          <div class="t-input">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BCC3D6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>No transport added yet.</span>
+          </div>
+        `;
       }
       if (forms && rerenderForms) {
         forms.innerHTML = state.transportItem ? state.transportDraft.map((entry, index) => transportPassengerMarkup(entry, index)).join("") : "";
@@ -501,13 +679,16 @@
       }
       if (checkoutBtn) {
         const enabled = Boolean(state.billableCount);
-        checkoutBtn.disabled = !enabled;
-        checkoutBtn.style.opacity = enabled ? "1" : ".6";
-        checkoutBtn.textContent = state.transportItem && blocking
+        const checkoutLabel = $("checkoutBtnLabel");
+        const label = state.transportItem && blocking
           ? "Review transport details to continue"
           : enabled
             ? `Continue to pay ${money(state.payableTotal)}`
-            : "Continue to payment";
+            : "Continue to Payment";
+        checkoutBtn.disabled = !enabled;
+        checkoutBtn.style.opacity = enabled ? "1" : ".6";
+        if (checkoutLabel) checkoutLabel.textContent = label;
+        else checkoutBtn.textContent = label;
       }
     };
     const updateDraftField = (target) => {
@@ -552,11 +733,20 @@
     };
 
     async function render() {
-      const [cart, latestApplication] = await Promise.all([
+      let [cart, latestApplication] = await Promise.all([
         getItems(),
         getLatestApplication().catch(() => null)
       ]);
+      state.cartRecoveryMessage = "";
+      if (!hasBillableItems(cart)) {
+        const recoveredItem = await recoverCartFromLatestApplication(latestApplication);
+        if (recoveredItem) {
+          cart = await getItems().catch(() => api.getCart(user.id) || [recoveredItem]);
+          if (!hasBillableItems(cart)) cart = [recoveredItem];
+        }
+      }
       const { packs, services, others } = splitCart(cart);
+      state.cartItems = Array.isArray(cart) ? cart.slice() : [];
       const transportItem = [...services, ...others].find(isTransportItem) || null;
       syncTransportState(transportItem);
       const billableItemCount = packs.length + services.length + others.length;
@@ -567,15 +757,22 @@
       const leadPack = packs[0] || null;
       const checkoutGate = evaluateCheckoutGate(leadPack, latestApplication);
       const transportGate = transportBlockingMessage();
+      if ($("cartCountBadge")) $("cartCountBadge").textContent = String(billableItemCount);
+      if ($("totalPayAmount")) $("totalPayAmount").textContent = money(pricing.total);
+      if ($("totalPayNote")) {
+        $("totalPayNote").textContent = billableItemCount
+          ? (pricing.discount > 0 ? `Promo discount applied. Pay ${money(pricing.total)} now.` : "Ready when you are.")
+          : "No items in your cart yet.";
+      }
 
       $("heroTitle").textContent = `Hello, ${user.fullName || "Student"}`;
       $("heroText").textContent = billableItemCount
-        ? (transportItem ? "Your route is in the cart. Finish the passenger details here, then continue to payment." : "Check your bag, confirm the total, then continue to payment.")
+        ? (state.cartRecoveryMessage || (transportItem ? "Your route is in the cart. Finish the passenger details here, then continue to payment." : "Check your bag, confirm the total, then continue to payment."))
         : "Your cart is empty right now.";
       if ($("itemMeta")) $("itemMeta").textContent = `${billableItemCount} item${billableItemCount === 1 ? "" : "s"}`;
       if ($("instMeta")) $("instMeta").textContent = `${instCount} institution${instCount === 1 ? "" : "s"}`;
       if ($("totalMeta")) $("totalMeta").textContent = pricing.discount > 0 ? `${money(pricing.total)} after discount` : `${money(pricing.total)} total`;
-      $("cartHint").textContent = !billableItemCount
+      $("cartHint").textContent = state.cartRecoveryMessage || (!billableItemCount
         ? "Your cart is empty. Return to forms or transport and add something first."
         : transportGate
           ? "Finish the transport passenger details above before you continue to payment."
@@ -583,7 +780,7 @@
             ? (checkoutGate.ready
                 ? "Everything in your bag is ready. Continue to payment when you are ready."
                 : `You can still pay now. Kagie will follow up on ${checkoutGate.missing.join(", ")} afterwards.`)
-            : "Review the total, then continue to payment when you are ready.";
+            : "Review the total, then continue to payment when you are ready.");
       $("promoSummary").innerHTML = pricing.promo
         ? `<strong>${esc(pricing.promo.code)}</strong> applied.<br>Subtotal: ${esc(money(pricing.subtotal))}<br>Discount: ${esc(money(pricing.discount))}<br>Pay now: <strong>${esc(money(pricing.total))}</strong>${pricing.promo.offerNote ? `<br>${esc(pricing.promo.offerNote)}` : ""}`
         : "No promo code applied yet.";
@@ -591,9 +788,8 @@
       const snapshot = [
         `<div class="summary-tile"><div class="row"><strong>Bag summary</strong><span class="badge">${esc(billableItemCount)}</span></div><p>${esc(`${packs.length} package${packs.length === 1 ? "" : "s"}, ${services.length} service${services.length === 1 ? "" : "s"}, ${others.length} extra item${others.length === 1 ? "" : "s"}`)}</p></div>`,
         transportItem ? `<div class="summary-tile"><div class="row"><strong>Transport</strong><span class="badge ${transportGate ? "warn" : "good"}">${esc(transportGate ? "Needs details" : "Ready")}</span></div><p>${esc(`${transportItem.departureCity || transportItem.transportDetails?.departureCity || "Departure"} to ${transportItem.destinationCity || transportItem.transportDetails?.destinationCity || "Destination"} - ${transportMixLabel(state.transportDraft)}`)}</p></div>` : "",
-        `<div class="summary-tile"><div class="row"><strong>Package status</strong><span class="badge good">${esc(packs.length ? "In cart" : "Pending")}</span></div><p>${esc(packs.length ? "Your selected package is already sitting in the cart." : "Choose a package first to continue.")}</p></div>`,
-        `<div class="summary-tile"><div class="row"><strong>Follow-up</strong><span class="badge ${checkoutGate.ready ? "good" : ""}">${esc(checkoutGate.ready ? "Ready" : `${checkoutGate.missing.length} missing`)}</span></div><p>${esc(checkoutGate.ready ? "Your draft is already in a good state." : `You can pay now. Kagie assistants will follow up on ${checkoutGate.missing.join(", ")} after payment.`)}</p></div>`,
-        `<div class="summary-tile summary-accent"><div class="row"><strong>Total to pay</strong><span class="badge good">${esc(money(pricing.total))}</span></div><p>${esc(pricing.discount > 0 ? `Subtotal ${money(pricing.subtotal)} less ${money(pricing.discount)} promo discount.` : `Subtotal ${money(pricing.subtotal)} with no promo discount yet.`)}</p></div>`
+        `<div class="summary-tile"><div class="row"><strong>Package status</strong><span class="badge ${packs.length ? "good" : "warn"}">${esc(packs.length ? "In cart" : "Pending")}</span></div><p>${esc(packs.length ? "Your selected package is already sitting in the cart." : "Choose a package first to continue.")}</p></div>`,
+        `<div class="summary-tile"><div class="row"><strong>Follow-up</strong><span class="badge ${checkoutGate.ready ? "good" : ""}">${esc(checkoutGate.ready ? "Ready" : `${checkoutGate.missing.length} missing`)}</span></div><p>${esc(checkoutGate.ready ? "Your draft is already in a good state." : `Kagie assistants will follow up on ${checkoutGate.missing.join(", ")} after payment.`)}</p></div>`
       ].filter(Boolean);
       $("billSnapshot").innerHTML = snapshot.join("");
 
@@ -615,8 +811,8 @@
             </div>
             <div class="helper-note">${esc(institutions.length ? `${usedCount} institution choice${usedCount === 1 ? "" : "s"} are linked in your draft.` : "No institutions are linked yet. You can still add them later from the forms step.")}</div>
             <div class="footer">
-              <a class="mini gold" href="forms.html?step=pack">Change package</a>
-              <a class="mini" href="forms.html?step=apply">Edit institutions</a>
+              <a class="mini gold" href="${esc(applicationEditHref(item, "pack", latestApplication))}">Change package</a>
+              <a class="mini" href="${esc(applicationEditHref(item, "apply", latestApplication))}">Edit institutions</a>
             </div>
             <div class="footer wide">
               <button class="mini red" data-remove="${esc(item.id)}" type="button">Remove package</button>
@@ -697,7 +893,16 @@
         `);
       }
 
-      $("list").innerHTML = html.length ? html.join("") : `<div class="empty">Your cart is empty. Add a package or service first.</div>`;
+      $("list").innerHTML = html.length ? html.join("") : `
+        <div class="empty-bag">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fd0505" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/>
+            <path d="M9 11c0 1.66 1.34 3 3 3s3-1.34 3-3"/>
+          </svg>
+          <div class="empty-bag-title">Your cart is empty.</div>
+          <div class="empty-bag-sub">Add a package or service first.</div>
+        </div>
+      `;
       $("clearCartBtn").disabled = !billableItemCount;
       $("clearCartBtn").style.opacity = billableItemCount ? "1" : ".6";
       refreshTransportUI();
@@ -720,8 +925,16 @@
       const id = event.target.getAttribute("data-remove");
       if (!id) return;
       await runCartAction(event.target, `cart-remove:${id}`, "Removing...", async () => {
+        const removedItem = state.cartItems.find((item) => String(item?.id || "") === String(id)) || null;
         if (api.removeCartItemAsync) await api.removeCartItemAsync(id, user.id);
         else api.removeCartItem(id, user.id);
+        if (String(removedItem?.type || "").trim().toLowerCase() === "application_pack") {
+          const suppressed = suppressPackRecovery(user.id, removedItem);
+          if (!suppressed) {
+            const latestApplication = await getLatestApplication().catch(() => null);
+            suppressPackRecovery(user.id, latestApplication);
+          }
+        }
         await render();
       });
     });
@@ -797,8 +1010,17 @@
       await render();
     }));
     $("checkoutBtn").addEventListener("click", (event) => runCartAction(event.currentTarget, "checkout-open", "Preparing...", async () => {
-      const cart = await getItems();
-      const { packs, services, others } = splitCart(cart);
+      let cart = await getItems();
+      let { packs, services, others } = splitCart(cart);
+      if (!(packs.length + services.length + others.length)) {
+        const latestApplication = await getLatestApplication().catch(() => null);
+        const recoveredItem = await recoverCartFromLatestApplication(latestApplication);
+        if (recoveredItem) {
+          cart = await getItems().catch(() => [recoveredItem]);
+          ({ packs, services, others } = splitCart(cart));
+          await render();
+        }
+      }
       if (!(packs.length + services.length + others.length)) return;
       if (transportBlockingMessage()) {
         state.transportMessage = transportBlockingMessage();
@@ -814,8 +1036,10 @@
       const { packs, services, others } = splitCart(cart);
       if (!(packs.length + services.length + others.length)) return;
       if (!confirm("Clear every item from your cart and start again?")) return;
+      const recoverySource = packs[0] || await getLatestApplication().catch(() => null);
       if (api.clearCartAsync) await api.clearCartAsync(user.id);
       else api.clearCart(user.id);
+      suppressPackRecovery(user.id, recoverySource);
       await render();
     }));
 

@@ -1,1083 +1,594 @@
-(() => {
-  const META_BY_ID = {
-    acc_campus_lofts: {
-      ribbon: "Best value",
-      rating: 4.8,
-      reviews: 42,
-      safety: 88,
-      amenities: ["WiFi", "Secure access", "Study lounge", "Taxi route"],
-      femaleOnly: false,
-      solar: false,
-      accent: "linear-gradient(135deg,#123c74,#1f8aea)"
+(function () {
+  "use strict";
+
+  const api = window.KagieAPI,
+    m = window.KagieHousingModel;
+  const $ = id => document.getElementById(id);
+  const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+  const art = "../images/accommodation/room-example.webp";
+  const paths = {
+    back: 'm15 18-6-6 6-6',
+    next: 'm9 6 6 6-6 6',
+    close: 'm6 6 12 12M6 18 18 6',
+    search: 'M21 21l-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
+    pin: 'M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0ZM15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
+    heart: 'M20 4c-3-2-6 0-8 2-2-2-5-4-8-2-6 5 1 12 8 17 7-5 14-12 8-17Z',
+    calendar: 'M5 5h14v16H5ZM5 10h14M8 3v4M16 3v4',
+    wallet: 'M4 6h15v14H4ZM4 6V3h12v3M15 12h5v4h-5Z',
+    user: 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21v-3a8 8 0 0 1 16 0v3',
+    clock: 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0M12 6v6l4 3',
+    filter: 'M3 6h18M3 12h18M3 18h18M7 4v4M16 10v4M9 16v4',
+    map: 'm3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2ZM9 3v16M15 5v16',
+    bed: 'M3 19V6M3 15h18v4M3 10h7v5M10 10h9a2 2 0 0 1 2 2v3',
+    shield: 'm12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6ZM8 12l3 3 5-6',
+    wifi: 'M2 8a16 16 0 0 1 20 0M5 12a11 11 0 0 1 14 0M8 16a6 6 0 0 1 8 0M12 20h.01',
+    kitchen: 'M5 3v7h6V3M8 3v18M18 3v18M18 3c-5 3-5 8 0 8',
+    laundry: 'M5 3h14v18H5ZM16 13a4 4 0 1 1-8 0 4 4 0 0 1 8 0M8 6h.1M12 6h4',
+    study: 'M4 9h16v7H4ZM8 16v5M16 16v5M8 3v6M16 3v6',
+    car: 'M4 11l2-6h12l2 6v8H4ZM4 12h16M7 16h1M16 16h1',
+    share: 'M12 16V2m-4 4 4-4 4 4M6 10H4v12h16V10h-2',
+    send: 'm3 11 18-8-8 18-2-8ZM11 13 21 3',
+    chat: 'M3 4h18v13H9l-6 4ZM7 9h10M7 13h6',
+    check: 'm5 12 4 4L19 6',
+    document: 'M5 2h10l4 4v16H5ZM14 2v6h5M8 12h8M8 16h8',
+    home: 'm3 10 9-8 9 8v11h-6v-7H9v7H3Z',
+    school: 'm2 8 10-5 10 5-10 5ZM6 11v7l6 3 6-3v-7M22 8v10',
+    career: 'M3 7h18v14H3ZM8 7V3h8v4M3 12h18M10 12v3h4v-3',
+    housing: 'M4 21V3h11v18M15 11h5v10M7 7h5M7 11h5M7 15h5M8 21v-3h3v3',
+    bus: 'M5 4h14v15H5ZM5 10h14M8 15h.1M16 15h.1M7 19v3M17 19v3',
+    bell: 'M6 16V9a6 6 0 1 1 12 0v7l3 3H3ZM10 21h4'
+  };
+  const icon = name => `<svg class="ha-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name] || paths.home}"/></svg>`;
+  let user,
+    profile = {},
+    listings = [],
+    byId = new Map(),
+    requests = [],
+    admin = null;
+  let f = {
+      ...m.defaults
     },
-    acc_rosebank_court: {
-      ribbon: "Popular",
-      rating: 4.7,
-      reviews: 31,
-      safety: 90,
-      amenities: ["Biometric access", "Shuttle route", "Private studio", "Study zone"],
-      femaleOnly: true,
-      solar: true,
-      accent: "linear-gradient(135deg,#c24848,#f39a38)"
+    route = {
+      view: "home",
+      id: ""
     },
-    acc_capitol_residence: {
-      ribbon: "Budget pick",
-      rating: 4.4,
-      reviews: 26,
-      safety: 82,
-      amenities: ["WiFi", "Laundry", "Shared kitchen", "Study support"],
-      femaleOnly: false,
-      solar: false,
-      accent: "linear-gradient(135deg,#164d36,#1a6b4a)"
-    },
-    acc_table_mountain_house: {
-      ribbon: "Premium",
-      rating: 4.9,
-      reviews: 64,
-      safety: 95,
-      amenities: ["Private room", "Controlled access", "Quiet study", "Power backup"],
-      femaleOnly: false,
-      solar: true,
-      accent: "linear-gradient(135deg,#10233d,#2b5fa8)"
+    saved = [],
+    recent = [],
+    searchHistory = [],
+    moveIn = "",
+    students = "1",
+    submitting = false;
+  let toastTimer,
+    listKey = "",
+    listLimit = 24,
+    refreshDone = false;
+  const money = value => `R${Math.round(value).toLocaleString("en-ZA").replace(/,/g, " ")}`;
+  const price = item => item.priceRange ? esc(item.priceRange) : item.price > 0 ? `${esc(money(item.price))}<small>/month</small>` : 'Ask for price';
+  const href = (view, id = "") => `#${view}${id ? "/" + encodeURIComponent(id) : ""}`;
+  const detailHref = item => href("detail", item.id);
+  const read = (key, fallback) => {
+    try {
+      return JSON.parse(localStorage.getItem(key)) ?? fallback;
+    } catch {
+      return fallback;
     }
   };
-
-  const MAP_POSITIONS = [
-    { top: "28px", left: "56px", color: "rgba(31,138,234,.78)" },
-    { top: "42px", right: "52px", color: "rgba(26,107,74,.82)" },
-    { bottom: "20px", right: "40px", color: "rgba(242,205,103,.82)" }
-  ];
-
-  const REQUEST_PROGRESS_FIELDS = [
-    "reqLearnerName",
-    "reqLearnerEmail",
-    "reqLearnerPhone",
-    "reqInstitutionName",
-    "reqYearOfStudy",
-    "reqFundingStatus",
-    "reqNsfasBeneficiary",
-    "reqMoveInDate",
-    "reqDocumentsReady",
-    "reqGuardianName",
-    "reqGuardianPhone",
-    "reqEmergencyName",
-    "reqEmergencyPhone"
-  ];
-
-  const state = {
-    user: null,
-    profile: {},
-    housingAdmin: null,
-    listings: [],
-    requests: [],
-    query: "",
-    activePreset: "all",
-    showAll: false,
-    compareIds: [],
-    activeListingId: "",
-    filters: {
-      maxPrice: 8000,
-      roomType: "any",
-      distance: "any",
-      mustHaves: new Set()
+  const storageKey = name => `kagie_housing_${name}_${user.id}`;
+  function saveLocal(name, value) {
+    try {
+      localStorage.setItem(storageKey(name), JSON.stringify(value));
+      return true;
+    } catch {
+      toast("Your browser could not save this change.");
+      return false;
     }
-  };
-
-  const el = {};
-  let requestSubmitting = false;
-
-  function $(id) {
-    return document.getElementById(id);
   }
-
-  function debounceFrame(fn, delay) {
-    let timer = 0;
-    return (...args) => {
-      if (timer) window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        timer = 0;
-        fn(...args);
-      }, delay);
-    };
+  function toast(message) {
+    clearTimeout(toastTimer);
+    $("housingToast").textContent = message;
+    toastTimer = setTimeout(() => $("housingToast").textContent = "", 4200);
   }
-
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  function money(value) {
-    return `R${Number(value || 0).toLocaleString("en-ZA")}`;
-  }
-
-  function shortName(value) {
-    const words = String(value || "").trim().split(/\s+/).filter(Boolean);
-    return words.slice(0, 2).map((word) => word[0]?.toUpperCase() || "").join("") || "KG";
-  }
-
-  function parseDistanceKm(value) {
-    const match = String(value || "").match(/([\d.]+)/);
-    return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
-  }
-
-  function formatDate(value) {
-    if (!value) return "";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value);
-    return new Intl.DateTimeFormat("en-ZA", {
+  function date(value) {
+    const d = new Date(value);
+    return Number.isFinite(d.getTime()) ? d.toLocaleDateString("en-ZA", {
       day: "numeric",
       month: "short",
       year: "numeric"
-    }).format(date);
+    }) : "Date not provided";
   }
-
-  function extractCampusName(value) {
-    const match = String(value || "").match(/from\s+(.+)$/i);
-    return match ? match[1].trim() : "";
+  function getImages(item) {
+    return item.images.length ? item.images.map(photo => /^data:image\/svg/i.test(photo) ? art : photo) : [art];
   }
-
-  function getMeta(listing) {
-    const seeded = META_BY_ID[listing.id] || {};
-    const distanceKm = parseDistanceKm(listing.distanceFromCampus);
-    const price = Number(listing.price || 0);
-    const inferredAmenities = seeded.amenities || [
-      price <= 5000 ? "NSFAS-friendly" : "Private only",
-      /studio|single/i.test(listing.roomType || "") ? "Private room" : "Shared space",
-      distanceKm <= 1.2 ? "Walkable" : "Shuttle route",
-      /secure|controlled|biometric/i.test(listing.description || "") ? "Security" : "Student support"
-    ];
+  function isIllustration(item, index = 0) {
+    return !item.images.length || /^data:image\/svg/i.test(item.images[index] || "") || /\/accommodation\/room-example\.webp(?:\?|$)/.test(item.images[index] || "");
+  }
+  function locationLine(item) {
+    return [item.distanceFromCampus, item.location || item.city || item.province].filter(Boolean).join(" · ") || "Location not provided";
+  }
+  function tags(item) {
+    const known = m.features.filter(feature => m.hasFeature(item, feature.id)).slice(0, 3);
+    if (!known.length) return `<div class="ha-tags"><span class="ha-tag">${esc(item.roomType || "Room details on request")}</span><span class="ha-tag">${esc(item.availabilityStatus || "Check availability")}</span></div>`;
+    return `<div class="ha-tags">${known.map(feature => `<span class="ha-tag ${feature.color}">${feature.id === 'wifi' ? 'WiFi' : esc(feature.label)}</span>`).join("")}</div>`;
+  }
+  function saveButton(item) {
+    return `<button class="ha-round ha-save" type="button" data-save="${esc(item.id)}" aria-label="${saved.includes(item.id) ? 'Unsave' : 'Save'} ${esc(item.propertyName)}" aria-pressed="${saved.includes(item.id)}">${icon("heart")}</button>`;
+  }
+  function card(item, index = 0) {
+    return `<article class="ha-card">
+    ${saveButton(item)}<a class="ha-card-media" href="${detailHref(item)}" aria-label="View ${esc(item.propertyName)}"><img src="${esc(getImages(item)[0])}" alt="${isIllustration(item) ? 'Example housing illustration' : esc(item.propertyName) + ' property photo'}" loading="${index < 3 ? 'eager' : 'lazy'}" decoding="async" width="600" height="260"/>${isIllustration(item) ? '<span class="ha-photo-label">Illustration</span>' : ''}</a>
+    <div class="ha-card-body"><div class="ha-card-top"><h3><a href="${detailHref(item)}">${esc(item.propertyName)}</a></h3><div class="ha-price">${price(item)}</div></div><p class="ha-location">${icon("pin")}${esc(locationLine(item))}</p>${tags(item)}</div></article>`;
+  }
+  function empty(title, copy) {
+    return `<div class="ha-empty">${icon("housing")}<h2>${esc(title)}</h2><p>${esc(copy)}</p><a class="ha-btn ha-outline" href="#home">Back to search</a></div>`;
+  }
+  function support() {
+    return `<a class="ha-support" href="help-support.html">${icon("chat")}<span><strong>Need help? Talk to our team</strong><small>Get help finding a place or following up on a housing request.</small></span>${icon("next")}</a>`;
+  }
+  function localNav(active) {
+    return `<nav class="ha-segments ha-section-nav" aria-label="Housing sections">${[["home", "search", "Search"], ["recent", "clock", "Recent"], ["saved", "heart", "Saved"], ["requests", "chat", "Requests"]].map(([view, ic, label]) => `<a href="${href(view)}" class="${active === view ? 'active' : ''}" ${active === view ? 'aria-current="page"' : ''}>${icon(ic)}${label}</a>`).join("")}</nav>`;
+  }
+  function header(title = "", back = "#home", action = "") {
+    $("housingHeader").innerHTML = title ? `<a class="ha-round ha-back" href="${back}" aria-label="Back">${icon("back")}</a><h1>${esc(title)}</h1>${action || '<span style="width:38px" aria-hidden="true"></span>'}` : `<a class="ha-brand" href="../home.html">Kagie.app</a><a class="ha-round" href="../notifications.html" aria-label="Notifications">${icon("bell")}</a><a class="ha-round ha-avatar" href="../profile.html" aria-label="Your profile">${esc((profile.fullName || profile.fullNames || user.fullName || user.name || "Learner").split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join("").toUpperCase())}</a>`;
+  }
+  function home() {
+    header();
+    return `<div class="ha-home-grid"><section aria-label="Find student housing">
+      <nav class="ha-segments" aria-label="Stay type">${[["rent", "Rent"], ["buy", "Buy"], ["short", "Short stay"]].map(([value, label]) => `<button type="button" data-mode="${value}" class="${f.mode === value ? 'active' : ''}" aria-pressed="${f.mode === value}">${label}</button>`).join("")}</nav>
+      <form id="housingSearch" class="ha-form-fields">
+        <div class="ha-search-field">${icon("pin")}<label><input name="query" aria-label="Search area, campus or suburb" placeholder="Search area, campus or suburb" maxlength="160" value="${esc(f.query)}"/></label></div>
+        <div class="ha-search-field">${icon("calendar")}<label>Move-in date<input type="date" name="moveIn" aria-label="Move-in date" value="${esc(moveIn)}" min="${m.today()}"/></label>${icon("next")}</div>
+        <div class="ha-search-field">${icon("wallet")}<label>Budget per month<select name="maxPrice" aria-label="Budget per month">${[[8000, "Any budget"], [3000, "Under R3 000"], [5000, "Under R5 000"], [7000, "Under R7 000"]].map(([v, label]) => `<option value="${v}" ${f.maxPrice === v ? 'selected' : ''}>${label}</option>`).join("")}${![8000, 3000, 5000, 7000].includes(f.maxPrice) ? `<option value="${f.maxPrice}" selected>${esc(money(f.maxPrice))}</option>` : ''}</select></label>${icon("next")}</div>
+        <div class="ha-search-field">${icon("user")}<label>Students<select name="students" aria-label="Students">${[1, 2, 3, 4].map(v => `<option value="${v}" ${String(v) === students ? 'selected' : ''}>${v} student${v === 1 ? '' : 's'}</option>`).join("")}</select></label>${icon("next")}</div>
+        <button class="ha-btn ha-full" type="submit">Search housing ${icon("next")}</button>
+      </form>${localNav("home")}${f.mode !== "rent" ? '<p class="ha-notice">The current catalogue contains student rentals. Ask Kagie support about buying or short stays.</p>' : ''}
+      <a class="ha-mini-link" href="#listings">${icon("housing")}<span><strong>Housing near campus</strong><small>${listings.length} places in the current catalogue</small></span>${icon("next")}</a>
+      </section><aside class="ha-home-side"><img class="ha-home-art" src="${art}" alt="Illustration of a student bedroom" width="1100" height="733"/><div class="ha-side-body"><h2>A place for your next chapter</h2><p>Find housing near your institution, save your favourites, and ask Kagie for reservation support.</p><a class="ha-btn ha-outline" href="#listings">Browse places ${icon("next")}</a><a class="ha-mini-link" href="#safety">${icon("shield")}<span><strong>Your safety matters</strong><small>What to check before choosing a home.</small></span>${icon("next")}</a>${support()}</div></aside></div>`;
+  }
+  function filtered() {
+    return listings.filter(item => m.matches(item, f));
+  }
+  function listingsPage() {
+    header();
+    return `<div class="ha-heading-row"><div><h1 class="ha-title">Housing near campus</h1><p class="ha-sub" id="housingCount"></p></div><a class="ha-btn ha-blue" href="#map">${icon("map")}Map</a></div>
+      <div class="ha-search-field">${icon("search")}<label><input id="housingQuery" aria-label="Search listings" placeholder="Search area, campus or suburb" value="${esc(f.query)}" maxlength="160"/></label></div>
+      <div class="ha-chips"><button type="button" class="ha-chip ${f.maxPrice === 8000 && f.distance === 'any' && !f.features.length && f.room === 'any' ? 'active' : ''}" data-preset="all">All</button><button type="button" class="ha-chip ${f.maxPrice === 3000 ? 'active' : ''}" data-preset="budget">Under R3 000</button><button type="button" class="ha-chip ${f.distance === '5' ? 'active' : ''}" data-preset="distance">Within 5km</button><a class="ha-chip ha-square" href="#filters" aria-label="Filter housing">${icon("filter")}</a></div>
+      <p class="ha-quiet" id="housingFilterSummary"></p><div class="ha-list" id="housingList"></div><div id="housingMore"></div>${localNav("listings")}`;
+  }
+  function updateList() {
+    if (!$("housingList")) return;
+    const items = filtered(),
+      visible = items.slice(0, listLimit);
+    $("housingCount").textContent = `${items.length} place${items.length === 1 ? '' : 's'} found${f.query ? ' for “' + f.query + '”' : ' in the current catalogue'}`;
+    $("housingFilterSummary").textContent = [f.maxPrice < 8000 ? `Budget: ${money(f.maxPrice)}` : '', f.distance !== 'any' ? `Within ${f.distance}km` : '', f.room !== 'any' ? f.room + ' room' : '', ...f.features.map(id => m.features.find(feature => feature.id === id)?.label)].filter(Boolean).join(" · ");
+    const key = visible.map(item => item.id + ":" + saved.includes(item.id) + ":" + item.updatedAt).join("|") + "/" + f.mode;
+    if (key !== listKey || !$("housingList").childElementCount) {
+      $("housingList").innerHTML = visible.length ? visible.map(card).join("") : empty("No matching places", f.mode === 'rent' ? "Try clearing a filter or searching a different campus." : "There are no listed options for this stay type. Contact Kagie support for help.");
+      listKey = key;
+    }
+    $("housingMore").innerHTML = items.length > listLimit ? `<button class="ha-btn ha-outline ha-full" type="button" data-more>Show more places (${items.length - listLimit})</button>` : "";
+  }
+  function savedPage(view) {
+    header(view === 'saved' ? "Saved places" : "Recently viewed");
+    const ids = view === 'saved' ? saved : recent,
+      items = ids.map(id => byId.get(id)).filter(Boolean);
+    return `${localNav(view)}<p class="ha-sub">${view === 'saved' ? 'Keep your housing shortlist here.' : 'Return to places you’ve opened.'} Saved on this device for your account.</p><div class="ha-list">${items.length ? items.map(card).join("") : empty(view === 'saved' ? "No saved places yet" : "No recently viewed places", "Browse housing and open a place to get started.")}</div>${view === 'recent' && searchHistory.length ? `<h2 class="ha-h2">Recent searches</h2>${searchHistory.map((item, index) => `<button class="ha-chip" data-history="${index}" type="button">${esc(item.query || 'All areas')} · ${item.maxPrice < 8000 ? esc(money(item.maxPrice)) : 'Any budget'}</button>`).join(" ")}` : ''}`;
+  }
+  function detail(item) {
+    if (!item) {
+      header("Place unavailable");
+      return empty("This place is unavailable", "It may have been removed from the housing catalogue.");
+    }
+    header("Accommodation", "#listings");
+    const photos = getImages(item),
+      amen = m.features.filter(feature => m.hasFeature(item, feature.id));
+    return `<article class="ha-detail"><div class="ha-detail-gallery"><div class="ha-gallery"><img class="ha-main-photo" id="housingMainPhoto" src="${esc(photos[0])}" alt="${isIllustration(item) ? 'Example housing illustration' : esc(item.propertyName) + ' property photo'}" width="1100" height="733"/><div class="ha-gallery-top"><a class="ha-round" href="#listings" aria-label="Back to listings">${icon("back")}</a>${saveButton(item)}<button type="button" class="ha-round" data-share="${esc(item.id)}" aria-label="Share place">${icon("share")}</button></div>${isIllustration(item) ? '<span class="ha-photo-label" id="housingPhotoLabel">Illustration</span>' : ''}<span class="ha-gallery-counter" id="housingPhotoCount">1/${photos.length}</span></div>
+      ${photos.length > 1 ? `<div class="ha-thumbs" aria-label="Property photos">${photos.map((photo, index) => `<button type="button" class="ha-thumb ${index === 0 ? 'active' : ''}" data-photo="${index}" aria-label="View photo ${index + 1}" aria-pressed="${index === 0}"><img src="${esc(photo)}" alt="" loading="lazy"/></button>`).join("")}</div>` : ''}</div>
+      <div class="ha-detail-body"><div class="ha-card-top"><h1 class="ha-title">${esc(item.propertyName)}</h1><div class="ha-price">${price(item)}</div></div><p class="ha-location">${icon("pin")}${esc(locationLine(item))}</p>${tags(item)}
+      <div class="ha-facts"><div class="ha-fact">${icon("bed")}<span><strong>${esc(item.roomType || 'Room type')}</strong><small>${item.roomType ? 'Confirm furnishings' : 'Ask the provider'}</small></span></div><div class="ha-fact">${icon("calendar")}<span><strong>${esc(item.availabilityStatus || 'Availability')}</strong><small>${item.availableFrom ? esc(date(item.availableFrom)) : 'Confirm move-in date'}</small></span></div><div class="ha-fact">${icon("document")}<span><strong>Lease</strong><small>Confirm terms with provider</small></span></div></div>
+      <div class="ha-heading-row"><h2 class="ha-h2">Amenities</h2><button class="ha-chip" type="button" data-amenities="${esc(item.id)}">See all</button></div>
+      ${amen.length ? `<div class="ha-amenities">${amen.slice(0, 5).map(feature => `<div class="ha-amenity">${icon(feature.icon)}${esc(feature.label === 'WiFi included' ? 'WiFi' : feature.label)}</div>`).join("")}</div>` : '<p class="ha-quiet">Amenities have not been provided for this listing.</p>'}
+      <div class="ha-benefits"><h2>At a glance</h2><div class="ha-benefit-grid"><div>${icon("pin")}<strong>Campus</strong><small>${esc(item.institutionName || 'Ask the provider')}</small></div><div>${icon("bed")}<strong>Room</strong><small>${esc(item.roomType || 'Not provided')}</small></div><div>${icon("shield")}<a href="${href('safety', item.id)}"><strong>Safety checks</strong><small>Review before booking</small></a></div></div></div>
+      <div class="ha-actions"><button class="ha-btn ha-outline" data-contact="${esc(item.id)}" type="button">${icon("chat")}Contact host</button><a class="ha-btn" href="${href('request', item.id)}">Request to reserve</a></div>
+      ${requests.some(request => request.listingId === item.id) ? `<a class="ha-mini-link" href="${href('status', requests.find(request => request.listingId === item.id).id)}">${icon('clock')}<span><strong>View your request status</strong></span>${icon('next')}</a>` : ''}
+      <h2 class="ha-h2">About this place</h2><p class="ha-description">${esc(item.description || item.shortDescription || 'Contact the provider for room details, lease terms and current availability.')}</p><p class="ha-quiet">${esc(item.address || 'Full address not provided')}</p></div></article>`;
+  }
+  function choice(name, value, label, selected) {
+    return `<label class="ha-check ha-radio"><input type="radio" name="${name}" value="${value}" ${selected === value ? 'checked' : ''}/>${label}</label>`;
+  }
+  function filtersPage() {
+    header("Filters", "#listings", '<button class="ha-chip" type="button" data-reset>Reset</button>');
+    return `<form id="housingFilters"><div class="ha-filter-grid"><div><fieldset class="ha-fieldset"><legend>Budget per month</legend><div class="ha-range-label"><span>R0</span><strong id="housingBudgetLabel">${f.maxPrice === 8000 ? 'Any budget' : esc(money(f.maxPrice))}</strong></div><input class="ha-range" type="range" name="maxPrice" aria-label="Maximum monthly budget" min="0" max="8000" step="100" value="${f.maxPrice}"/><div class="ha-range-label"><span>R0</span><span>R8 000 / any budget</span></div></fieldset>
+      <fieldset class="ha-fieldset"><legend>Distance from campus</legend><div class="ha-chips">${[["1", "Within 1km"], ["2", "Within 2km"], ["5", "Within 5km"], ["any", "Any distance"]].map(([v, l]) => choice('distance', v, l, f.distance)).join('')}</div></fieldset>
+      <fieldset class="ha-fieldset"><legend>Accommodation type</legend><div class="ha-chips">${[["single", "Single room"], ["shared", "Shared room"], ["studio", "Apartment / studio"], ["any", "Any type"]].map(([v, l]) => choice('room', v, l, f.room)).join('')}</div></fieldset></div>
+      <div><fieldset class="ha-fieldset"><legend>Must-haves</legend><div class="ha-chips">${m.features.slice(0, 6).map(feature => `<label class="ha-check"><input type="checkbox" name="features" value="${feature.id}" ${f.features.includes(feature.id) ? 'checked' : ''}/>${esc(feature.label)}</label>`).join('')}</div></fieldset><p class="ha-notice">These filters use recorded listing amenities. Ask the provider to confirm costs, eligibility and current availability.</p></div></div>
+      <div class="ha-actions"><button class="ha-btn ha-outline" type="button" data-reset>Reset</button><button class="ha-btn" type="submit">Apply filters</button></div></form>`;
+  }
+  function field(name, label, value = "", type = "text", required = false) {
+    if (type === 'date') {
+      const day = String(value || '').slice(0, 10);
+      value = m.dateValid(day) ? day : '';
+    }
+    return `<label class="ha-label">${label}<input class="ha-input" type="${type}" name="${name}" value="${esc(value)}" ${required ? 'required' : ''} ${type === 'date' ? `min="${m.today()}"` : ''} ${type === 'tel' ? 'autocomplete="tel"' : type === 'email' ? 'autocomplete="email"' : ''}/></label>`;
+  }
+  function select(name, label, values, value = "", required = false) {
+    return `<label class="ha-label">${label}<select class="ha-input" name="${name}" aria-label="${esc(label)}" ${required ? 'required' : ''}><option value="">Select</option>${values.map(v => `<option value="${esc(v)}" ${v === value ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>`;
+  }
+  function requestPage(item) {
+    header("Request to reserve", item ? detailHref(item) : "#listings");
+    if (!item) return empty("This place is unavailable", "Choose another place from the catalogue.");
+    if (admin?.settings?.serviceStatus && admin.settings.serviceStatus !== 'open') return empty("Housing requests are paused", admin.body || "You can still browse places. Please contact Kagie support for assistance.");
+    const old = requests.find(request => request.listingId === item.id) || {},
+      values = {
+        ...profile,
+        ...old
+      };
+    return `<section class="ha-request"><h1 class="ha-title">${esc(item.propertyName)}</h1><p class="ha-sub">Send a housing brief to Kagie support. The provider must confirm availability and the reservation.</p><form id="housingRequest" data-listing="${esc(item.id)}"><div class="ha-form-grid">
+      ${field('learnerName', 'Full name', old.learnerName || profile.fullName || profile.fullNames || user.fullName || user.name, 'text', true)}${field('learnerEmail', 'Email', old.learnerEmail || profile.email || user.email, 'email', true)}${field('learnerPhone', 'Phone number', old.learnerPhone || profile.phone || profile.cellphone || user.phone, 'tel', true)}${field('institutionName', 'Institution', old.institutionName || profile.institutionName || item.institutionName, 'text', true)}
+      ${field('preferredMoveInDate', 'Move-in date', old.preferredMoveInDate || moveIn, 'date', true)}${select('preferredLeaseMonths', 'Lease preference', ['Month-to-month', '3 months', '6 months', '10 months', '12 months', 'Unsure'], old.preferredLeaseMonths)}
+      ${select('fundingStatus', 'Funding plan', ['NSFAS', 'Self-funded', 'Bursary', 'Family / sponsor', 'Mixed funding', 'Awaiting funding'], old.fundingStatus, true)}${select('documentsReady', 'Document readiness', ['All ready', 'Most ready', 'Need help collecting them', 'Still waiting for funding proof'], old.documentsReady, true)}
+      ${select('nsfasBeneficiary', 'NSFAS status', ['yes', 'no', 'pending'], old.nsfasBeneficiary)}${field('nsfasSinceYear', 'NSFAS start year (if funded)', old.nsfasSinceYear, 'number')}
+      ${select('roomPreference', 'Room preference', ['Single room', 'Shared room', 'Studio', 'Any available'], old.roomPreference || item.roomType)}${field('yearOfStudy', 'Year of study', values.yearOfStudy || profile.grade)}
+      </div><details><summary>Student, funding and emergency details</summary><div class="ha-form-grid">${field('studentNumber', 'Student number', values.studentNumber)}${field('campusName', 'Campus', values.campusName)}${field('alternatePhone', 'Alternative phone', values.alternatePhone, 'tel')}${field('bursaryProvider', 'Sponsor / bursary details', values.bursaryProvider)}${field('guardianName', 'Guardian / sponsor name', values.guardianName || profile.guardianFullNames)}${field('guardianPhone', 'Guardian / sponsor phone', values.guardianPhone || profile.guardianCell1, 'tel')}${field('emergencyContactName', 'Emergency contact name', values.emergencyContactName)}${field('emergencyContactPhone', 'Emergency contact phone', values.emergencyContactPhone, 'tel')}${select('transportNeeded', 'Transport support', ['yes', 'no', 'maybe'], values.transportNeeded)}${field('specialNeeds', 'Accessibility / room needs', values.specialNeeds === 'none' ? '' : values.specialNeeds)}</div></details>
+      <label class="ha-label">Notes for Kagie<textarea class="ha-input" name="note" maxlength="2500" placeholder="Share any preferences or support needs…">${esc(old.note)}</textarea></label><p id="housingRequestError" class="ha-error" role="alert"></p><div class="ha-actions"><a class="ha-btn ha-outline" href="${detailHref(item)}">Cancel</a><button class="ha-btn" type="submit">${old.id ? 'Update request' : 'Send request to Kagie'} ${icon('send')}</button></div></form></section>`;
+  }
+  function requestsPage() {
+    header("Your housing requests");
+    return `${localNav('requests')}${requests.length ? requests.map(request => `<a class="ha-mini-link" href="${href('status', request.id)}">${icon('clock')}<span><strong>${esc(request.propertyName || 'Housing request')}</strong><small>${esc(request.status)} · ${esc(date(request.updatedAt || request.createdAt))}</small><small>${request.source === 'remote' ? 'Saved online' : 'Saved on this device'}</small></span>${icon('next')}</a>`).join('') : empty("No requests yet", "Open a place and send a request to Kagie support.")}`;
+  }
+  function statusPage(request) {
+    header("Request status", "#requests");
+    if (!request) return empty("Request not found", "Check your account’s housing requests.");
+    const online = request.source === 'remote';
+    return `<section class="ha-status-screen"><div class="ha-status-intro"><div class="ha-status-art">${icon('send')}</div><h1 class="ha-title">${online ? 'Request submitted!' : 'Request saved on this device'}</h1><p class="ha-sub">${online ? 'Your housing brief is saved for Kagie support. A reservation still needs confirmation.' : 'This request has not been confirmed online. Open it and send again when connected.'}</p><strong>${esc(request.propertyName)}</strong></div><ol class="ha-timeline">
+      <li><span class="ha-step-dot done">${icon('check')}</span><div class="ha-step-copy"><strong>${online ? 'Request submitted' : 'Saved locally'}</strong><span class="ha-step-time">${esc(date(request.createdAt))}</span><small>${online ? 'Your details have been recorded.' : 'Details are available on this device.'}</small></div></li>
+      <li class="current"><span class="ha-step-dot">${icon('clock')}</span><div class="ha-step-copy"><strong>${esc(request.status || 'Support review requested')}</strong><small>Last updated ${esc(date(request.updatedAt))}</small></div></li>
+      <li><span class="ha-step-dot"></span><div class="ha-step-copy"><strong>Confirm with the provider</strong><small>Ask Kagie support about availability, lease terms and the next steps.</small></div></li></ol><a class="ha-mini-link" href="../documents.html">${icon('document')}<span><strong>Required documents</strong><small>Keep your documents ready. Requirements depend on the residence and your funding.</small></span>${icon('next')}</a>${byId.has(request.listingId) ? `<a class="ha-btn ha-outline ha-full" style="margin-top:16px" href="${href('request', request.listingId)}">Review or update request</a>` : ''}${support()}</section>`;
+  }
+  function safetyPage(item) {
+    header("Your safety matters", item ? detailHref(item) : '#home');
+    const inspection = m.safeUrl(item?.inspectionDocumentUrl);
+    return `<section class="ha-safety"><div class="ha-safety-intro"><p class="ha-sub">Check the property, provider and lease before you commit to student housing.</p></div><div class="ha-trust-banner">${icon('shield')}<div><h2>Choose with confidence</h2><p>Ask for current inspection documents, a clear lease and confirmation of any funding accreditation.</p></div></div><div class="ha-safety-checks">${[['shield', 'Physical check', 'Request inspection'], ['document', 'Clear lease', 'Read the terms'], ['shield', 'NSFAS check', 'Confirm accreditation'], ['user', 'Host identity', 'Confirm the provider']].map(([ic, label, sub]) => `<div>${icon(ic)}<strong>${label}</strong><small>${sub}</small></div>`).join('')}</div>
+      <h2 class="ha-h2">${item ? esc(item.propertyName) : 'Before you reserve'}</h2><p class="ha-notice">${inspection ? `<a href="${esc(inspection)}" target="_blank" rel="noopener noreferrer">${icon('document')} View the supplied inspection document</a>` : 'Inspection evidence has not been supplied here. Ask the provider or Kagie support before booking.'}</p>
+      <div class="ha-mini-link">${icon('document')}<span><strong>Check costs and terms</strong><small>Confirm the rent, deposit, utility costs, cancellation terms and the payment recipient.</small></span></div><h2 class="ha-h2">Student reviews</h2><p class="ha-description">There are no verified student reviews available on this page yet.</p>${support()}</section>`;
+  }
+  function mapPage() {
+    header("Find places on a map", '#listings');
+    return `<p class="ha-sub">Open a map search using each listing’s supplied address. Confirm the precise location with the provider.</p>${filtered().map(item => `<article class="ha-map-row"><div><h2><a href="${detailHref(item)}">${esc(item.propertyName)}</a></h2><p class="ha-quiet">${esc(item.address || item.location || 'Address not supplied')}</p></div>${item.address || item.location ? `<a class="ha-btn ha-blue" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address || item.location)}">${icon('map')}Open map</a>` : ''}</article>`).join('') || empty('No places to show', 'Try widening your search.')}`;
+  }
+  function parseRoute() {
+    const [view, id] = location.hash.slice(1).split('/');
+    let decoded = '';
+    try {
+      decoded = decodeURIComponent(id || '');
+    } catch {}
     return {
-      ribbon: seeded.ribbon || "",
-      rating: seeded.rating || 4.5,
-      reviews: seeded.reviews || 20,
-      safety: seeded.safety || Math.max(76, Math.min(96, 90 - Math.round(distanceKm * 4))),
-      amenities: inferredAmenities.slice(0, 4),
-      femaleOnly: Boolean(seeded.femaleOnly),
-      solar: Boolean(seeded.solar),
-      accent: seeded.accent || "linear-gradient(135deg,#10233d,#1f8aea)"
+      view: ['home', 'listings', 'saved', 'recent', 'requests', 'detail', 'filters', 'request', 'status', 'safety', 'map'].includes(view) ? view : 'home',
+      id: decoded
     };
   }
-
-  function isNsfasFriendly(listing) {
-    return Number(listing.price || 0) <= 5000;
-  }
-
-  function hasFeature(listing, feature) {
-    const meta = getMeta(listing);
-    const haystack = [
-      listing.propertyName,
-      listing.description,
-      listing.roomType,
-      meta.amenities.join(" ")
-    ].join(" ").toLowerCase();
-    if (feature === "wifi") return haystack.includes("wifi");
-    if (feature === "female") return meta.femaleOnly || haystack.includes("female");
-    if (feature === "solar") return meta.solar || haystack.includes("solar") || haystack.includes("backup");
-    if (feature === "nsfas") return isNsfasFriendly(listing);
-    return false;
-  }
-
-  function listingMatchesPreset(listing) {
-    switch (state.activePreset) {
-      case "budget": return Number(listing.price || 0) <= 3000;
-      case "close": return parseDistanceKm(listing.distanceFromCampus) <= 1;
-      case "nsfas": return isNsfasFriendly(listing);
-      case "single": return /single/i.test(listing.roomType || "");
-      case "female": return hasFeature(listing, "female");
-      case "wifi": return hasFeature(listing, "wifi");
-      default: return true;
+  function render(focus = false) {
+    if (!user) return;
+    listKey = '';
+    const item = byId.get(route.id);
+    let html;
+    if (route.view === 'home') html = home();else if (route.view === 'listings') html = listingsPage();else if (['saved', 'recent'].includes(route.view)) html = savedPage(route.view);else if (route.view === 'detail') html = detail(item);else if (route.view === 'filters') html = filtersPage();else if (route.view === 'request') html = requestPage(item);else if (route.view === 'requests') html = requestsPage();else if (route.view === 'status') html = statusPage(requests.find(request => request.id === route.id));else if (route.view === 'safety') html = safetyPage(item);else html = mapPage();
+    $("housingContent").innerHTML = html;
+    $("housingContent").setAttribute('aria-busy', 'false');
+    if (route.view === 'listings') updateList();
+    if (focus) {
+      window.scrollTo({
+        top: 0,
+        behavior: 'instant'
+      });
+      const title = $("housingHeader").querySelector('h1') || $("housingContent").querySelector('h1');
+      if (title) {
+        title.tabIndex = -1;
+        title.focus({
+          preventScroll: true
+        });
+      }
     }
   }
-
-  function listingMatchesFilters(listing) {
-    const query = state.query.trim().toLowerCase();
-    if (query) {
-      const haystack = [
-        listing.propertyName,
-        listing.institutionName,
-        listing.location,
-        listing.address,
-        listing.description,
-        listing.roomType
-      ].join(" ").toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
-
-    if (Number(listing.price || 0) > Number(state.filters.maxPrice || 0)) return false;
-    if (state.filters.roomType !== "any" && !String(listing.roomType || "").toLowerCase().includes(state.filters.roomType)) return false;
-    if (state.filters.distance !== "any" && state.filters.distance !== "map" && parseDistanceKm(listing.distanceFromCampus) > Number(state.filters.distance)) return false;
-
-    for (const mustHave of state.filters.mustHaves) {
-      if (!hasFeature(listing, mustHave)) return false;
-    }
-
-    return listingMatchesPreset(listing);
-  }
-
-  function getFilteredListings() {
-    return state.listings.filter(listingMatchesFilters);
-  }
-
-  function getVisibleListings() {
-    const filtered = getFilteredListings();
-    return state.showAll ? filtered : filtered.slice(0, 3);
-  }
-
-  function getRequestForListing(listingId) {
-    return state.requests.find((request) => String(request.listingId || "") === String(listingId || ""));
-  }
-
-  function isRequested(listingId) {
-    return Boolean(getRequestForListing(listingId));
-  }
-
-  function getRequestButtonLabel(listingId) {
-    if (state.housingAdmin?.settings?.serviceStatus && state.housingAdmin.settings.serviceStatus !== "open") return "Housing paused";
-    return isRequested(listingId) ? "Update request" : "Request stay";
-  }
-
-  function sortRequests(items) {
-    return items.slice().sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
-  }
-
-  function getRequestFieldValue(id) {
-    const node = $(id);
-    return node ? String(node.value || "").trim() : "";
-  }
-
-  function setRequestFieldValue(id, value) {
-    const node = $(id);
-    if (node) node.value = value == null ? "" : String(value);
-  }
-
-  function getCurrentListing() {
-    return state.listings.find((listing) => listing.id === state.activeListingId) || null;
-  }
-
-  function updateHero() {
-    const name = state.profile.fullName || state.profile.fullNames || state.user?.name || "Kagie learner";
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-    const filtered = getFilteredListings();
-    const closest = filtered.reduce((best, listing) => {
-      const distance = parseDistanceKm(listing.distanceFromCampus);
-      return distance < best ? distance : best;
-    }, Number.POSITIVE_INFINITY);
-
-    if (el.heroGreeting) el.heroGreeting.textContent = greeting;
-    if (el.heroName) el.heroName.textContent = name;
-    if (el.heroAvatar) el.heroAvatar.textContent = shortName(name);
-    el.statListings.textContent = String(filtered.length);
-    el.statRequests.textContent = String(state.requests.length);
-    el.statClosest.textContent = Number.isFinite(closest) ? `${closest.toFixed(1)}km` : "-";
-    const adminMessage = state.housingAdmin?.status === "active" ? String(state.housingAdmin?.body || "").trim() : "";
-    const serviceStatus = state.housingAdmin?.settings?.serviceStatus || "open";
-    el.heroSub.textContent = serviceStatus !== "open"
-      ? (adminMessage || "Kagie housing requests are currently paused. You can still browse available information.")
-      : adminMessage
-        ? adminMessage
-        : state.requests.length
-      ? `Kagie is already tracking ${state.requests.length} housing request${state.requests.length === 1 ? "" : "s"} for your account.`
-      : "Verified student housing. Real safety scores. Zero guessing.";
-  }
-
-  function renderRequestTracker() {
-    if (!el.requestTracker) return;
-
-    if (!state.requests.length) {
-      el.requestTracker.innerHTML = `
-        <div class="helper-kicker">Housing tracker</div>
-        <div class="helper-title">No housing requests yet</div>
-        <div class="helper-copy">Browse verified listings, compare a few options, then tap Request stay to send Kagie your move-in, NSFAS, and support details in one proper housing brief.</div>
-      `;
-      return;
-    }
-
-    const latest = state.requests[0];
-    const summary = latest.supportSummary
-      || `Move-in ${latest.preferredMoveInDate || "not set yet"} | Funding ${latest.fundingStatus || "not shared yet"}`;
-    const status = latest.status || "Support review requested";
-
-    el.requestTracker.innerHTML = `
-      <div class="helper-kicker">Housing tracker</div>
-      <div class="helper-title">${escapeHtml(latest.propertyName || "Accommodation request")} is with Kagie</div>
-      <div class="helper-copy">${escapeHtml(summary)}</div>
-      <div class="field-hint" style="margin-top:8px;">Status: ${escapeHtml(status)}. Last updated ${escapeHtml(formatDate(latest.updatedAt || latest.createdAt))}.</div>
-    `;
-  }
-
-  function renderListings() {
-    const filtered = getFilteredListings();
-    const visible = getVisibleListings();
-    el.resultsTitle.textContent = filtered.length ? `${filtered.length} housing match${filtered.length === 1 ? "" : "es"} for you` : "No matches yet";
-    el.seeAllBtn.textContent = state.showAll ? "Show top picks" : `See all ${filtered.length}`;
-
-    if (!filtered.length) {
-      el.listingResults.innerHTML = `<div class="empty-state">No listings match that search and filter combination yet. Try clearing a filter or raising your max price.</div>`;
-      return;
-    }
-
-    el.listingResults.innerHTML = visible.map((listing, index) => {
-      const meta = getMeta(listing);
-      const selected = state.compareIds.includes(listing.id);
-      const requested = isRequested(listing.id);
-      const tags = [
-        `<span class="tag ${String(listing.availabilityStatus || "").toLowerCase().includes("available") ? "tag-green" : "tag-gold"}">${escapeHtml(listing.availabilityStatus || "Available")}</span>`,
-        `<span class="tag tag-blue">${escapeHtml(listing.roomType || "Room")}</span>`,
-        isNsfasFriendly(listing) ? `<span class="tag tag-gold">NSFAS-friendly</span>` : "",
-        meta.femaleOnly ? `<span class="tag tag-red">Female-only</span>` : "",
-        requested ? `<span class="tag tag-blue">Kagie tracking</span>` : ""
-      ].filter(Boolean).join("");
-      const features = meta.amenities.map((amenity) => `<span class="feat"><span class="feat-icon">+</span>${escapeHtml(amenity)}</span>`).join("");
-      const image = Array.isArray(listing.images) && listing.images[0] ? listing.images[0] : "";
-      const backgroundStyle = image
-        ? `background:${meta.accent};background-image:linear-gradient(to bottom, rgba(16,35,61,.12), rgba(16,35,61,.22)), url('${escapeHtml(image)}');background-size:cover;background-position:center;`
-        : `background:${meta.accent};`;
-
-      return `
-        <div class="listing-card ${index === 0 ? "featured" : ""} ${selected ? "selected" : ""}" data-card-id="${escapeHtml(listing.id)}">
-          ${meta.ribbon && index === 0 ? `<div class="featured-ribbon">${escapeHtml(meta.ribbon)}</div>` : ""}
-          <div class="listing-img">
-            <div class="listing-img-bg" style="${backgroundStyle}">${escapeHtml(shortName(listing.propertyName))}</div>
-            <div class="img-overlay">
-              <div class="price-tag">${escapeHtml(money(listing.price))} <small>/ month</small></div>
-              <div class="verified-chip"><div class="verified-dot"></div>Verified</div>
-            </div>
-          </div>
-          <div class="listing-body">
-            <div class="listing-name">${escapeHtml(listing.propertyName)}</div>
-            <div class="listing-loc">
-              <div class="loc-dot"></div>
-              ${escapeHtml(listing.distanceFromCampus || listing.location || "Near campus")}
-            </div>
-            <div class="tag-row">${tags}</div>
-            <div class="feat-row">${features}</div>
-            <div class="safety-row">
-              <span class="safety-label">Safety</span>
-              <div class="safety-track"><div class="safety-fill" style="width:${escapeHtml(meta.safety)}%"></div></div>
-              <span class="safety-score">${escapeHtml(meta.safety)}/100</span>
-            </div>
-            <div class="listing-footer">
-              <div class="stars-row">
-                <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-                <span class="rating">${escapeHtml(meta.rating.toFixed(1))}</span>
-                <span class="review-count">(${escapeHtml(meta.reviews)} reviews)</span>
-              </div>
-              <div class="listing-cta-row">
-                <button class="cta-btn secondary ${selected ? "active" : ""}" type="button" data-compare-id="${escapeHtml(listing.id)}">${selected ? "Selected" : "Compare"}</button>
-                <button class="cta-btn" type="button" data-request-id="${escapeHtml(listing.id)}" ${state.housingAdmin?.settings?.serviceStatus && state.housingAdmin.settings.serviceStatus !== "open" ? "disabled" : ""}>${getRequestButtonLabel(listing.id)}</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join("");
-  }
-
-  function renderProximity() {
-    const items = getFilteredListings()
-      .slice()
-      .sort((a, b) => parseDistanceKm(a.distanceFromCampus) - parseDistanceKm(b.distanceFromCampus))
-      .slice(0, 3);
-
-    if (!items.length) {
-      el.mapDots.innerHTML = "";
-      el.proximityRows.innerHTML = `<div class="empty-state" style="box-shadow:none;border:none;padding:6px 0;">Add a broader filter to see the campus proximity view.</div>`;
-      return;
-    }
-
-    el.mapDots.innerHTML = items.map((listing, index) => {
-      const pos = MAP_POSITIONS[index] || MAP_POSITIONS[MAP_POSITIONS.length - 1];
-      const style = Object.entries(pos).map(([key, value]) => `${key}:${value}`).join(";");
-      return `
-        <div class="map-dot" style="${style}">
-          <div class="map-dot-circle" style="background:${escapeHtml(pos.color)}"></div>
-          <div class="map-dot-label">${escapeHtml((listing.propertyName || "").split(" ")[0] || "Stay")}</div>
-        </div>
-      `;
-    }).join("");
-
-    el.proximityRows.innerHTML = items.map((listing) => {
-      const distance = parseDistanceKm(listing.distanceFromCampus);
-      const walkLabel = Number.isFinite(distance) ? `${Math.max(3, Math.round(distance * 12))} min` : "Nearby";
-      const travelLabel = distance <= 1 ? "On route" : distance <= 1.8 ? "Shuttle 5 min" : "Taxi needed";
-      const travelClass = distance <= 1.8 ? "prox-taxi" : "";
-      const travelStyle = distance > 1.8 ? 'style="background:rgba(242,205,103,.14);color:#8B6500;"' : "";
-      return `
-        <div class="prox-row">
-          <span class="prox-name">${escapeHtml(listing.propertyName)}</span>
-          <div class="prox-tags">
-            <span class="prox-tag prox-walk">Walk ${escapeHtml(walkLabel)}</span>
-            <span class="prox-tag ${travelClass}" ${travelStyle}>${escapeHtml(travelLabel)}</span>
-          </div>
-        </div>
-      `;
-    }).join("");
-  }
-
-  function renderNearby() {
-    const items = getFilteredListings().slice(3, 8);
-    if (!items.length) {
-      el.nearbyListings.innerHTML = `<div class="empty-state" style="min-width:100%;margin-right:16px;">No extra nearby options yet. Try See all or clear one of the filters.</div>`;
-      return;
-    }
-
-    el.nearbyListings.innerHTML = items.map((listing) => {
-      const meta = getMeta(listing);
-      const image = Array.isArray(listing.images) && listing.images[0] ? listing.images[0] : "";
-      const backgroundStyle = image
-        ? `background-image:linear-gradient(to bottom, rgba(16,35,61,.08), rgba(16,35,61,.18)), url('${escapeHtml(image)}');background-size:cover;background-position:center;`
-        : `background:${meta.accent};`;
-      return `
-        <div class="mini-card" data-compare-id="${escapeHtml(listing.id)}">
-          <div class="mini-card-img" style="${backgroundStyle}">${escapeHtml(shortName(listing.propertyName))}</div>
-          <div class="mini-card-body">
-            <div class="mini-card-name">${escapeHtml(listing.propertyName)}</div>
-            <div class="mini-card-dist"><span>Near</span>${escapeHtml(listing.distanceFromCampus || listing.location || "Near campus")}</div>
-            <div class="mini-card-price">${escapeHtml(money(listing.price))}<small>/mo</small></div>
-          </div>
-        </div>
-      `;
-    }).join("");
-  }
-
-  function renderCompareTray() {
-    const selected = state.listings.filter((listing) => state.compareIds.includes(listing.id)).slice(0, 3);
-    el.compareSlots.innerHTML = [0, 1, 2].map((slot) => {
-      const listing = selected[slot];
-      if (!listing) return `<div class="tray-slot empty">+ Add</div>`;
-      return `<div class="tray-slot filled">${escapeHtml((listing.propertyName || "").split(" ").slice(0, 2).join(" "))}</div>`;
-    }).join("");
-    el.compareBtn.disabled = selected.length < 2;
-    el.compareTray.classList.toggle("hidden", selected.length === 0);
-  }
-
-  function renderCompareOverlay() {
-    const selected = state.listings.filter((listing) => state.compareIds.includes(listing.id)).slice(0, 3);
-    if (!selected.length) {
-      el.compareIntro.textContent = "Choose at least two listings to compare.";
-      el.compareGrid.innerHTML = `<div class="empty-state">Tap Compare on a few listings and Kagie will line them up here.</div>`;
-      return;
-    }
-    el.compareIntro.textContent = `${selected.length} selected stay${selected.length === 1 ? "" : "s"} lined up for a fast side-by-side check.`;
-    el.compareGrid.innerHTML = selected.map((listing) => {
-      const meta = getMeta(listing);
-      return `
-        <div class="compare-card">
-          <div class="compare-name">${escapeHtml(listing.propertyName)}</div>
-          <div class="compare-line"><span>Price</span><strong>${escapeHtml(money(listing.price))}/mo</strong></div>
-          <div class="compare-line"><span>Room</span><strong>${escapeHtml(listing.roomType || "Room")}</strong></div>
-          <div class="compare-line"><span>Distance</span><strong>${escapeHtml(listing.distanceFromCampus || "Near campus")}</strong></div>
-          <div class="compare-line"><span>Safety</span><strong>${escapeHtml(meta.safety)}/100</strong></div>
-          <div class="compare-line"><span>Status</span><strong>${escapeHtml(listing.availabilityStatus || "Available")}</strong></div>
-        </div>
-      `;
-    }).join("");
-  }
-
-  function renderAssistantResponse(query) {
-    const q = String(query || "").trim().toLowerCase();
-    const listings = getFilteredListings();
-    if (!q) {
-      el.assistantMsg.textContent = "Ask me about budget, safety, distance, or what Kagie needs before sending a housing request.";
-      return;
-    }
-    if (!listings.length) {
-      el.assistantMsg.textContent = "Your current filters are too tight. Try widening the price or distance and I will point out the strongest options.";
-      return;
-    }
-
-    const safest = listings.slice().sort((a, b) => getMeta(b).safety - getMeta(a).safety)[0];
-    const cheapest = listings.slice().sort((a, b) => Number(a.price || 0) - Number(b.price || 0))[0];
-    const closest = listings.slice().sort((a, b) => parseDistanceKm(a.distanceFromCampus) - parseDistanceKm(b.distanceFromCampus))[0];
-    const single = listings.find((listing) => /single|studio/i.test(listing.roomType || ""));
-
-    if (/safe|security/.test(q)) {
-      el.assistantMsg.textContent = `${safest.propertyName} is the safest match right now at ${getMeta(safest).safety}/100, and it is marked ${safest.availabilityStatus || "Available"}.`;
-      return;
-    }
-    if (/cheap|budget|afford|nsfas/.test(q)) {
-      el.assistantMsg.textContent = `${cheapest.propertyName} is your best budget pick at ${money(cheapest.price)} per month${isNsfasFriendly(cheapest) ? ", and it still fits the NSFAS-friendly range." : "."}`;
-      return;
-    }
-    if (/close|near|distance|walk/.test(q)) {
-      el.assistantMsg.textContent = `${closest.propertyName} is the closest option in this list at ${closest.distanceFromCampus || "a short distance from campus"}.`;
-      return;
-    }
-    if (/single|private|studio/.test(q) && single) {
-      el.assistantMsg.textContent = `${single.propertyName} gives you the most private setup in this filtered list with a ${single.roomType || "single room"} option.`;
-      return;
-    }
-    if (/request|book|reserve|stay/.test(q)) {
-      el.assistantMsg.textContent = "Tap Request stay to open the full Kagie housing form. It asks for move-in timing, NSFAS or funding, guardian contacts, and any support notes before the team starts the reservation.";
-      return;
-    }
-
-    el.assistantMsg.textContent = `Right now I would start with ${closest.propertyName} for distance, ${cheapest.propertyName} for budget, and ${safest.propertyName} for safety.`;
-  }
-
-  function syncFilterSheet() {
-    el.priceRange.value = String(state.filters.maxPrice);
-    el.priceVal.textContent = String(state.filters.maxPrice);
-    document.querySelectorAll(".filter-option").forEach((option) => {
-      const value = option.dataset.value || "";
-      const group = option.closest(".filter-grid")?.dataset.group || "";
-      let selected = false;
-      if (group === "roomType") selected = state.filters.roomType === value;
-      if (group === "distance") selected = state.filters.distance === value;
-      if (group === "mustHave") selected = state.filters.mustHaves.has(value);
-      option.classList.toggle("sel", selected);
+  function persistFilters() {
+    saveLocal('filters', {
+      ...f,
+      moveIn,
+      students
     });
   }
-
-  function rerender() {
-    updateHero();
-    renderRequestTracker();
-    renderListings();
-    renderProximity();
-    renderNearby();
-    renderCompareTray();
-    renderCompareOverlay();
+  function remember(item) {
+    if (!item) return;
+    const next = [item.id, ...recent.filter(id => id !== item.id)].slice(0, 20);
+    if (saveLocal('recent', next)) recent = next;
   }
-
-  function buildSupportChecklist(payload) {
-    const checklist = [];
-    if (payload.fundingStatus) checklist.push(`Funding: ${payload.fundingStatus}`);
-    if (payload.nsfasBeneficiary === "yes") checklist.push(`NSFAS since ${payload.nsfasSinceYear || "year not given"}`);
-    if (payload.nsfasBeneficiary === "pending") checklist.push("Awaiting NSFAS outcome");
-    if (payload.documentsReady) checklist.push(`Documents: ${payload.documentsReady}`);
-    if (payload.transportNeeded === "yes") checklist.push("Needs transport help");
-    if (payload.specialNeeds && payload.specialNeeds !== "none") checklist.push(`Need: ${payload.specialNeeds}`);
-    return checklist;
+  function dialog(title, body) {
+    const node = $("housingDialog");
+    node.innerHTML = `<button class="ha-round" data-dialog-close type="button" aria-label="Close">${icon('close')}</button><h2 id="housingDialogTitle">${esc(title)}</h2>${body}`;
+    node.showModal();
   }
-
-  function buildSupportSummary(payload) {
-    const parts = [];
-    if (payload.preferredMoveInDate) parts.push(`Move-in ${payload.preferredMoveInDate}`);
-    if (payload.fundingStatus) parts.push(`Funding ${payload.fundingStatus}`);
-    if (payload.nsfasBeneficiary === "yes") parts.push(`NSFAS since ${payload.nsfasSinceYear || "unknown year"}`);
-    if (payload.nsfasBeneficiary === "pending") parts.push("NSFAS pending");
-    if (payload.documentsReady) parts.push(`Docs ${payload.documentsReady}`);
-    if (payload.transportNeeded === "yes") parts.push("Transport support needed");
-    return parts.join(" | ");
-  }
-
-  function renderRequestListingCard(listing) {
-    if (!listing || !el.requestListingCard) return;
-    const meta = getMeta(listing);
-    const existing = getRequestForListing(listing.id);
-    const campus = extractCampusName(listing.distanceFromCampus);
-    const trackerText = existing
-      ? `Already in Kagie tracker - last updated ${formatDate(existing.updatedAt || existing.createdAt)}`
-      : "Not yet submitted to Kagie";
-    el.requestListingCard.innerHTML = `
-      <div class="request-property-head">
-        <div>
-          <div class="request-property-name">${escapeHtml(listing.propertyName)}</div>
-          <div class="request-property-sub">${escapeHtml(listing.location || listing.address || "Near campus")}${campus ? ` | Campus: ${escapeHtml(campus)}` : ""}</div>
-        </div>
-        <div class="price-tag">${escapeHtml(money(listing.price))} <small>/ month</small></div>
-      </div>
-      <div class="request-pill-row">
-        <span class="request-pill">${escapeHtml(listing.roomType || "Room")}</span>
-        <span class="request-pill">${escapeHtml(listing.availabilityStatus || "Available")}</span>
-        <span class="request-pill">Safety ${escapeHtml(meta.safety)}/100</span>
-      </div>
-      <div class="field-hint">${escapeHtml(trackerText)}</div>
-    `;
-  }
-
-  function populateRequestForm(listing) {
-    const existing = getRequestForListing(listing.id) || {};
-    const profile = state.profile || {};
-    const user = state.user || {};
-    const campusName = existing.campusName || profile.campusName || extractCampusName(listing.distanceFromCampus);
-    const yearOfStudy = existing.yearOfStudy || profile.yearOfStudy || profile.grade || "";
-
-    setRequestFieldValue("requestListingId", listing.id);
-    setRequestFieldValue("reqLearnerName", existing.learnerName || profile.fullName || profile.fullNames || user.name || "");
-    setRequestFieldValue("reqLearnerEmail", existing.learnerEmail || profile.email || user.email || "");
-    setRequestFieldValue("reqLearnerPhone", existing.learnerPhone || profile.phone || profile.cellphone || user.phone || user.cellphone || "");
-    setRequestFieldValue("reqAltPhone", existing.alternatePhone || profile.guardianPhoneAlt || profile.guardianCell2 || "");
-    setRequestFieldValue("reqInstitutionName", existing.institutionName || profile.institutionName || listing.institutionName || "");
-    setRequestFieldValue("reqCampusName", campusName);
-    setRequestFieldValue("reqStudentNumber", existing.studentNumber || profile.studentNumber || "");
-    setRequestFieldValue("reqYearOfStudy", yearOfStudy);
-    setRequestFieldValue("reqGender", existing.gender || profile.gender || "");
-    setRequestFieldValue("reqIdNumber", existing.idNumber || profile.idNumber || "");
-
-    setRequestFieldValue("reqFundingStatus", existing.fundingStatus || "");
-    setRequestFieldValue("reqNsfasBeneficiary", existing.nsfasBeneficiary || "");
-    setRequestFieldValue("reqNsfasSinceYear", existing.nsfasSinceYear || "");
-    setRequestFieldValue("reqNsfasReference", existing.nsfasReferenceNumber || "");
-    setRequestFieldValue("reqNsfasAllowanceStatus", existing.nsfasAllowanceStatus || "");
-    setRequestFieldValue("reqBursaryProvider", existing.bursaryProvider || "");
-
-    setRequestFieldValue("reqMoveInDate", existing.preferredMoveInDate || "");
-    setRequestFieldValue("reqLeaseMonths", existing.preferredLeaseMonths || "");
-    setRequestFieldValue("reqRoomPreference", existing.roomPreference || listing.roomType || "");
-    setRequestFieldValue("reqTransportNeeded", existing.transportNeeded || "");
-    setRequestFieldValue("reqDocumentsReady", existing.documentsReady || "");
-
-    setRequestFieldValue("reqGuardianName", existing.guardianName || profile.guardianName || profile.guardianFullNames || "");
-    setRequestFieldValue("reqGuardianPhone", existing.guardianPhone || profile.guardianPhone || profile.guardianCell1 || "");
-    setRequestFieldValue("reqGuardianEmail", existing.guardianEmail || profile.guardianEmail || "");
-    setRequestFieldValue("reqEmergencyName", existing.emergencyContactName || profile.guardianName || "");
-    setRequestFieldValue("reqEmergencyPhone", existing.emergencyContactPhone || profile.guardianPhone || profile.guardianCell1 || "");
-    setRequestFieldValue("reqEmergencyRelationship", existing.emergencyRelationship || profile.guardianRelation || "");
-
-    setRequestFieldValue("reqSpecialNeeds", existing.specialNeeds || "none");
-    setRequestFieldValue("reqMedicalNotes", existing.medicalNotes || "");
-    setRequestFieldValue("reqSupportNote", existing.note || "");
-  }
-
-  function setRequestStatus(message, kind) {
-    if (!el.requestStatus) return;
-    el.requestStatus.className = "request-status";
-    el.requestStatus.textContent = "";
-    if (!message) return;
-    el.requestStatus.classList.add(kind === "success" ? "success" : "error");
-    el.requestStatus.textContent = message;
-  }
-
-  function updateConditionalFields() {
-    const nsfasState = getRequestFieldValue("reqNsfasBeneficiary");
-    const fundingStatus = getRequestFieldValue("reqFundingStatus");
-    const showNsfasDetails = nsfasState === "yes" || nsfasState === "pending";
-    const showSponsorDetails = /bursary|sponsor|mixed/i.test(fundingStatus);
-
-    el.nsfasDetailBlock.classList.toggle("hidden", !showNsfasDetails);
-    el.sponsorDetailBlock.classList.toggle("hidden", !showSponsorDetails);
-  }
-
-  function updateRequestProgress() {
-    const requiredFields = REQUEST_PROGRESS_FIELDS.slice();
-    if (getRequestFieldValue("reqNsfasBeneficiary") === "yes") requiredFields.push("reqNsfasSinceYear");
-    if (/bursary|sponsor|mixed/i.test(getRequestFieldValue("reqFundingStatus"))) requiredFields.push("reqBursaryProvider");
-
-    const completed = requiredFields.filter((fieldId) => getRequestFieldValue(fieldId)).length;
-    const total = requiredFields.length;
-    const percent = total ? Math.round((completed / total) * 100) : 0;
-
-    el.requestProgressText.textContent = `${completed} of ${total} key details filled`;
-    el.requestProgressFill.style.width = `${percent}%`;
-
-    const missingLabels = [];
-    if (!getRequestFieldValue("reqLearnerName")) missingLabels.push("full name");
-    if (!getRequestFieldValue("reqFundingStatus")) missingLabels.push("funding plan");
-    if (!getRequestFieldValue("reqNsfasBeneficiary")) missingLabels.push("NSFAS status");
-    if (!getRequestFieldValue("reqMoveInDate")) missingLabels.push("move-in date");
-    if (!getRequestFieldValue("reqGuardianPhone")) missingLabels.push("guardian phone");
-
-    el.requestProgressHint.textContent = missingLabels.length
-      ? `Still helpful to add: ${missingLabels.slice(0, 3).join(", ")}${missingLabels.length > 3 ? "..." : ""}.`
-      : "Strong brief. Kagie support now has the core contact, funding, and move-in details needed to act fast.";
-  }
-
-  const queueSearchRerender = debounceFrame(() => {
-    rerender();
-  }, 160);
-
-  const queueRequestProgressRefresh = debounceFrame(() => {
-    updateConditionalFields();
-    updateRequestProgress();
-  }, 120);
-
-  function openRequestForm(listingId) {
-    const listing = state.listings.find((item) => item.id === listingId);
-    if (!listing) return;
-
-    state.activeListingId = listingId;
-    renderRequestListingCard(listing);
-    populateRequestForm(listing);
-    updateConditionalFields();
-    updateRequestProgress();
-    setRequestStatus("", "error");
-    el.requestSheetSub.textContent = isRequested(listingId)
-      ? "Review or update the details Kagie support already has for this stay."
-      : "Share the details Kagie support needs before we reserve a room for you.";
-    el.requestOverlay.classList.add("open");
-  }
-
-  function closeRequestFormInternal() {
-    el.requestOverlay.classList.remove("open");
-    state.activeListingId = "";
-    setRequestStatus("", "error");
-  }
-
-  function buildRequestPayload(listing) {
+  async function submit(form) {
+    if (submitting) return;
+    const item = byId.get(form.dataset.listing),
+      errorNode = $("housingRequestError");
+    if (!refreshDone) {
+      errorNode.textContent = 'Please wait while Kagie checks the housing service.';
+      return;
+    }
+    if (!item || admin?.settings?.serviceStatus && admin.settings.serviceStatus !== 'open') {
+      errorNode.textContent = 'Housing requests are unavailable right now.';
+      return;
+    }
+    const old = requests.find(request => request.listingId === item.id) || {};
     const payload = {
-      listingId: listing.id,
-      propertyName: listing.propertyName,
-      institutionName: getRequestFieldValue("reqInstitutionName") || listing.institutionName || "",
-      province: listing.province || "",
-      location: listing.location || "",
-      address: listing.address || "",
-      roomType: listing.roomType || "",
-      price: listing.price || 0,
-      providerPhone: listing.contactPhone || "",
-      images: listing.images || [],
-      learnerName: getRequestFieldValue("reqLearnerName"),
-      learnerEmail: getRequestFieldValue("reqLearnerEmail"),
-      learnerPhone: getRequestFieldValue("reqLearnerPhone"),
-      alternatePhone: getRequestFieldValue("reqAltPhone"),
-      idNumber: getRequestFieldValue("reqIdNumber"),
-      studentNumber: getRequestFieldValue("reqStudentNumber"),
-      campusName: getRequestFieldValue("reqCampusName"),
-      yearOfStudy: getRequestFieldValue("reqYearOfStudy"),
-      gender: getRequestFieldValue("reqGender"),
-      preferredMoveInDate: getRequestFieldValue("reqMoveInDate"),
-      preferredLeaseMonths: getRequestFieldValue("reqLeaseMonths"),
-      roomPreference: getRequestFieldValue("reqRoomPreference"),
-      fundingStatus: getRequestFieldValue("reqFundingStatus"),
-      nsfasBeneficiary: getRequestFieldValue("reqNsfasBeneficiary"),
-      nsfasSinceYear: getRequestFieldValue("reqNsfasSinceYear"),
-      nsfasReferenceNumber: getRequestFieldValue("reqNsfasReference"),
-      nsfasAllowanceStatus: getRequestFieldValue("reqNsfasAllowanceStatus"),
-      bursaryProvider: getRequestFieldValue("reqBursaryProvider"),
-      guardianName: getRequestFieldValue("reqGuardianName"),
-      guardianPhone: getRequestFieldValue("reqGuardianPhone"),
-      guardianEmail: getRequestFieldValue("reqGuardianEmail"),
-      emergencyContactName: getRequestFieldValue("reqEmergencyName"),
-      emergencyContactPhone: getRequestFieldValue("reqEmergencyPhone"),
-      emergencyRelationship: getRequestFieldValue("reqEmergencyRelationship"),
-      documentsReady: getRequestFieldValue("reqDocumentsReady"),
-      transportNeeded: getRequestFieldValue("reqTransportNeeded"),
-      specialNeeds: getRequestFieldValue("reqSpecialNeeds"),
-      medicalNotes: getRequestFieldValue("reqMedicalNotes"),
-      note: getRequestFieldValue("reqSupportNote"),
-      contactPhone: getRequestFieldValue("reqLearnerPhone"),
-      status: "Support review requested"
+      ...old,
+      ...Object.fromEntries(new FormData(form)),
+      listingId: item.id,
+      propertyName: item.propertyName,
+      province: item.province,
+      location: item.location,
+      address: item.address,
+      roomType: item.roomType,
+      price: item.price,
+      images: item.images,
+      providerPhone: item.contactPhone,
+      status: old.status || 'Support review requested'
     };
-    payload.supportChecklist = buildSupportChecklist(payload);
-    payload.supportSummary = buildSupportSummary(payload);
-    return payload;
-  }
-
-  function validateRequestPayload(payload) {
-    const errors = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const moveInDate = payload.preferredMoveInDate ? new Date(`${payload.preferredMoveInDate}T00:00:00`) : null;
-
-    if (!payload.learnerName) errors.push("Add the learner's full name.");
-    if (!payload.learnerEmail) errors.push("Add the learner's email address.");
-    if (!payload.learnerPhone) errors.push("Add the learner's main phone number.");
-    if (!payload.institutionName) errors.push("Add the institution name.");
-    if (!payload.yearOfStudy) errors.push("Choose the learner's year of study.");
-    if (!payload.fundingStatus) errors.push("Choose how accommodation will be funded.");
-    if (!payload.nsfasBeneficiary) errors.push("Choose the learner's NSFAS status.");
-    if (payload.nsfasBeneficiary === "yes" && !payload.nsfasSinceYear) errors.push("Say from which year the learner has been an NSFAS beneficiary.");
-    if (/bursary|sponsor|mixed/i.test(payload.fundingStatus) && !payload.bursaryProvider) errors.push("Add the bursary, sponsor, or family funding detail.");
-    if (!payload.preferredMoveInDate) {
-      errors.push("Choose the preferred move-in date.");
-    } else if (!Number.isNaN(moveInDate?.getTime()) && moveInDate < today) {
-      errors.push("Choose a move-in date that is today or later.");
-    }
-    if (!payload.documentsReady) errors.push("Tell Kagie how ready the housing documents are.");
-    if (!payload.guardianName) errors.push("Add a guardian or sponsor name.");
-    if (!payload.guardianPhone) errors.push("Add a guardian or sponsor phone number.");
-    if (!payload.emergencyContactName) errors.push("Add an emergency contact name.");
-    if (!payload.emergencyContactPhone) errors.push("Add an emergency contact phone number.");
-    return errors;
-  }
-
-  async function submitRequestForm(event) {
-    event.preventDefault();
-    if (requestSubmitting) return;
-
-    const originalSubmitText = el.requestSubmitBtn?.textContent || "Submit request";
-    let slowTimer = 0;
-    requestSubmitting = true;
-    if (el.requestSubmitBtn) {
-      el.requestSubmitBtn.disabled = true;
-      el.requestSubmitBtn.setAttribute("aria-busy", "true");
-      el.requestSubmitBtn.textContent = "Saving...";
-    }
-    if (el.requestCancelBtn) el.requestCancelBtn.disabled = true;
-    if (el.requestCloseBtn) el.requestCloseBtn.disabled = true;
-
-    try {
-      const listing = getCurrentListing();
-      if (!listing || !state.user) return;
-      if (state.housingAdmin?.settings?.serviceStatus && state.housingAdmin.settings.serviceStatus !== "open") {
-        setRequestStatus("Housing requests are currently paused by Kagie admin.", "error");
-        return;
-      }
-
-      const payload = buildRequestPayload(listing);
-      const errors = validateRequestPayload(payload);
-      if (errors.length) {
-        setRequestStatus(errors.slice(0, 3).join(" "), "error");
-        return;
-      }
-
-      const api = window.KagieAPI;
-      if (!api) return;
-
-      setRequestStatus("Saving your housing brief for Kagie support...", "success");
-      slowTimer = window.setTimeout(() => {
-        setRequestStatus("Still processing, please wait...", "success");
-      }, 3200);
-
-      const result = api.submitAccommodationRequestAsync
-        ? await api.submitAccommodationRequestAsync(payload, state.user.id)
-        : api.submitAccommodationRequest(payload, state.user.id);
-
-      const existingIndex = state.requests.findIndex((request) =>
-        String(request.id || "") === String(result.id || "")
-        || String(request.listingId || "") === String(result.listingId || "")
-      );
-      if (existingIndex >= 0) state.requests[existingIndex] = result;
-      else state.requests.unshift(result);
-      state.requests = sortRequests(state.requests);
-
-      setRequestStatus(`${listing.propertyName} is now in Kagie's housing tracker.`, "success");
-      el.assistantMsg.textContent = `${listing.propertyName} has been sent with your move-in, funding, and support details. Kagie can now follow up from a proper housing brief.`;
-      rerender();
-
-      window.setTimeout(() => {
-        closeRequestFormInternal();
-        el.requestTracker?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }, 420);
-    } catch (error) {
-      console.error(error);
-      setRequestStatus(error?.message || "Kagie could not save that housing request right now.", "error");
-    } finally {
-      if (slowTimer) window.clearTimeout(slowTimer);
-      requestSubmitting = false;
-      if (el.requestSubmitBtn) {
-        el.requestSubmitBtn.disabled = false;
-        el.requestSubmitBtn.removeAttribute("aria-busy");
-        el.requestSubmitBtn.textContent = originalSubmitText;
-      }
-      if (el.requestCancelBtn) el.requestCancelBtn.disabled = false;
-      if (el.requestCloseBtn) el.requestCloseBtn.disabled = false;
-    }
-  }
-
-  function toggleCompare(listingId) {
-    if (state.compareIds.includes(listingId)) state.compareIds = state.compareIds.filter((id) => id !== listingId);
-    else if (state.compareIds.length < 3) state.compareIds = state.compareIds.concat(listingId);
-    else state.compareIds = state.compareIds.slice(1).concat(listingId);
-    rerender();
-  }
-
-  function bindEvents() {
-    el.searchInput.addEventListener("input", (event) => {
-      state.query = event.target.value || "";
-      state.showAll = false;
-      queueSearchRerender();
-    });
-
-    document.querySelectorAll(".filter-pill").forEach((pill) => {
-      pill.addEventListener("click", () => {
-        document.querySelectorAll(".filter-pill").forEach((item) => item.classList.remove("active"));
-        pill.classList.add("active");
-        state.activePreset = pill.dataset.preset || "all";
-        state.showAll = false;
-        rerender();
-      });
-    });
-
-    el.seeAllBtn.addEventListener("click", () => {
-      state.showAll = !state.showAll;
-      renderListings();
-    });
-
-    el.mapViewBtn.addEventListener("click", () => {
-      document.querySelector(".proximity-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-
-    el.listingResults.addEventListener("click", (event) => {
-      const requestButton = event.target.closest("[data-request-id]");
-      if (requestButton) {
-        openRequestForm(requestButton.dataset.requestId || "");
-        return;
-      }
-      const compareButton = event.target.closest("[data-compare-id]");
-      if (compareButton) toggleCompare(compareButton.dataset.compareId || "");
-    });
-
-    el.nearbyListings.addEventListener("click", (event) => {
-      const card = event.target.closest("[data-compare-id]");
-      if (card) toggleCompare(card.dataset.compareId || "");
-    });
-
-    el.assistantSend.addEventListener("click", () => {
-      renderAssistantResponse(el.assistantInput.value);
-      el.assistantInput.value = "";
-    });
-
-    el.assistantInput.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        renderAssistantResponse(el.assistantInput.value);
-        el.assistantInput.value = "";
-      }
-    });
-
-    el.priceRange.addEventListener("input", (event) => {
-      el.priceVal.textContent = String(event.target.value || state.filters.maxPrice);
-    });
-
-    document.querySelectorAll(".filter-option").forEach((option) => {
-      option.addEventListener("click", () => {
-        const groupEl = option.closest(".filter-grid");
-        const group = groupEl?.dataset.group || "";
-        const value = option.dataset.value || "";
-        const isMulti = groupEl?.dataset.multi === "true";
-
-        if (isMulti && group === "mustHave") {
-          if (state.filters.mustHaves.has(value)) state.filters.mustHaves.delete(value);
-          else state.filters.mustHaves.add(value);
-        } else if (group === "roomType") {
-          state.filters.roomType = value;
-        } else if (group === "distance") {
-          state.filters.distance = value;
-        }
-        syncFilterSheet();
-      });
-    });
-
-    el.applyFilterBtn.addEventListener("click", () => {
-      state.filters.maxPrice = Number(el.priceRange.value || 8000);
-      rerender();
-      window.closeFilter?.({ target: el.filterOverlay });
-      if (state.filters.distance === "map") {
-        document.querySelector(".proximity-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-
-    el.compareBtn.addEventListener("click", () => {
-      if (state.compareIds.length >= 2) el.compareOverlay.classList.add("open");
-    });
-
-    el.requestForm.addEventListener("submit", submitRequestForm);
-    el.requestCancelBtn.addEventListener("click", closeRequestFormInternal);
-    el.requestCloseBtn.addEventListener("click", closeRequestFormInternal);
-
-    el.requestForm.addEventListener("input", () => {
-      queueRequestProgressRefresh();
-      if (el.requestStatus.classList.contains("error")) setRequestStatus("", "error");
-    });
-    el.requestForm.addEventListener("change", () => {
-      updateConditionalFields();
-      updateRequestProgress();
-    });
-  }
-
-  function cacheElements() {
-    el.heroGreeting = $("heroGreeting");
-    el.heroName = $("heroName");
-    el.heroAvatar = $("heroAvatar");
-    el.heroSub = $("heroSub");
-    el.statListings = $("statListings");
-    el.statRequests = $("statRequests");
-    el.statClosest = $("statClosest");
-    el.searchInput = $("searchInput");
-    el.requestTracker = $("requestTracker");
-    el.resultsTitle = $("resultsTitle");
-    el.seeAllBtn = $("seeAllBtn");
-    el.listingResults = $("listingResults");
-    el.mapDots = $("mapDots");
-    el.proximityRows = $("proximityRows");
-    el.nearbyListings = $("nearbyListings");
-    el.mapViewBtn = $("mapViewBtn");
-    el.assistantMsg = $("assistantMsg");
-    el.assistantInput = $("assistantInput");
-    el.assistantSend = $("assistantSend");
-    el.compareSlots = $("compareSlots");
-    el.compareBtn = $("compareBtn");
-    el.compareTray = document.querySelector(".compare-tray");
-    el.compareOverlay = $("compareOverlay");
-    el.compareIntro = $("compareIntro");
-    el.compareGrid = $("compareGrid");
-    el.filterOverlay = $("filterOverlay");
-    el.priceRange = $("priceRange");
-    el.priceVal = $("priceVal");
-    el.applyFilterBtn = $("applyFilterBtn");
-    el.requestOverlay = $("requestOverlay");
-    el.requestForm = $("requestForm");
-    el.requestSheetSub = $("requestSheetSub");
-    el.requestListingCard = $("requestListingCard");
-    el.requestProgressText = $("requestProgressText");
-    el.requestProgressFill = $("requestProgressFill");
-    el.requestProgressHint = $("requestProgressHint");
-    el.requestStatus = $("requestStatus");
-    el.requestSubmitBtn = $("requestSubmitBtn");
-    el.requestCancelBtn = $("requestCancelBtn");
-    el.requestCloseBtn = $("requestCloseBtn");
-    el.nsfasDetailBlock = $("nsfasDetailBlock");
-    el.sponsorDetailBlock = $("sponsorDetailBlock");
-  }
-
-  async function init() {
-    cacheElements();
-    bindEvents();
-
-    const api = window.KagieAPI;
-    if (!api) return;
-
-    try {
-      if (api.restoreSession) await api.restoreSession();
-    } catch (error) {
-      console.warn("Accommodation session restore skipped:", error);
-    }
-
-    try {
-      state.user = api.requireRole("user");
-    } catch (_error) {
-      window.location.href = "../login.html";
+    payload.contactPhone = payload.learnerPhone;
+    payload.supportSummary = `Move-in ${payload.preferredMoveInDate} | Funding ${payload.fundingStatus} | Documents ${payload.documentsReady} | Students ${students}`;
+    payload.supportChecklist = [`Funding: ${payload.fundingStatus}`, `Documents: ${payload.documentsReady}`];
+    const errors = m.validate(payload);
+    if (errors.length) {
+      errorNode.textContent = errors.join(' ');
+      errorNode.tabIndex = -1;
+      errorNode.focus();
       return;
     }
-
+    submitting = true;
+    errorNode.textContent = '';
+    const button = form.querySelector('button[type=submit]'),
+      original = button.innerHTML;
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.textContent = 'Saving…';
     try {
-      state.profile = api.getProfileAsync
-        ? await api.getProfileAsync(state.user.id)
-        : (api.getProfile ? (api.getProfile(state.user.id) || {}) : {});
-      state.housingAdmin = api.getAdminContentAsync
-        ? await api.getAdminContentAsync("housing_hub").catch(() => null)
-        : null;
-      state.listings = api.getAccommodationListingsAsync
-        ? await api.getAccommodationListingsAsync()
-        : (api.getAccommodationListings ? api.getAccommodationListings() : []);
-      state.requests = api.getAccommodationRequestsAsync
-        ? await api.getAccommodationRequestsAsync(state.user.id)
-        : (api.getAccommodationRequests ? api.getAccommodationRequests(state.user.id) : []);
-      state.requests = sortRequests(state.requests);
-      rerender();
-      syncFilterSheet();
+      const result = await (api.submitAccommodationRequestAsync ? api.submitAccommodationRequestAsync(payload, user.id) : api.submitAccommodationRequest(payload, user.id));
+      if (!result?.id) throw new Error('The request was not saved. Please try again.');
+      requests = [result, ...requests.filter(request => request.id !== result.id && request.listingId !== item.id)];
+      if (route.view === 'request' && route.id === item.id) location.hash = href('status', result.id);else toast(result.source === 'remote' ? 'Housing request submitted.' : 'Housing request saved on this device.');
     } catch (error) {
-      console.error(error);
-      el.listingResults.innerHTML = `<div class="empty-state">Kagie could not load accommodation listings right now. Refresh the page and try again.</div>`;
+      errorNode.textContent = error.message || 'Could not save your request. Your form is still here.';
+    } finally {
+      submitting = false;
+      if (button.isConnected) {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+        button.innerHTML = original;
+      }
     }
   }
-
-  window.openFilter = function openFilter() {
-    el.filterOverlay?.classList.add("open");
-  };
-
-  window.closeFilter = function closeFilter(event) {
-    if (!el.filterOverlay) return;
-    if (!event || event.target === el.filterOverlay) el.filterOverlay.classList.remove("open");
-  };
-
-  window.closeCompare = function closeCompare(event) {
-    if (!el.compareOverlay) return;
-    if (!event || event.target === el.compareOverlay) el.compareOverlay.classList.remove("open");
-  };
-
-  window.closeRequestForm = function closeRequestForm(event) {
-    if (!el.requestOverlay) return;
-    if (!event || event.target === el.requestOverlay) closeRequestFormInternal();
-  };
-
-  document.addEventListener("DOMContentLoaded", () => {
-    void init();
-  }, { once: true });
+  function bind() {
+    document.addEventListener('click', async event => {
+      const button = event.target.closest('button');
+      if (!button) return;
+      if (button.hasAttribute('data-save')) {
+        const item = byId.get(button.dataset.save);
+        if (!item) return;
+        const next = saved.includes(item.id) ? saved.filter(id => id !== item.id) : [...saved, item.id];
+        if (!saveLocal('saved', next)) return;
+        saved = next;
+        if (route.view === 'saved') render();else {
+          document.querySelectorAll('[data-save]').forEach(node => {
+            const active = saved.includes(node.dataset.save);
+            node.setAttribute('aria-pressed', active);
+            node.setAttribute('aria-label', `${active ? 'Unsave' : 'Save'} ${byId.get(node.dataset.save)?.propertyName || 'place'}`);
+          });
+        }
+        toast(saved.includes(item.id) ? 'Place saved.' : 'Place removed from saved.');
+      } else if (button.hasAttribute('data-mode')) {
+        const form = $('housingSearch');
+        if (form) {
+          const data = new FormData(form);
+          f = m.filters({...f, query:data.get('query'), maxPrice:data.get('maxPrice')});
+          moveIn = String(data.get('moveIn') || '');
+          students = String(data.get('students') || '1');
+        }
+        f.mode = button.dataset.mode;
+        persistFilters();
+        render();
+      } else if (button.hasAttribute('data-preset')) {
+        if (button.dataset.preset === 'all') f = {
+          ...m.defaults,
+          query: f.query,
+          mode: f.mode
+        };else if (button.dataset.preset === 'budget') f.maxPrice = f.maxPrice === 3000 ? 8000 : 3000;else f.distance = f.distance === '5' ? 'any' : '5';
+        persistFilters();
+        render();
+      } else if (button.hasAttribute('data-reset')) {
+        f = {
+          ...m.defaults,
+          query: f.query,
+          mode: f.mode
+        };
+        persistFilters();
+        render();
+      } else if (button.hasAttribute('data-more')) {
+        listLimit += 24;
+        updateList();
+      } else if (button.hasAttribute('data-history')) {
+        f = m.filters(searchHistory[Number(button.dataset.history)]);
+        persistFilters();
+        location.hash = '#listings';
+      } else if (button.hasAttribute('data-photo')) {
+        const item = byId.get(route.id),
+          photos = getImages(item),
+          index = Number(button.dataset.photo);
+        if (!photos[index]) return;
+        $("housingMainPhoto").src = photos[index];
+        delete $("housingMainPhoto").dataset.fallback;
+        $("housingMainPhoto").alt = isIllustration(item, index) ? 'Example housing illustration' : item.propertyName + ' property photo';
+        const caption = document.querySelector('.ha-gallery .ha-photo-label');
+        if (caption) caption.hidden = !isIllustration(item, index);
+        else if (isIllustration(item, index)) document.querySelector('.ha-gallery')?.insertAdjacentHTML('beforeend', '<span class="ha-photo-label">Illustration</span>');
+        $("housingPhotoCount").textContent = `${index + 1}/${photos.length}`;
+        document.querySelectorAll('[data-photo]').forEach(node => {
+          const active = Number(node.dataset.photo) === index;
+          node.classList.toggle('active', active);
+          node.setAttribute('aria-pressed', active);
+        });
+      } else if (button.hasAttribute('data-amenities')) {
+        const item = byId.get(button.dataset.amenities);
+        if (item) dialog('All amenities', item.amenities.length ? `<ul>${item.amenities.map(value => `<li>${esc(value)}</li>`).join('')}</ul>` : '<p>Amenities have not been supplied. Ask the provider for details.</p>');
+      } else if (button.hasAttribute('data-contact')) {
+        const item = byId.get(button.dataset.contact);
+        if (!item) return;
+        const phone = String(item.contactPhone || '').replace(/[^\d+]/g, ''),
+          email = String(item.contactEmail || '');
+        dialog('Contact the provider', `<p>${esc(item.propertyName)}</p>${/^\+?\d{7,15}$/.test(phone) ? `<a class="ha-mini-link" href="tel:${esc(phone)}">${icon('chat')}Call ${esc(item.contactPhone)}</a>` : ''}${/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? `<a class="ha-mini-link" href="mailto:${encodeURIComponent(email)}">${icon('send')}Email the provider</a>` : ''}<p>Confirm the current room, costs and availability directly.</p>${support()}`);
+      } else if (button.hasAttribute('data-dialog-close')) $("housingDialog").close();else if (button.hasAttribute('data-share')) {
+        const item = byId.get(button.dataset.share);
+        if (!item) return;
+        const data = {
+          title: item.propertyName,
+          url: location.origin + location.pathname + detailHref(item)
+        };
+        try {
+          if (navigator.share) await navigator.share(data);else if (navigator.clipboard) {
+            await navigator.clipboard.writeText(data.url);
+            toast('Link copied.');
+          } else dialog('Share place', `<label class="ha-label">Copy this link<input class="ha-input" readonly value="${esc(data.url)}"/></label>`);
+        } catch (error) {
+          if (error.name !== 'AbortError') toast('Could not share this place. Try copying the page link.');
+        }
+      }
+    });
+    $("housingContent").addEventListener('submit', event => {
+      event.preventDefault();
+      const form = event.target;
+      if (form.id === 'housingSearch') {
+        const data = new FormData(form);
+        f = m.filters({
+          ...f,
+          query: data.get('query'),
+          maxPrice: data.get('maxPrice')
+        });
+        moveIn = String(data.get('moveIn') || '');
+        students = String(data.get('students') || '1');
+        persistFilters();
+        const next = [{
+          ...f
+        }, ...searchHistory.filter(item => JSON.stringify(item) !== JSON.stringify(f))].slice(0, 6);
+        if (saveLocal('searches', next)) searchHistory = next;
+        location.hash = '#listings';
+      } else if (form.id === 'housingFilters') {
+        const data = new FormData(form);
+        f = m.filters({
+          ...f,
+          maxPrice: data.get('maxPrice'),
+          distance: data.get('distance'),
+          room: data.get('room'),
+          features: data.getAll('features')
+        });
+        persistFilters();
+        location.hash = '#listings';
+      } else if (form.id === 'housingRequest') void submit(form);
+    });
+    $("housingContent").addEventListener('input', event => {
+      const input = event.target;
+      if (input.id === 'housingQuery') {
+        f.query = input.value.trim().slice(0, 160);
+        persistFilters();
+        listLimit = 24;
+        updateList();
+      } else if (input.matches('[name=maxPrice][type=range]')) $("housingBudgetLabel").textContent = Number(input.value) === 8000 ? 'Any budget' : money(Number(input.value));
+    });
+    $("housingContent").addEventListener('error', event => {
+      const img = event.target;
+      if (img instanceof HTMLImageElement && img.dataset.fallback !== 'true') {
+        img.dataset.fallback = 'true';
+        img.src = art;
+        img.alt = 'Example housing illustration';
+        const media = img.closest('.ha-card-media,.ha-gallery');
+        if (media && !media.querySelector('.ha-photo-label')) media.insertAdjacentHTML('beforeend', '<span class="ha-photo-label">Illustration · photo unavailable</span>');
+      }
+    }, true);
+    window.addEventListener('hashchange', () => {
+      route = parseRoute();
+      listLimit = 24;
+      if (route.view === 'detail') remember(byId.get(route.id));
+      if ($("housingDialog").open) $("housingDialog").close();
+      render(true);
+    });
+    window.addEventListener('storage', event => {
+      if (event.key === storageKey('saved')) {
+        const next = read(storageKey('saved'), []);
+        saved = Array.isArray(next) ? next.filter(id => typeof id === 'string') : [];
+        if (['saved', 'listings', 'detail'].includes(route.view)) render();
+      }
+    });
+  }
+  async function main() {
+    try {
+      if (!api || !m) throw new Error('Please refresh to load the housing section.');
+      user = api.resolveSessionUser ? await api.resolveSessionUser({
+        attempts: 2,
+        delayMs: 200
+      }) : await api.restoreSession();
+      user = user || api.currentUser?.();
+      if (!user || !['user', 'learner', 'student'].includes(api.normalizeRole ? api.normalizeRole(user.role) : user.role)) {
+        location.replace('../login.html?app=1');
+        return;
+      }
+      const previous = read(storageKey('filters'), {});
+      f = m.filters(previous);
+      moveIn = m.dateValid(previous.moveIn) ? previous.moveIn : '';
+      students = ['1', '2', '3', '4'].includes(previous.students) ? previous.students : '1';
+      saved = read(storageKey('saved'), []);
+      if (!Array.isArray(saved)) saved = [];
+      saved = saved.filter(id => typeof id === 'string');
+      recent = read(storageKey('recent'), []);
+      if (!Array.isArray(recent)) recent = [];
+      searchHistory = read(storageKey('searches'), []);
+      if (!Array.isArray(searchHistory)) searchHistory = [];
+      listings = m.normalize(api.getAccommodationListings?.() || []);
+      byId = new Map(listings.map(item => [item.id, item]));
+      requests = api.getAccommodationRequests?.(user.id) || [];
+      profile = api.getProfile?.(user.id) || {};
+      route = parseRoute();
+      bind();
+      render();
+      ['home', 'career', 'school', 'housing', 'bus'].forEach((name, index) => {
+        const node = document.querySelectorAll('.bottom-nav-icon')[index];
+        if (node) node.innerHTML = icon(name);
+      });
+      const results = await Promise.allSettled([api.getProfileAsync?.(user.id) || profile, api.getAdminContentAsync?.('housing_hub') || null, api.getAccommodationListingsAsync?.() || listings, api.getAccommodationRequestsAsync?.(user.id) || requests]);
+      if (results[0].status === 'fulfilled') profile = results[0].value || {};
+      if (results[1].status === 'fulfilled') admin = results[1].value;
+      if (results[2].status === 'fulfilled') {
+        listings = m.normalize(results[2].value);
+        byId = new Map(listings.map(item => [item.id, item]));
+      }
+      if (results[3].status === 'fulfilled') requests = results[3].value || [];
+      requests.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+      refreshDone = true;
+      // Preserve input and focus while remote data arrives.
+      if (route.view === 'listings') updateList();else if (route.view === 'request' && !$("housingRequest")) render();else if (!['request', 'filters'].includes(route.view) && !$("housingContent").contains(document.activeElement)) render();
+      if (route.view === 'request' && admin?.settings?.serviceStatus && admin.settings.serviceStatus !== 'open') render();
+      if (route.view === 'detail') remember(byId.get(route.id));
+      if (results.some(result => result.status === 'rejected')) toast('Some information could not be refreshed. Showing the details already on this device.');
+      $("housingContent").dataset.ready = 'true';
+    } catch (error) {
+      $("housingContent").innerHTML = empty('Housing unavailable', error.message);
+      $("housingContent").setAttribute('aria-busy', 'false');
+      $("housingContent").dataset.ready = 'true';
+    }
+  }
+  document.addEventListener('DOMContentLoaded', main, {
+    once: true
+  });
 })();

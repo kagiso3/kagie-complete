@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),m=require('../js/accommodation-model.js');
+let checks=0;function check(value,label){assert.ok(value,label);checks++;}
+const [item]=m.normalize([{id:'one',propertyName:'Campus House',price:2800,roomType:'Single room',distanceFromCampus:'850 m from campus',amenities:['WiFi included','NSFAS-friendly','No parking','Unfurnished'],images:['javascript:bad','https://example.invalid/room.webp']}]);
+check(item.distanceKm===.85,'Metres convert');check(m.distance('2.1 km from campus')===2.1,'Kilometres parse');check(m.distance('Near campus')===Infinity,'Unknown distance is not zero');
+check(m.hasFeature(item,'nsfas'),'Explicit NSFAS amenity');check(!m.hasFeature({...item,amenities:[]},'nsfas'),'Low price does not imply NSFAS');check(!m.hasFeature(item,'parking'),'Negated amenity excluded');check(!m.hasFeature(item,'furnished'),'Unfurnished excluded');
+check(item.images.length===1,'Unsafe image URL excluded');check(m.safeUrl('javascript:alert(1)')==='','Unsafe document link excluded');
+check(m.matches(item,{distance:'1',maxPrice:3000,features:['wifi','nsfas']}),'Combined criteria match');check(!m.matches(item,{maxPrice:2700}),'Budget excludes expensive');check(!m.matches(item,{mode:'buy'}),'Buy does not pretend rentals');check(!m.matches({...item,distanceKm:Infinity},{distance:'5'}),'Unknown distance excluded');check(!m.matches({...item,price:0},{maxPrice:3000}),'Unknown price excluded');check(!m.matches({...item,priceRange:'R2 000–R5 000'},{maxPrice:3000}),'Price range not guaranteed affordable');
+check(m.dateValid('2028-02-29'),'Leap date valid');check(!m.dateValid('2027-02-29'),'Invalid date rejected');check(!m.dateValid('garbage'),'Malformed date rejected');
+const payload={learnerName:'Learner',learnerEmail:'test@example.invalid',learnerPhone:'0712345678',institutionName:'University',fundingStatus:'Self-funded',documentsReady:'All ready',preferredMoveInDate:'2027-02-01'};
+check(m.validate(payload).length===0,'Core brief accepted');check(m.validate({...payload,learnerEmail:'bad'}).length>0,'Bad email rejected');check(m.validate({...payload,learnerPhone:'1'}).length>0,'Bad phone rejected');check(m.validate({...payload,preferredMoveInDate:'2020-01-01'}).length>0,'Past date rejected');check(m.validate({...payload,nsfasBeneficiary:'yes'}).length>0,'Funded NSFAS requires year');
+check(m.normalize([{id:'one'},{id:'one'},{id:'hidden',isActive:false}]).length===1,'Deduplication and inactive filter');
+console.log('PASS '+checks+' accommodation model checks.');

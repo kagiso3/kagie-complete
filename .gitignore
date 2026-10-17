@@ -30,3 +30,11 @@ kagie-mobile/android/app/*.keystore
 .vercel
 .vercel-*.log
 .vercel-*.txt
+.env*.local
+
+# Generated homepage assets; rebuilt from kagie-landing source.
+/_next/
+/.admin-test-runtime/
+
+# Private backend repair snapshots and recovery artifacts
+.backend-repair/

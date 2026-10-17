@@ -6,14 +6,23 @@
     "packages/*",
     "kagie-api",
     "kagie-mobile",
-    "kagie-web"
+    "kagie-web",
+    "kagie-landing"
   ],
   "engines": {
-    "node": ">=20.19.0"
+    "node": "24.x"
   },
   "scripts": {
-    "build": "node ./scripts/build-web-release.cjs",
-    "build:release": "node ./scripts/build-web-release.cjs",
+    "dev:landing": "npm --prefix kagie-landing run dev",
+    "build:landing": "npm --prefix kagie-landing run build",
+    "preview:landing": "npm --prefix kagie-landing run preview",
+    "build:release:landing": "npm run build:release",
+    "build": "npm run build:release",
+    "build:release": "npm run build:landing && node ./scripts/build-web-release.cjs && node kagie-landing/scripts/package-release.mjs",
+    "test:landing": "node ./scripts/verify-landing-release.cjs",
+    "test:apply": "node ./scripts/test-apply-flow.cjs && node ./scripts/test-apply-cache.cjs && node ./scripts/test-apply-data.cjs",
+    "test:student:performance": "node ./scripts/test-student-performance.cjs",
+    "test:checkout": "node ./scripts/test-checkout-flow.cjs && node ./scripts/test-application-edit-links.cjs",
     "build:shared": "npm --workspace @kagie/shared run build",
     "dev:api": "npm --workspace kagie-api run dev",
     "build:api": "npm --workspace kagie-api run build",
@@ -23,12 +32,37 @@
     "build:web": "npm --workspace kagie-web run build",
     "build:android:debug": "npm --workspace kagie-mobile run build:android:debug",
     "copy:android-apk": "node ./scripts/copy-android-apk.cjs",
-    "vercel-build": "node ./scripts/build-web-release.cjs"
+    "vercel-build": "npm run build:shared && npm run build:api && npm run build:release",
+    "test:apply:responsive": "node ./scripts/test-apply-responsive.cjs",
+    "test:services": "node ./scripts/test-more-services.cjs",
+    "test:updates": "node ./scripts/test-updates.cjs && node ./scripts/test-updates-integration.cjs",
+    "test:recommendation": "node ./scripts/test-recommendation-model.cjs && node ./scripts/test-recommendation.cjs && node ./scripts/test-recommendation-integration.cjs",
+    "build:prospectus-catalog": "node ./scripts/build-prospectus-catalog.cjs",
+    "test:prospectus": "node ./scripts/test-prospectus-model.cjs && node ./scripts/test-prospectus.cjs && node ./scripts/test-prospectus-integration.cjs",
+    "test:accommodation": "node ./scripts/test-accommodation-model.cjs && node ./scripts/test-accommodation.cjs && node ./scripts/test-accommodation-integration.cjs",
+    "test:frontend:stabilization": "node ./scripts/test-frontend-stabilization.cjs",
+    "test:auth": "node ./scripts/test-auth-experience.cjs",
+    "test:login:reference": "node ./scripts/test-login-reference.cjs",
+    "test:auth:react": "node ./scripts/test-client-auth-ui.cjs",
+    "test:splash": "node ./scripts/test-splash.cjs",
+    "test:ui:palette": "node ./scripts/test-kagie-palette.cjs",
+    "test:ui:audit": "node ./scripts/audit-ui-unification.cjs",
+    "test:documents": "node ./scripts/test-document-upload-ui.cjs",
+    "test:auth:google": "node ./scripts/test-static-google-login.cjs && node ./scripts/test-google-oauth-backend.cjs && node ./scripts/test-react-google-runtime.cjs",
+    "test:backend:audit": "npm run build:shared && npm run build:api && node scripts/test-backend-admin-audit.cjs && node scripts/test-backend-data-audit.cjs && node scripts/test-backend-payments-audit.cjs && node scripts/test-backend-api-audit.cjs && node scripts/test-backend-client-audit.cjs && node scripts/test-backend-client-catalog-audit.cjs && node scripts/test-backend-config-audit.cjs && node scripts/test-backend-catalog-audit.cjs",
+    "test:backend:repair": "node scripts/test-backend-repair-database.cjs && node scripts/test-backend-repair-workflows.cjs && node scripts/test-backend-repair-persistence.cjs && node scripts/test-backend-backup.cjs && node scripts/test-backend-dependency-regressions.cjs",
+    "backup:backend:check": "node scripts/backup-backend.cjs --check",
+    "backup:backend": "node scripts/backup-backend.cjs",
+    "test:yoco": "node scripts/test-yoco-repair.cjs && node scripts/test-yoco-ui.cjs",
+    "test:yoco:postgres": "node scripts/test-yoco-postgres.cjs"
+  },
+  "overrides": {
+    "postcss": "8.5.30"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.56.1"
   },
   "devDependencies": {
-    "xlsx": "^0.18.5"
+    "xlsx": "file:vendor/xlsx-0.20.3.tgz"
   }
 }

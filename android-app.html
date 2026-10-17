@@ -4,132 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Kagie Android App</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
-    }
-
-    body {
-      min-height: 100vh;
-      background: #f5f7fb;
-      color: #10203a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-
-    .shell {
-      width: min(100%, 460px);
-      background: #ffffff;
-      border-radius: 28px;
-      padding: 36px 24px 28px;
-      box-shadow: 0 24px 60px rgba(16, 32, 58, 0.12);
-      text-align: center;
-      border: 1px solid #e7edf5;
-    }
-
-    .logo {
-      font-size: 48px;
-      line-height: 1;
-      font-weight: 800;
-      color: #df1017;
-      letter-spacing: -1px;
-      margin-bottom: 14px;
-      text-transform: lowercase;
-    }
-
-    .title {
-      font-size: 28px;
-      font-weight: 800;
-      margin-bottom: 10px;
-    }
-
-    .copy {
-      color: #60708c;
-      font-size: 16px;
-      line-height: 1.6;
-      margin-bottom: 24px;
-    }
-
-    .download-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      min-height: 58px;
-      border-radius: 18px;
-      background: linear-gradient(180deg, #2fb0f7 0%, #238fe1 100%);
-      color: #ffffff;
-      text-decoration: none;
-      font-size: 18px;
-      font-weight: 700;
-      box-shadow: 0 18px 34px rgba(47, 176, 247, 0.24);
-      margin-bottom: 18px;
-    }
-
-    .download-btn.is-disabled {
-      pointer-events: none;
-      background: #d7dee8;
-      color: #5a6677;
-      box-shadow: none;
-    }
-
-    .secondary-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      min-height: 52px;
-      border-radius: 16px;
-      background: #ffffff;
-      color: #10203a;
-      border: 1px solid #d8e1ed;
-      text-decoration: none;
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 18px;
-    }
-
-    .status {
-      border-radius: 16px;
-      padding: 14px;
-      margin-bottom: 16px;
-      text-align: left;
-      font-size: 14px;
-      line-height: 1.5;
-      background: #eef6ff;
-      color: #224e77;
-      border: 1px solid #d5e8fb;
-    }
-
-    .status.error {
-      background: #fff1f2;
-      color: #9f1239;
-      border-color: #fecdd3;
-    }
-
-    .help {
-      background: #fff7e7;
-      color: #6b5524;
-      border-radius: 18px;
-      padding: 16px 14px;
-      text-align: left;
-      font-size: 14px;
-      line-height: 1.55;
-    }
-
-    .help strong {
-      display: block;
-      margin-bottom: 6px;
-      color: #4b3609;
-    }
-  </style>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/information-pages.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
 </head>
-<body>
+<body class="kagie-information-page" data-kagie-page="android-app">
   <main class="shell">
     <div class="logo">kagie</div>
     <h1 class="title">Download Kagie for Android</h1>
@@ -147,30 +27,103 @@
       const downloadUrl = "/downloads/kagie-android.apk";
       const status = document.getElementById("downloadStatus");
       const link = document.getElementById("apkDownloadLink");
+      const originalText = link.textContent;
+      let downloadReady = false;
+      let downloadLocked = false;
+
+      function setStatus(text, type = "") {
+        status.className = type ? `status ${type}` : "status";
+        status.textContent = text;
+      }
+
+      function setDownloadLoading(isLoading, text = "Preparing download...") {
+        downloadLocked = isLoading;
+        link.classList.toggle("is-loading", isLoading);
+        link.setAttribute("aria-busy", isLoading ? "true" : "false");
+        link.setAttribute("aria-disabled", isLoading ? "true" : "false");
+        link.innerHTML = isLoading
+          ? `<span class="download-spinner" aria-hidden="true"></span><span>${text}</span>`
+          : originalText;
+      }
+
+      function setDownloadReady(size) {
+        downloadReady = true;
+        downloadLocked = false;
+        link.classList.remove("is-disabled", "is-loading");
+        link.setAttribute("href", downloadUrl);
+        link.setAttribute("download", "");
+        link.setAttribute("aria-disabled", "false");
+        link.setAttribute("aria-busy", "false");
+        link.textContent = originalText;
+        setStatus(size
+          ? `Android APK is ready. File size: ${(size / (1024 * 1024)).toFixed(1)} MB.`
+          : "Android APK is ready.");
+      }
 
       function setUnavailable() {
-        status.className = "status error";
-        status.textContent = "The Android APK is not uploaded on this deployment yet. You can still open Kagie in the browser, or build the APK and place it at website/public/downloads/kagie-android.apk to enable direct download.";
+        downloadReady = false;
+        downloadLocked = false;
+        setStatus("The Android APK is not uploaded on this deployment yet. You can still open Kagie in the browser, or build the APK and place it at website/public/downloads/kagie-android.apk to enable direct download.", "error");
         link.classList.add("is-disabled");
+        link.classList.remove("is-loading");
         link.removeAttribute("href");
         link.removeAttribute("download");
         link.setAttribute("aria-disabled", "true");
+        link.setAttribute("aria-busy", "false");
         link.textContent = "Android download not available yet";
       }
 
-      fetch(downloadUrl, { method: "HEAD", cache: "no-store" })
-        .then((response) => {
-          if (!response.ok) {
-            setUnavailable();
-            return;
-          }
-          const size = Number(response.headers.get("content-length") || 0);
-          status.className = "status";
-          status.textContent = size
-            ? `Android APK is ready. File size: ${(size / (1024 * 1024)).toFixed(1)} MB.`
-            : "Android APK is ready.";
-        })
-        .catch(setUnavailable);
+      function setCheckFailed() {
+        downloadReady = false;
+        downloadLocked = false;
+        link.classList.remove("is-disabled", "is-loading");
+        link.setAttribute("href", downloadUrl);
+        link.setAttribute("download", "");
+        link.setAttribute("aria-disabled", "false");
+        link.setAttribute("aria-busy", "false");
+        link.textContent = "Try download again";
+        setStatus("Kagie could not verify the APK from this connection. Check your internet and try the download again.", "error");
+      }
+
+      async function verifyDownload() {
+        const response = await fetch(downloadUrl, { method: "HEAD", cache: "no-store" });
+        if (!response.ok) {
+          setUnavailable();
+          return false;
+        }
+        setDownloadReady(Number(response.headers.get("content-length") || 0));
+        return true;
+      }
+
+      link.addEventListener("click", async (event) => {
+        event.preventDefault();
+        if (downloadLocked || link.classList.contains("is-disabled")) return;
+
+        setDownloadLoading(true);
+        setStatus("Preparing the Kagie Android download...");
+        try {
+          const verified = downloadReady || await verifyDownload();
+          if (!verified) return;
+
+          setDownloadLoading(true, "Download starting...");
+          setStatus("Download starting. If Android asks, allow installs from your browser or Files app.");
+          const anchor = document.createElement("a");
+          anchor.href = downloadUrl;
+          anchor.download = "kagie-android.apk";
+          anchor.style.display = "none";
+          document.body.appendChild(anchor);
+          anchor.click();
+          anchor.remove();
+          window.setTimeout(() => {
+            setDownloadReady(0);
+          }, 1800);
+        } catch (error) {
+          console.error("Kagie Android download failed:", error);
+          setCheckFailed();
+        }
+      });
+
+      verifyDownload().catch(setCheckFailed);
     })();
   </script>
 </body>

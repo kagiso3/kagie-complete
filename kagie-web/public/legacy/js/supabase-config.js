@@ -1,10 +1,10 @@
 (function () {
   if (!window.KagieAPI || typeof window.KagieAPI.configureSupabase !== "function") return;
 
-  const SITE_CONFIG = {
+  const STATIC_PUBLIC_CONFIG = {
     appName: "Kagie",
     apiBaseUrl: "",
-    supportPhone: "0660550764",
+    supportPhone: "0761041962",
     supportEmail: "kagisowitness79@gmail.com",
     payments: {
       merchantName: "Kagie",
@@ -13,18 +13,21 @@
       accountType: "Savings",
       branchCode: "470010",
       referencePrefix: "KAG",
-      verificationMessage: "Payments are verified manually after checkout.",
+      verificationMessage: "After you transfer, Kagie verifies your payment manually. Use your Kagie reference and upload proof of payment.",
       yocoEnabled: true,
-      yocoPaymentLink: "https://pay.yoco.com/kagie-app",
+      yocoPaymentLink: "",
       yocoProviderLabel: "Yoco secure checkout",
       payfastEnabled: false,
       payfastProviderLabel: "PayFast secure checkout"
     },
     supabase: {
+      enabled: true,
       url: "https://ztfcxnowjtvonltevrqe.supabase.co",
       anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0ZmN4bm93anR2b25sdGV2cnFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTU1NDIsImV4cCI6MjA4ODkzMTU0Mn0.gNQNE1OpKr9Nkph6bd4JGZ_Yt3A9w1MtpZoGDYqnQxw"
     }
   };
+
+  const RUNTIME_CACHE_KEY = "kagie_runtime_config_v1";
 
   function trim(value) {
     return String(value || "").trim();
@@ -34,62 +37,161 @@
     return trim(url).replace(/\/+$/, "");
   }
 
-  function buildAssistantEndpoint() {
-    const explicitBase = normalizeBaseUrl(SITE_CONFIG.apiBaseUrl);
-    if (window.location.protocol === "file:" || window.location.hostname === "localhost") {
-      return "http://localhost:4000/v1/admin/assistants";
-    }
-    if (explicitBase) {
-      return `${explicitBase}/v1/admin/assistants`;
-    }
-    return `${window.location.origin}/v1/admin/assistants`;
+  function toBoolean(value, fallback) {
+    if (typeof value === "boolean") return value;
+    const normalized = trim(value).toLowerCase();
+    if (!normalized) return Boolean(fallback);
+    if (["0", "false", "no", "off"].includes(normalized)) return false;
+    if (["1", "true", "yes", "on"].includes(normalized)) return true;
+    return Boolean(fallback);
   }
 
-  function buildYocoCheckoutEndpoint() {
-    const explicitBase = normalizeBaseUrl(SITE_CONFIG.apiBaseUrl);
-    if (window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+  function readRuntimeCache() {
+    try {
+      const source = localStorage.getItem(RUNTIME_CACHE_KEY) || sessionStorage.getItem(RUNTIME_CACHE_KEY) || "";
+      if (!source) return null;
+      const parsed = JSON.parse(source);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function writeRuntimeCache(payload) {
+    try {
+      const serialized = JSON.stringify(payload || {});
+      localStorage.setItem(RUNTIME_CACHE_KEY, serialized);
+      sessionStorage.setItem(RUNTIME_CACHE_KEY, serialized);
+    } catch (_error) {
+      // Ignore storage write failures.
+    }
+  }
+
+  function getLocalApiBaseOverride() {
+    try {
+      return normalizeBaseUrl(localStorage.getItem("kagie_api_base_url") || "");
+    } catch (_error) {
       return "";
     }
-    if (explicitBase) {
-      return `${explicitBase}/v1/payments/yoco/checkout`;
-    }
-    return `${window.location.origin}/v1/payments/yoco/checkout`;
   }
 
-  function buildPublicSettings() {
-    const patch = {
-      appName: SITE_CONFIG.appName || "Kagie",
+  function resolveApiBaseUrl(runtimeConfig) {
+    const explicitBase = normalizeBaseUrl(runtimeConfig?.apiBaseUrl || STATIC_PUBLIC_CONFIG.apiBaseUrl || "");
+    if (explicitBase) return explicitBase;
+    if (window.location.protocol === "file:") {
+      return getLocalApiBaseOverride() || "http://localhost:3000";
+    }
+    return normalizeBaseUrl(window.location.origin);
+  }
+
+  function buildRuntimeConfigEndpoint() {
+    return `${resolveApiBaseUrl(STATIC_PUBLIC_CONFIG)}/api/runtime-config`;
+  }
+
+  function buildAppEndpoint(runtimeConfig, path) {
+    const suffix = String(path || "").startsWith("/") ? String(path || "") : `/${String(path || "")}`;
+    return `${resolveApiBaseUrl(runtimeConfig)}${suffix}`;
+  }
+
+  function mergeRuntimeConfig(runtimeConfig) {
+    return {
+      ...STATIC_PUBLIC_CONFIG,
+      ...(runtimeConfig || {}),
       payments: {
-        merchantName: trim(SITE_CONFIG.payments?.merchantName),
-        bankName: trim(SITE_CONFIG.payments?.bankName),
-        accountNumber: trim(SITE_CONFIG.payments?.accountNumber),
-        accountType: trim(SITE_CONFIG.payments?.accountType),
-        branchCode: trim(SITE_CONFIG.payments?.branchCode),
-        referencePrefix: trim(SITE_CONFIG.payments?.referencePrefix),
-        verificationMessage: trim(SITE_CONFIG.payments?.verificationMessage),
-        yocoEnabled: Boolean(SITE_CONFIG.payments?.yocoEnabled),
-        yocoCheckoutEndpoint: trim(buildYocoCheckoutEndpoint()),
-        yocoPaymentLink: trim(SITE_CONFIG.payments?.yocoPaymentLink),
-        yocoProviderLabel: trim(SITE_CONFIG.payments?.yocoProviderLabel),
-        payfastEnabled: Boolean(SITE_CONFIG.payments?.payfastEnabled),
-        payfastProviderLabel: trim(SITE_CONFIG.payments?.payfastProviderLabel)
+        ...STATIC_PUBLIC_CONFIG.payments,
+        ...(runtimeConfig?.payments || {})
+      },
+      supabase: {
+        ...STATIC_PUBLIC_CONFIG.supabase,
+        ...(runtimeConfig?.supabase || {})
       }
     };
-
-    if (trim(SITE_CONFIG.supportPhone)) patch.supportPhone = trim(SITE_CONFIG.supportPhone);
-    if (trim(SITE_CONFIG.supportEmail)) patch.supportEmail = trim(SITE_CONFIG.supportEmail);
-
-    return patch;
   }
 
-  if (typeof window.KagieAPI.saveSettings === "function") {
-    window.KagieAPI.saveSettings(buildPublicSettings());
+  function applyRuntimeConfig(runtimeConfig) {
+    const merged = mergeRuntimeConfig(runtimeConfig);
+
+    if (typeof window.KagieAPI.saveSettings === "function") {
+      window.KagieAPI.saveSettings({
+        appName: trim(merged.appName) || "Kagie",
+        supportPhone: trim(merged.supportPhone),
+        supportEmail: trim(merged.supportEmail),
+        payments: {
+          merchantName: trim(merged.payments?.merchantName),
+          bankName: trim(merged.payments?.bankName),
+          accountNumber: trim(merged.payments?.accountNumber),
+          accountType: trim(merged.payments?.accountType),
+          branchCode: trim(merged.payments?.branchCode),
+          referencePrefix: trim(merged.payments?.referencePrefix),
+          verificationMessage: trim(merged.payments?.verificationMessage),
+          yocoEnabled: toBoolean(merged.payments?.yocoEnabled, true),
+          yocoCheckoutEndpoint: buildAppEndpoint(merged, "/v1/payments/yoco/checkout"),
+          yocoPaymentLink: trim(merged.payments?.yocoPaymentLink),
+          yocoProviderLabel: trim(merged.payments?.yocoProviderLabel),
+          payfastEnabled: toBoolean(merged.payments?.payfastEnabled, false),
+          payfastProviderLabel: trim(merged.payments?.payfastProviderLabel),
+          payfastCheckoutEndpoint: buildAppEndpoint(merged, "/v1/payments/payfast/checkout")
+        }
+      });
+    }
+
+    window.KagieAPI.configureSupabase({
+      enabled: Boolean(merged.supabase?.enabled !== false && trim(merged.supabase?.url) && trim(merged.supabase?.anonKey)),
+      url: trim(merged.supabase?.url),
+      anonKey: trim(merged.supabase?.anonKey),
+      adminUsersEndpoint: buildAppEndpoint(merged, "/v1/admin/users"),
+      adminAssistantsEndpoint: buildAppEndpoint(merged, "/v1/admin/assistants"),
+      adminConfigStatusEndpoint: buildAppEndpoint(merged, "/v1/admin/config/status"),
+      adminCreateAssistantEndpoint: buildAppEndpoint(merged, "/v1/admin/assistants"),
+      adminBootstrapMasterEndpoint: buildAppEndpoint(merged, "/v1/auth/admin/master-admin/bootstrap"),
+      authRoleEndpoint: buildAppEndpoint(merged, "/v1/auth/role"),
+      adminMarketingBroadcastEndpoint: buildAppEndpoint(merged, "/v1/admin/marketing/broadcast")
+    });
+
+    if (typeof document !== "undefined" && typeof document.dispatchEvent === "function") {
+      document.dispatchEvent(new CustomEvent("kagie:runtime-config-ready", {
+        detail: {
+          apiBaseUrl: resolveApiBaseUrl(merged),
+          supabaseEnabled: Boolean(trim(merged.supabase?.url) && trim(merged.supabase?.anonKey))
+        }
+      }));
+    }
+
+    return merged;
   }
 
-  window.KagieAPI.configureSupabase({
-    enabled: true,
-    url: SITE_CONFIG.supabase.url,
-    anonKey: SITE_CONFIG.supabase.anonKey,
-    adminCreateAssistantEndpoint: buildAssistantEndpoint()
-  });
+  async function fetchRuntimeConfig() {
+    const response = await fetch(buildRuntimeConfigEndpoint(), {
+      method: "GET",
+      headers: {
+        Accept: "application/json"
+      }
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(payload?.message || "Could not load Kagie runtime configuration.");
+    }
+    return payload?.data || payload || {};
+  }
+
+  const cachedConfig = readRuntimeCache();
+  if (cachedConfig) {
+    applyRuntimeConfig(cachedConfig);
+  } else {
+    applyRuntimeConfig(STATIC_PUBLIC_CONFIG);
+  }
+
+  window.__kagieRuntimeConfigPromise = window.__kagieRuntimeConfigPromise || (async () => {
+    try {
+      const runtimeConfig = await fetchRuntimeConfig();
+      writeRuntimeCache(runtimeConfig);
+      return applyRuntimeConfig(runtimeConfig);
+    } catch (error) {
+      if (!cachedConfig) {
+        console.warn("Kagie runtime config fallback is active:", error?.message || error);
+      }
+      return cachedConfig ? applyRuntimeConfig(cachedConfig) : applyRuntimeConfig(STATIC_PUBLIC_CONFIG);
+    }
+  })();
 })();

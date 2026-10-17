@@ -1,0 +1,10 @@
+[data-yoco-root]{background:#fff;border:1px solid #dbe4ef;border-radius:20px;padding:24px;color:#0b1730;min-width:0}
+[data-yoco-root] h2{margin:0 0 10px;font-size:1.45rem}[data-yoco-root] p{line-height:1.6}
+[data-yoco-root] form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+[data-yoco-root] label{display:grid;gap:8px;font-weight:600}[data-yoco-root] input{box-sizing:border-box;width:100%;min-width:0;padding:13px;border:1px solid #bdcbe0;border-radius:10px;font:inherit}
+[data-yoco-root] button,[data-yoco-root] a{display:inline-block;margin-top:14px;border-radius:10px;padding:13px 18px;font:inherit;font-weight:650;cursor:pointer}
+[data-yoco-root] button{background:#fd0505;color:white;border:0}[data-yoco-root] form button{grid-column:1/-1}
+[data-yoco-root] button:disabled{opacity:.6;cursor:wait}[data-yoco-root] [role=status]{line-height:1.7;margin-top:16px;overflow-wrap:anywhere}
+[data-yoco-root] dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;margin:20px 0;line-height:1.5}[data-yoco-root] dd{margin:0;overflow-wrap:anywhere}[data-yoco-root] dt{font-weight:650}
+[data-yoco-root] [hidden]{display:none!important}[data-yoco-root] :focus-visible{outline:3px solid #2d9df9;outline-offset:3px}
+@media(max-width:650px){[data-yoco-root]{padding:18px}[data-yoco-root] form{grid-template-columns:1fr}[data-yoco-root] dl{grid-template-columns:1fr;gap:5px}[data-yoco-root] dd{margin-bottom:10px}}

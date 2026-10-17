@@ -4,103 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kagie Privacy Policy</title>
-  <style>
-    :root {
-      --brand: #e63946;
-      --ink: #111827;
-      --muted: #5f6b7a;
-      --line: #e5e7eb;
-      --paper: #ffffff;
-      --wash: #f7f8fb;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Arial, Helvetica, sans-serif;
-      background: var(--wash);
-      color: var(--ink);
-      line-height: 1.65;
-    }
-
-    header {
-      background: linear-gradient(135deg, #e63946, #ff7a3d);
-      color: #fff;
-      padding: 42px 20px;
-      text-align: center;
-    }
-
-    header h1 {
-      margin: 0 0 8px;
-      font-size: clamp(30px, 5vw, 46px);
-      line-height: 1.1;
-    }
-
-    header p {
-      margin: 0;
-      opacity: 0.94;
-    }
-
-    main {
-      width: min(920px, calc(100% - 32px));
-      margin: -28px auto 48px;
-      background: var(--paper);
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      box-shadow: 0 20px 50px rgba(17, 24, 39, 0.10);
-      padding: clamp(22px, 4vw, 42px);
-    }
-
-    h2 {
-      margin: 30px 0 8px;
-      font-size: 20px;
-    }
-
-    h2:first-child { margin-top: 0; }
-
-    p, li { color: var(--muted); }
-
-    a { color: var(--brand); font-weight: 700; }
-
-    .meta {
-      background: #fff4f4;
-      border: 1px solid #ffd7d7;
-      border-radius: 14px;
-      padding: 14px 16px;
-      margin-bottom: 22px;
-      color: #7f1d1d;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 28px;
-      padding-top: 20px;
-      border-top: 1px solid var(--line);
-    }
-
-    .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 44px;
-      padding: 10px 16px;
-      border-radius: 12px;
-      background: var(--brand);
-      color: #fff;
-      text-decoration: none;
-    }
-
-    .button.secondary {
-      background: #f3f4f6;
-      color: var(--ink);
-    }
-  </style>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/information-pages.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
 </head>
-<body>
+<body class="kagie-information-page" data-kagie-page="privacy">
   <header>
     <h1>Kagie Privacy Policy</h1>
     <p>How Kagie handles student, parent, teacher, and administrator information.</p>
@@ -143,7 +52,7 @@
     <p>We use access controls, secure sessions, and protected backend services to help keep information safe. Users should keep login details private and sign out on shared devices.</p>
 
     <h2>8. User choices and deletion requests</h2>
-    <p>You may request help accessing, correcting, or deleting your Kagie account information by contacting <a href="mailto:support@kagie.app">support@kagie.app</a>. Some information may need to be retained where required for security, payment records, legal compliance, or application support records.</p>
+    <p>You may request help accessing, correcting, or deleting your Kagie account information from the <a href="account-deletion.html">Kagie account and data deletion page</a> or by contacting <a href="mailto:support@kagie.app">support@kagie.app</a>. Some information may need to be retained where required for security, payment records, legal compliance, or application support records.</p>
 
     <h2>9. Children and learners</h2>
     <p>Kagie is intended for learners, parents, teachers, and education support users. Learners should use the app with appropriate guidance from a parent, guardian, teacher, or trusted adult where required.</p>
@@ -156,6 +65,7 @@
 
     <div class="actions">
       <a class="button" href="index.html">Back to Kagie</a>
+      <a class="button secondary" href="account-deletion.html">Account deletion</a>
       <a class="button secondary" href="terms.html">Terms of Use</a>
     </div>
   </main>

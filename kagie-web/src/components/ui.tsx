@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useCallback, useRef, useState, type MouseEvent, type ReactNode } from "react";
 
 type ButtonTone = "primary" | "secondary" | "ghost" | "danger" | "success";
 
@@ -41,23 +41,71 @@ export function Button({
   onClick,
   type = "button",
   disabled = false,
+  loading = false,
+  loadingLabel = "Please wait...",
   className = ""
 }: {
   children: ReactNode;
   tone?: ButtonTone;
-  onClick?: () => void;
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void | Promise<unknown>;
   type?: "button" | "submit";
   disabled?: boolean;
+  loading?: boolean;
+  loadingLabel?: string;
   className?: string;
 }) {
+  const actionLockedRef = useRef(false);
+  const [localLoading, setLocalLoading] = useState(false);
+  const isLoading = Boolean(loading || localLoading);
+  const locked = Boolean(disabled || isLoading);
+
+  const handleClick = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      if (locked || actionLockedRef.current) {
+        event.preventDefault();
+        return;
+      }
+
+      if (!onClick) return;
+
+      try {
+        actionLockedRef.current = true;
+        const result = onClick(event);
+
+        if (!result || typeof result.then !== "function") {
+          actionLockedRef.current = false;
+          return;
+        }
+
+        setLocalLoading(true);
+        void result
+          .catch((error) => {
+            console.error("Kagie action failed:", error);
+          })
+          .finally(() => {
+            actionLockedRef.current = false;
+            setLocalLoading(false);
+          });
+      } catch (error) {
+        actionLockedRef.current = false;
+        setLocalLoading(false);
+        console.error("Kagie action failed:", error);
+      }
+    },
+    [locked, onClick]
+  );
+
   return (
     <button
       type={type}
-      disabled={disabled}
-      onClick={onClick}
+      disabled={locked}
+      aria-busy={isLoading ? "true" : "false"}
+      aria-disabled={locked ? "true" : "false"}
+      onClick={handleClick}
       className={`kg-button ${tone} ${className}`.trim()}
     >
-      {children}
+      {isLoading ? <span className="kg-button-spinner" aria-hidden="true" /> : null}
+      <span>{isLoading ? loadingLabel : children}</span>
     </button>
   );
 }
@@ -91,9 +139,14 @@ export function EmptyState({ title, copy }: { title: string; copy: string }) {
 
 export function LoadingPanel({ label }: { label: string }) {
   return (
-    <div className="kg-loading">
-      <div className="kg-spinner" />
-      <span>{label}</span>
+    <div className="kg-loading" role="status" aria-live="polite">
+      <div className="kg-loading-content">
+        <div className="kg-loading-logo" aria-hidden="true">
+          <span className="kg-loading-wordmark"><img src="/images/logos/app-logo.jpg" alt="" /></span>
+          <span className="kg-loading-brand-arrow"><img src="/images/logos/kagie-loading-arrow.svg" alt="" /></span>
+        </div>
+        <span>{label}</span>
+      </div>
     </div>
   );
 }

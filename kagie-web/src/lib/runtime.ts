@@ -41,6 +41,9 @@ function loadScript(src: string) {
 }
 
 export async function ensureLegacyRuntime() {
+  if (window.KagieNativeOAuthReturning) {
+    throw new Error("Google sign-in is returning to the Kagie app.");
+  }
   if (window.KagieAPI) {
     return window.KagieAPI;
   }
@@ -49,8 +52,8 @@ export async function ensureLegacyRuntime() {
     runtimePromise = (async () => {
       await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2");
       await loadScript("/legacy/js/data.js");
-      await loadScript("/legacy/js/supabase-config.js");
       await loadScript("/legacy/js/backend.js");
+      await loadScript("/legacy/js/supabase-config.js");
 
       if (!window.KagieAPI) {
         throw new Error("Kagie runtime could not be initialized.");
@@ -70,4 +73,9 @@ export async function ensureNationalCatalogLoaded() {
   }
   await loadScript("/legacy/js/sa-catalog.js");
   return true;
+}
+
+export async function mountYoco(root: HTMLElement, api: LegacyApi) {
+ await loadScript("/legacy/js/yoco-payment.js");
+ return (window as unknown as {KagieYoco:{mount:(root:HTMLElement,api:LegacyApi)=>()=>void}}).KagieYoco.mount(root,api);
 }

@@ -1,7 +1,7 @@
 import type { ApplicationMark } from "@kagie/shared";
 import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Button, Card, Chip, Field, Notice, SectionTitle, ScreenScroll } from "../components/ui";
+import { Button, Card, Chip, Field, HeroPanel, Notice, SectionTitle, ScreenScroll } from "../components/ui";
 import { useKagieData } from "../data/KagieDataProvider";
 import { colors } from "../theme";
 
@@ -251,10 +251,12 @@ export function ApplyScreen() {
 
   return (
     <ScreenScroll>
-      <View style={styles.hero}>
-        <Text style={styles.heroTitle}>Build your Kagie mobile application</Text>
-        <Text style={styles.heroText}>Save your personal details, marks, package, and institution shortlist from one Android flow.</Text>
-      </View>
+      <HeroPanel
+        eyebrow="Application forms"
+        title="Build your Kagie application"
+        copy="Save learner details, guardian support, school history, marks, your package, and institution choices step by step."
+        tone="navy"
+      />
 
       {notice ? <Notice tone={notice.tone} message={notice.text} /> : null}
       {offline || pendingDraftSync ? (
@@ -286,7 +288,7 @@ export function ApplyScreen() {
             <Chip key={item} label={item} active={learner.homeLanguage === item} onPress={() => updateLearner("homeLanguage", item)} tone="gold" />
           ))}
         </View>
-        <Button label={syncing ? "Saving..." : "Save learner details"} onPress={handleSaveLearner} disabled={syncing} />
+        <Button label="Save learner details" loadingLabel="Saving..." onPress={handleSaveLearner} loading={syncing} disabled={syncing} />
       </Card>
 
       <Card>
@@ -305,7 +307,7 @@ export function ApplyScreen() {
             <Chip key={item} label={item} active={parent.province === item} onPress={() => updateParent("province", item)} />
           ))}
         </View>
-        <Button label={syncing ? "Saving..." : "Save guardian details"} onPress={handleSaveParent} disabled={syncing} />
+        <Button label="Save guardian details" loadingLabel="Saving..." onPress={handleSaveParent} loading={syncing} disabled={syncing} />
       </Card>
 
       <Card>
@@ -325,7 +327,7 @@ export function ApplyScreen() {
             <Chip key={item} label={item} active={school.schoolType === item} onPress={() => updateSchool("schoolType", item)} tone="orange" />
           ))}
         </View>
-        <Button label={syncing ? "Saving..." : "Save school details"} onPress={handleSaveSchool} disabled={syncing} />
+        <Button label="Save school details" loadingLabel="Saving..." onPress={handleSaveSchool} loading={syncing} disabled={syncing} />
       </Card>
 
       <Card>
@@ -356,7 +358,7 @@ export function ApplyScreen() {
             </Pressable>
           </View>
         ))}
-        <Button label={syncing ? "Saving..." : "Save marks"} onPress={handleSaveMarks} disabled={syncing} />
+        <Button label="Save marks" loadingLabel="Saving..." onPress={handleSaveMarks} loading={syncing} disabled={syncing} />
       </Card>
 
       <Card>
@@ -459,22 +461,6 @@ export function ApplyScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    backgroundColor: "#102a56",
-    borderRadius: 28,
-    padding: 22,
-    gap: 8
-  },
-  heroTitle: {
-    color: "#ffffff",
-    fontSize: 25,
-    lineHeight: 31,
-    fontWeight: "900"
-  },
-  heroText: {
-    color: "rgba(255,255,255,0.86)",
-    lineHeight: 20
-  },
   smallLabel: {
     fontSize: 12,
     fontWeight: "800",
@@ -521,7 +507,7 @@ const styles = StyleSheet.create({
   packCard: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 16,
     gap: 6,
     backgroundColor: "#f9fbff"
@@ -562,7 +548,7 @@ const styles = StyleSheet.create({
   shortlistItem: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     flexDirection: "row",
     gap: 12,

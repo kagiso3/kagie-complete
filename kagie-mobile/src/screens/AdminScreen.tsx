@@ -1,7 +1,7 @@
 import { ROLES } from "@kagie/shared";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from "react-native";
-import { Button, Card, Notice, ScreenScroll, SectionTitle } from "../components/ui";
+import { Button, Card, HeroPanel, Notice, ScreenScroll, SectionTitle } from "../components/ui";
 import { apiClient } from "../lib/api";
 import { useSession } from "../session/SessionProvider";
 import { colors } from "../theme";
@@ -65,10 +65,12 @@ export function AdminScreen() {
     return (
       <SafeAreaView style={styles.screen}>
         <ScreenScroll>
-          <View style={styles.hero}>
-            <Text style={styles.heroTitle}>Kagie staff access</Text>
-            <Text style={styles.heroText}>This Android build keeps admin routes protected. Assistant admin tools stay server-controlled and are not exposed to learner screens.</Text>
-          </View>
+          <HeroPanel
+            eyebrow="Staff access"
+            title="Kagie staff workspace"
+            copy="This Android build keeps admin routes protected and separates assistant duties from learner screens."
+            tone="navy"
+          />
           <Notice tone="warn" message="Only master admins can manage institutions from the Android admin panel." />
           <Button label="Sign out" onPress={logout} tone="danger" />
         </ScreenScroll>
@@ -79,18 +81,24 @@ export function AdminScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.topBar}>
-        <View>
-          <Text style={styles.brand}>Kagie Admin</Text>
-          <Text style={styles.topMeta}>Master admin mobile control center</Text>
+        <View style={styles.brandRow}>
+          <View style={styles.brandBadge}>
+            <Text style={styles.brandBadgeText}>K</Text>
+          </View>
+          <View>
+            <Text style={styles.brand}>Kagie Admin</Text>
+            <Text style={styles.topMeta}>Master admin mobile control center</Text>
+          </View>
         </View>
         <Button label="Sign out" onPress={logout} tone="danger" />
       </View>
 
       <ScreenScroll>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Master Admin</Text>
-          <Text style={styles.heroText}>Manage live institution availability from Android. Learner screens only see what the backend allows.</Text>
-        </View>
+        <HeroPanel
+          eyebrow="Master admin"
+          title="Mobile control center"
+          copy="Manage live institution availability from Android while Kagie keeps learner visibility server-controlled."
+        />
 
         {notice ? <Notice tone={notice.tone} message={notice.text} /> : null}
 
@@ -141,38 +149,43 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg
   },
   topBar: {
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(217,227,241,0.8)",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+    backgroundColor: colors.brand,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     gap: 12
   },
-  brand: {
+  brandRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  brandBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 15,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  brandBadgeText: {
     color: colors.brand,
     fontSize: 22,
     fontWeight: "900"
   },
-  topMeta: {
-    color: colors.textMuted
-  },
-  hero: {
-    backgroundColor: "#102a56",
-    borderRadius: 28,
-    padding: 22,
-    gap: 8
-  },
-  heroTitle: {
+  brand: {
     color: "#ffffff",
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: "900"
   },
-  heroText: {
-    color: "rgba(255,255,255,0.88)",
-    lineHeight: 20
+  topMeta: {
+    color: "rgba(255,255,255,0.82)"
   },
   meta: {
     color: colors.textMuted,
@@ -186,7 +199,7 @@ const styles = StyleSheet.create({
   institutionRow: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 10
   },

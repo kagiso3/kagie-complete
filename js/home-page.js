@@ -46,6 +46,7 @@
     const heroSubtitle = $(".hero-subtitle");
     const dashboardBar = $(".dashboard-bar");
     const dashboardPills = Array.from(document.querySelectorAll(".dashboard-bar .dash-pill"));
+    const dashboardDefaultPill = $(".dashboard-bar .dash-pill.dashboard");
     const homeQuickStrip = $("#homeQuickStrip");
     const insightStack = $(".insight-stack");
     const homeJourney = $("#homeJourney");
@@ -67,6 +68,10 @@
       ? api.getUserExperiencePreferences(currentStudent.id)
       : { lowDataMode: false, reducedMotion: false };
     let carouselAnimationEnabled = true;
+    let carouselItems = [];
+    let carouselFrame = 0;
+    let carouselLastTime = 0;
+    let carouselPageActive = true;
     let angle = 0;
     let velocity = -0.28;
     let isDragging = false;
@@ -136,6 +141,13 @@
       });
     }
 
+    function centerDashboardPill() {
+      if (!dashboardBar || !dashboardDefaultPill) return;
+      const targetLeft = dashboardDefaultPill.offsetLeft - ((dashboardBar.clientWidth - dashboardDefaultPill.offsetWidth) / 2);
+      dashboardBar.scrollLeft = Math.max(0, targetLeft);
+      queueDashboardWheelState();
+    }
+
     function startDashboardDrag(clientX) {
       if (!dashboardBar) return;
       isDashboardDragging = true;
@@ -202,6 +214,7 @@
         footerZone.style.display = "flex";
       }
       updateCarousel();
+      syncCarouselAnimation();
     }
 
     function syncInsightStackVisibility() {
@@ -226,46 +239,6 @@
         node.classList.add("is-hidden");
       });
       syncInsightStackVisibility();
-    }
-
-    function setQuickStripLegacy(summary) {
-      return;
-      if (!homeQuickStrip) return;
-      const latest = summary?.latestApplication || {};
-      const packageUsage = summary?.packageUsage || {};
-      const serviceOverview = summary?.serviceOverview || {};
-      const totalServices =
-        Number(serviceOverview.funding || 0) +
-        Number(serviceOverview.accommodation || 0) +
-        Number(serviceOverview.transport || 0) +
-        Number(serviceOverview.correction || 0);
-      const shortlistCount = Array.isArray(latest.institutions) ? latest.institutions.length : 0;
-      const remainingSlots = packageUsage.remainingSlots === "Unlimited"
-        ? "Unlimited"
-        : `${packageUsage.remainingSlots || 0} left`;
-
-      homeQuickStrip.innerHTML = `
-        <a class="quick-link" href="forms.html">
-          <div class="quick-label">Application</div>
-          <div class="quick-value">${safe(packageUsage.packageName || "Open application")}</div>
-          <div class="quick-copy">${safe(packageUsage.packageName ? `Used ${packageUsage.usedSlots || 0} slot(s) · ${remainingSlots}` : "Manage your shortlist, forms, and next Kagie steps in one place.")}</div>
-        </a>
-        <a class="quick-link" href="cart.html">
-          <div class="quick-label">Cart</div>
-          <div class="quick-value">${safe(latest.paymentStatus || "Continue checkout")}</div>
-          <div class="quick-copy">${safe(latest.paymentStatus ? "Review your package and finish payment when you are ready." : "Review your package and services before you pay.")}</div>
-        </a>
-        <a class="quick-link" href="more-service/index.html">
-          <div class="quick-label">Services</div>
-          <div class="quick-value">${safe(totalServices || 0)} active</div>
-          <div class="quick-copy">Funding, corrections, accommodation, and transport support.</div>
-        </a>
-        <a class="quick-link" href="recommendation.html">
-          <div class="quick-label">Recommendations</div>
-          <div class="quick-value">${safe(shortlistCount || 0)} shortlisted</div>
-          <div class="quick-copy">Check suggestions and safer options based on your profile.</div>
-        </a>
-      `;
     }
 
     function setQuickStrip(summary) {
@@ -349,12 +322,30 @@
       }
     }
 
+    let menuPreviousFocus = null;
+    let menuPreviousOverflow = "";
+    const appContent = document.querySelector(".app");
+
     function openMenu() {
-      if (menuSheet) menuSheet.classList.add("open");
+      if (!menuSheet || menuSheet.classList.contains("open")) return;
+      menuPreviousFocus = document.activeElement;
+      menuPreviousOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      if (appContent) appContent.inert = true;
+      menuSheet.classList.add("open");
+      menuSheet.setAttribute("aria-hidden", "false");
+      menuBtn?.setAttribute("aria-expanded", "true");
+      closeMenu?.focus();
     }
 
     function shutMenu() {
-      if (menuSheet) menuSheet.classList.remove("open");
+      if (!menuSheet?.classList.contains("open")) return;
+      menuSheet.classList.remove("open");
+      menuSheet.setAttribute("aria-hidden", "true");
+      menuBtn?.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = menuPreviousOverflow;
+      if (appContent) appContent.inert = false;
+      if (menuPreviousFocus?.isConnected) menuPreviousFocus.focus();
     }
 
     function buildCarousel() {
@@ -377,16 +368,16 @@
           <img src="${safe(logo.file)}" alt="${safe(logo.name)} logo" loading="lazy" draggable="false" />
         </button>
       `).join("");
+      carouselItems = [...carousel.querySelectorAll(".carousel-item")];
       updateCarousel();
     }
 
     function updateCarousel() {
       if (!carousel) return;
-      const items = [...document.querySelectorAll(".carousel-item")];
-      const total = items.length;
+      const total = carouselItems.length;
       const radius = 170;
 
-      items.forEach((item, index) => {
+      carouselItems.forEach((item, index) => {
         const itemAngle = (360 / total) * index + angle;
         const rad = itemAngle * (Math.PI / 180);
         const x = Math.sin(rad) * radius;
@@ -402,19 +393,35 @@
       });
     }
 
-    function animateCarousel() {
-      const shouldAnimate = !document.hidden && (isDragging || carouselAnimationEnabled || Math.abs(velocity) > 0.12);
-      if (!shouldAnimate) {
-        requestAnimationFrame(animateCarousel);
+    function canAnimateCarousel() {
+      return carouselPageActive && carouselAnimationEnabled && !document.hidden && carouselItems.length > 0;
+    }
+
+    function syncCarouselAnimation() {
+      if (!canAnimateCarousel()) {
+        if (carouselFrame) window.cancelAnimationFrame(carouselFrame);
+        carouselFrame = 0;
+        carouselLastTime = 0;
         return;
       }
-      if (carouselAnimationEnabled && !isDragging) {
-        angle += velocity;
-        velocity *= 0.992;
-        if (Math.abs(velocity) < 0.12) velocity = velocity < 0 ? -0.12 : 0.12;
+      if (!carouselFrame) carouselFrame = window.requestAnimationFrame(animateCarousel);
+    }
+
+    function animateCarousel(time) {
+      carouselFrame = 0;
+      if (!canAnimateCarousel()) {
+        carouselLastTime = 0;
+        return;
       }
-      updateCarousel();
-      requestAnimationFrame(animateCarousel);
+      const frameScale = carouselLastTime ? Math.min(time - carouselLastTime, 50) / (1000 / 60) : 1;
+      carouselLastTime = time;
+      if (!isDragging) {
+        angle = (angle + velocity * frameScale) % 360;
+        velocity *= Math.pow(0.992, frameScale);
+        if (Math.abs(velocity) < 0.12) velocity = velocity < 0 ? -0.12 : 0.12;
+        updateCarousel();
+      }
+      syncCarouselAnimation();
     }
 
     function pointerStart(clientX) {
@@ -465,7 +472,7 @@
     }
     const displayName = String(storedName || "User").trim().split(/\s+/)[0] || "User";
     animateGreeting(`Hello ${displayName}`);
-    await hydrateHomeControlCenter();
+    hydrateHomeControlCenter();
     bootScreen?.hide?.();
 
     document.querySelectorAll(".tile, .dash-pill, .menu-btn").forEach((el) => {
@@ -479,9 +486,25 @@
       if (closeMenu) closeMenu.addEventListener("click", shutMenu);
       if (menuSheet) menuSheet.addEventListener("click", (e) => { if (e.target === menuSheet) shutMenu(); });
       menuLinks.forEach((link) => link.addEventListener("click", () => shutMenu()));
-      document.addEventListener("keydown", (e) => { if (e.key === "Escape") shutMenu(); });
+      document.addEventListener("keydown", (e) => {
+        if (!menuSheet?.classList.contains("open")) return;
+        if (e.key === "Escape") { e.preventDefault(); shutMenu(); }
+        if (e.key === "Tab") {
+          const focusable = [...menuSheet.querySelectorAll("a[href],button:not([disabled]),input:not([disabled]),[tabindex='0']")]
+            .filter((node) => node.getClientRects().length);
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (!first) { e.preventDefault(); return; }
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      });
+
+    let logoutInFlight = false;
 
     async function performLogout() {
+      if (logoutInFlight) return;
+      logoutInFlight = true;
       shutMenu();
       const startBusy = (button) => {
         if (!button) return;
@@ -517,7 +540,7 @@
       }
       if (applyNavigationLocked) return;
       applyNavigationLocked = true;
-      window.location.href = "forms.html";
+      window.location.href = "forms.html?step=type&fresh=1";
     }
 
     if (logoutBtn) {
@@ -534,13 +557,22 @@
       });
     }
 
-    document.querySelectorAll('a[href="forms.html"], a[href="forms.html?step=apply"], a[href="forms.html?step=pack"]').forEach((link) => {
+    document.querySelectorAll('a[href^="forms.html"]').forEach((link) => {
       link.addEventListener("click", goToApply);
     });
 
     if (carousel) {
       buildCarousel();
-      animateCarousel();
+      syncCarouselAnimation();
+      document.addEventListener("visibilitychange", syncCarouselAnimation);
+      window.addEventListener("pagehide", () => {
+        carouselPageActive = false;
+        syncCarouselAnimation();
+      });
+      window.addEventListener("pageshow", () => {
+        carouselPageActive = true;
+        syncCarouselAnimation();
+      });
       carousel.addEventListener("mousedown", (e) => { e.preventDefault(); pointerStart(e.clientX); });
       window.addEventListener("mousemove", (e) => pointerMove(e.clientX));
       window.addEventListener("mouseup", pointerEnd);
@@ -557,6 +589,7 @@
     }
 
     if (dashboardBar && dashboardPills.length) {
+      centerDashboardPill();
       queueDashboardWheelState();
       dashboardBar.addEventListener("scroll", queueDashboardWheelState, { passive: true });
       dashboardBar.addEventListener("wheel", (event) => {
@@ -588,7 +621,7 @@
         event.preventDefault();
         event.stopPropagation();
       }, true);
-      window.addEventListener("resize", queueDashboardWheelState);
+      window.addEventListener("resize", centerDashboardPill);
       dashboardPills.forEach((pill) => {
         pill.addEventListener("focus", queueDashboardWheelState);
         pill.addEventListener("mouseenter", queueDashboardWheelState);

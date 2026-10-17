@@ -58,7 +58,11 @@ drop policy if exists "profiles_select_self_or_staff" on public.profiles;
 create policy "profiles_select_self_or_staff"
 on public.profiles
 for select
-using (auth.uid() = id or public.is_staff());
+using (
+  auth.uid() = id
+  or public.current_role() = 'master_admin'
+  or public.can_access_user(coalesce(user_id, id))
+);
 
 drop policy if exists "profiles_update_self_or_master" on public.profiles;
 create policy "profiles_update_self_or_master"

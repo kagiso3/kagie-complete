@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Cart</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="js/backend.js?v=20261015-backend-audit"></script>
+  <script defer src="js/supabase-config.js?v=20261014-palette-blue"></script>
+  <script defer src="js/cart-page.js?v=20261014-palette-blue"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/student-cart.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/student-workspace.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
+</head>
+<body class="kagie-student-workspace" data-kagie-page="cart">
+  <div class="page">
+    <div class="shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <a class="back-btn" href="forms.html" aria-label="Back to forms">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 12H5M12 5l-7 7 7 7" />
+            </svg>
+          </a>
+          <div class="topbar-title">
+            <h1>Cart</h1>
+            <p>Checkout</p>
+          </div>
+        </div>
+        <a class="cart-btn" href="cart.html" aria-label="Cart">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+            <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
+          </svg>
+          <span class="cart-num" id="cartCountBadge">0</span>
+        </a>
+      </header>
+
+      <main class="scroll">
+        <section class="hello-card">
+          <div class="hello-left">
+            <div class="hello-avatar">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="white" aria-hidden="true">
+                <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v2h20v-2c0-3.33-6.67-5-10-5z" />
+              </svg>
+            </div>
+            <div>
+              <div class="hello-name" id="heroTitle">Hello, Student</div>
+              <div class="hello-sub" id="heroText">Your cart is empty right now.</div>
+            </div>
+          </div>
+          <svg class="hello-art" width="82" height="68" viewBox="0 0 90 75" fill="none" aria-hidden="true">
+            <circle cx="70" cy="15" r="13" fill="#ffeeee" opacity="0.8" />
+            <circle cx="80" cy="34" r="7" fill="#ffeeee" opacity="0.5" />
+            <circle cx="62" cy="7" r="5" fill="#ffeeee" opacity="0.4" />
+            <path d="M7 11h10l6 40" stroke="#fd0505" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
+            <rect x="18" y="17" width="52" height="34" rx="6" fill="#fff5f5" stroke="#fd0505" stroke-width="2.2" />
+            <line x1="18" y1="30" x2="70" y2="30" stroke="#fd0505" stroke-width="1.6" stroke-dasharray="4 3" />
+            <rect x="30" y="31" width="26" height="17" rx="3" fill="#ffeeee" stroke="#fd0505" stroke-width="1.5" />
+            <path d="M36 31v-3a6 6 0 0112 0v3" stroke="#fd0505" stroke-width="1.6" stroke-linecap="round" fill="none" />
+            <circle cx="31" cy="58" r="6.5" fill="white" stroke="#fd0505" stroke-width="2.2" />
+            <circle cx="31" cy="58" r="2.2" fill="#fd0505" />
+            <circle cx="55" cy="58" r="6.5" fill="white" stroke="#fd0505" stroke-width="2.2" />
+            <circle cx="55" cy="58" r="2.2" fill="#fd0505" />
+          </svg>
+        </section>
+
+        <section class="card" id="transportEditorSheet">
+          <div class="sec-head">
+            <div class="sec-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fd0505" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="1" y="3" width="15" height="13" rx="2" />
+                <path d="M16 8h4l3 3v5h-7V8z" />
+                <circle cx="5.5" cy="18.5" r="1.5" /><circle cx="18.5" cy="18.5" r="1.5" />
+              </svg>
+            </div>
+            <div class="sec-text">
+              <h3>Transport in Cart</h3>
+              <p>Fill or check passenger details before you continue to payment.</p>
+            </div>
+          </div>
+          <div class="transport-stack">
+            <div class="transport-summary-box" id="transportTripSummary">
+              <div class="t-input">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BCC3D6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+                </svg>
+                <span>No transport added yet.</span>
+              </div>
+            </div>
+            <div class="transport-form-list" id="transportCartForms"></div>
+            <div class="transport-note" id="transportCartNotice" aria-live="polite"></div>
+            <div class="btn-row">
+              <button class="btn-outline" id="transportSaveBtn" type="button" disabled>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fd0505" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14a2 2 0 01-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
+                </svg>
+                Save transport details
+              </button>
+              <a class="btn-fill" href="more-service/transport-assist.html">Back to transport</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="sec-head">
+            <div class="sec-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="#fd0505" aria-hidden="true">
+                <path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm0 9c-1.66 0-3-1.34-3-3h1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5H15c0 1.66-1.34 3-3 3z" />
+              </svg>
+            </div>
+            <div class="sec-text">
+              <h3>Shopping Bag</h3>
+              <p>Only the things you select to pay for should be here.</p>
+            </div>
+          </div>
+          <div class="list" id="list">
+            <div class="empty-bag">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fd0505" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z" />
+                <path d="M9 11c0 1.66 1.34 3 3 3s3-1.34 3-3" />
+              </svg>
+              <div class="empty-bag-title">Your cart is empty.</div>
+              <div class="empty-bag-sub">Add a package or service first.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="sec-head">
+            <div class="sec-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fd0505" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+                <line x1="7" y1="7" x2="7.01" y2="7" />
+              </svg>
+            </div>
+            <div class="sec-text">
+              <h3>Promo &amp; Summary</h3>
+              <p>Apply a code, check the total, then continue.</p>
+            </div>
+          </div>
+          <div class="summary-stack" id="billSnapshot"></div>
+          <div class="helper-note" id="cartHint">Pay now. Kagie can collect any missing details afterwards.</div>
+        </section>
+
+        <section class="total-card">
+          <div class="total-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          </div>
+          <div class="total-info">
+            <p>Total to Pay</p>
+            <h2 id="totalPayAmount">ZAR 0.00</h2>
+            <small id="totalPayNote">No items in your cart yet.</small>
+          </div>
+          <span class="zar-badge">ZAR</span>
+        </section>
+
+        <section class="promo-card">
+          <div class="promo-label">Have a promo code?</div>
+          <div class="promo-row">
+            <div class="promo-field">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#BCC3D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+                <line x1="7" y1="7" x2="7.01" y2="7" />
+              </svg>
+              <input id="promoCodeInput" type="text" placeholder="Enter 9-character code" maxlength="9" />
+            </div>
+            <button class="promo-apply" id="applyPromoBtn" type="button">Apply</button>
+            <button class="promo-remove" id="clearPromoBtn" type="button">Remove code</button>
+          </div>
+          <div class="promo-note" id="promoSummary">No promo code applied yet.</div>
+        </section>
+      </main>
+
+      <footer class="bottombar">
+        <button class="empty-btn" id="clearCartBtn" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fd0505" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+            <path d="M10 11v6M14 11v6" />
+            <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
+          </svg>
+          Empty Cart
+        </button>
+        <button class="continue-btn" id="checkoutBtn" type="button">
+          <span id="checkoutBtnLabel">Continue to Payment</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+          </svg>
+        </button>
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

@@ -523,7 +523,9 @@
     state.assignmentSaving = true;
     const saveButton = $("adminAssignSave");
     const originalText = saveButton?.textContent || "Save assignment";
-    if (saveButton) {
+    if (window.KagieUX?.setButtonLoading) {
+      window.KagieUX.setButtonLoading(saveButton, true, { busyText: "Saving..." });
+    } else if (saveButton) {
       saveButton.disabled = true;
       saveButton.setAttribute("aria-busy", "true");
       saveButton.textContent = "Saving...";
@@ -552,7 +554,9 @@
       $("adminAssignMessage").textContent = error?.message || "Could not save assignment.";
     } finally {
       state.assignmentSaving = false;
-      if (saveButton) {
+      if (window.KagieUX?.setButtonLoading) {
+        window.KagieUX.setButtonLoading(saveButton, false);
+      } else if (saveButton) {
         saveButton.disabled = false;
         saveButton.removeAttribute("aria-busy");
         saveButton.textContent = originalText;
@@ -572,6 +576,7 @@
   }
 
   async function refresh() {
+    if (state.loading) return;
     state.loading = true;
     state.error = "";
     renderRows();
@@ -644,9 +649,29 @@
       renderRows();
     });
     $("adminAssignSave")?.addEventListener("click", saveAssignment);
-    $("adminUsersRefreshBtn")?.addEventListener("click", refresh);
-    $("adminUsersReloadBtn")?.addEventListener("click", refresh);
-    $("adminUsersSignOut")?.addEventListener("click", () => state.api.logoutReal?.() || state.api.logout?.());
+    const runRefresh = (event) => {
+      const button = event.currentTarget;
+      if (window.KagieUX?.withButtonLock) {
+        window.KagieUX.withButtonLock(button, "admin-users-refresh", "Refreshing...", refresh);
+        return;
+      }
+      refresh();
+    };
+    $("adminUsersRefreshBtn")?.addEventListener("click", runRefresh);
+    $("adminUsersReloadBtn")?.addEventListener("click", runRefresh);
+    $("adminUsersSignOut")?.addEventListener("click", (event) => {
+      const button = event.currentTarget;
+      const task = async () => {
+        if (state.api.logoutReal) await state.api.logoutReal();
+        else if (state.api.logout) await Promise.resolve(state.api.logout());
+        window.location.replace("../../login.html?switch=1");
+      };
+      if (window.KagieUX?.withButtonLock) {
+        window.KagieUX.withButtonLock(button, "admin-users-signout", "Signing out...", task, { keepLockedOnSuccess: true });
+        return;
+      }
+      task();
+    });
     document.querySelectorAll("[data-close-profile]").forEach((button) => button.addEventListener("click", () => closeModal("adminUserProfileModal")));
     document.querySelectorAll("[data-close-assign]").forEach((button) => button.addEventListener("click", () => closeModal("adminAssignModal")));
     $("adminUsersMenuToggle")?.addEventListener("click", () => {

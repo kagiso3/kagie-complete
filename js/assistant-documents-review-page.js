@@ -34,6 +34,7 @@
     const assistant = api.requireRole("assistant_admin");
     const list = document.getElementById("documents");
     let activeFilter = "all";
+    let queueCache = null;
     const actionLocks = new Set();
 
     async function runButtonAction(button, key, busyText, task) {
@@ -58,7 +59,7 @@
       }
     }
 
-    async function getQueue() {
+    async function getLegacyQueue() {
       const apps = (api.getApplicationsByAssistantAsync ? await api.getApplicationsByAssistantAsync(assistant.id) : api.getApplicationsByAssistant(assistant.id))
         .map((app) => ({
           ...app,
@@ -82,8 +83,17 @@
       return rows.flat().sort((a, b) => new Date(b.doc.createdAt) - new Date(a.doc.createdAt));
     }
 
-    async function render() {
-      const queue = (await getQueue()).filter((item) => activeFilter === "all" || String(item.doc.status || "Pending Review") === activeFilter);
+    async function loadQueue(force) {
+      if (!force && queueCache) return queueCache;
+      queueCache = api.getAssignedDocumentReviewQueueAsync
+        ? await api.getAssignedDocumentReviewQueueAsync(assistant.id)
+        : await getLegacyQueue();
+      return queueCache;
+    }
+
+    async function render(force) {
+      if (!queueCache) list.innerHTML = '<div class="empty">Loading assigned documents...</div>';
+      const queue = (await loadQueue(force)).filter((item) => activeFilter === "all" || String(item.doc.status || "Pending Review") === activeFilter);
       if (!queue.length) {
         list.innerHTML = '<div class="empty">No documents match the current filter.</div>';
         return;
@@ -117,7 +127,7 @@
       await runButtonAction(button, `doc-review:${id}:${status}`, "Updating...", async () => {
         try {
           await (api.setDocumentReviewAsync ? api.setDocumentReviewAsync(id, { status, comment: `Updated by ${assistant.fullName}` }) : Promise.resolve(api.setDocumentReview(id, { status, comment: `Updated by ${assistant.fullName}` })));
-          await render();
+          await render(true);
         } catch (error) {
           alert(error.message || "Could not update document review.");
         }

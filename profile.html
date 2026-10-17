@@ -4,112 +4,30 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Kagie | Profile</title>
-  <meta name="theme-color" content="#cf111d" />
+  <meta name="theme-color" content="#fd0505" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Kagie" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/images/logos/app-icon.png" />
-  <script defer src="/js/pwa-init.js?v=20260409a"></script>
-  <script defer src="/js/install-app.js?v=20260409a"></script>
-  <script src="js/backend.js?v=20260408w"></script>
-  <script src="js/data.js?v=20260408w"></script>
-  <script>
-    const normalizeRole = (role) => {
-      const value = String(role || "").trim().toLowerCase();
-      if (["user", "learner", "student", "authenticated"].includes(value)) return "user";
-      if (["assistant_admin", "assistant admin", "assistant-admin", "assistantadmin", "assistant", "admin", "staff"].includes(value)) return "assistant_admin";
-      if (["master_admin", "master admin", "master-admin", "masteradmin", "super_admin", "super-admin", "super admin"].includes(value)) return "master_admin";
-      return value || "user";
-    };
-    const currentUser = window.KagieAPI?.currentUser?.();
-    if (!currentUser || normalizeRole(currentUser.role) !== "user") { window.location.href = "login.html"; }
-  </script>
+  <script defer src="/js/pwa-init.js?v=20261014-palette-blue"></script>
+  <script defer src="/js/install-app.js?v=20261014-palette-blue"></script>
+  <script src="js/backend.js?v=20261015-backend-audit"></script>
+  <script src="js/data.js?v=20261014-palette-blue"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js?v=20261014-palette-blue"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/profile-dashboard.css?v=20260408w" />
-  <style>
-    :root{
-      --kagie-bg:#f5f8fc;
-      --kagie-ink:#10233d;
-      --kagie-muted:#66788f;
-      --kagie-red:#c24848;
-      --kagie-red-hero:#db0f16;
-      --kagie-blue:#1f8aea;
-      --kagie-blue2:#63b9ff;
-      --kagie-gold:#f2cd67;
-      --kagie-orange:#f39a38;
-      --kagie-green:#1a6b4a;
-      --kagie-line:#d8e4f0;
-      --kagie-shadow:0 18px 34px rgba(16,35,61,.09);
-    }
-    body{
-      background:
-        radial-gradient(circle at top left, rgba(31,138,234,.14), transparent 28%),
-        radial-gradient(circle at bottom right, rgba(219,15,22,.10), transparent 28%),
-        var(--kagie-bg) !important;
-      color:var(--kagie-ink);
-      padding-bottom:110px !important;
-    }
-    .top-strip,
-    .header-bar{
-      border-color:var(--kagie-line) !important;
-      box-shadow:var(--kagie-shadow) !important;
-    }
-    .top-strip{background:#ffffff !important;color:var(--kagie-muted) !important}
-    .header-bar{background:linear-gradient(135deg,var(--kagie-red-hero),var(--kagie-red)) !important}
-    .hero{
-      background:linear-gradient(135deg,var(--kagie-blue),var(--kagie-red-hero)) !important;
-      box-shadow:var(--kagie-shadow) !important;
-    }
-    .btn.blue,.mini.blue{background:linear-gradient(135deg,var(--kagie-blue),var(--kagie-blue2)) !important}
-    .mini.red{background:linear-gradient(135deg,var(--kagie-red-hero),var(--kagie-red)) !important}
-    .bottom-nav{
-      position:fixed;
-      left:50%;
-      bottom:14px;
-      transform:translateX(-50%);
-      width:min(430px, calc(100% - 24px));
-      background:rgba(255,255,255,.94);
-      border:1px solid var(--kagie-line);
-      border-radius:24px;
-      box-shadow:var(--kagie-shadow);
-      backdrop-filter:blur(20px);
-      -webkit-backdrop-filter:blur(20px);
-      display:flex;
-      justify-content:space-between;
-      gap:6px;
-      padding:8px;
-      z-index:50;
-    }
-    .bottom-nav-item{
-      flex:1;
-      min-height:52px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:4px;
-      border-radius:18px;
-      text-decoration:none;
-      color:var(--kagie-muted);
-      font-size:10px;
-      font-weight:800;
-      letter-spacing:.04em;
-      text-transform:uppercase;
-      transition:all .18s ease;
-    }
-    .bottom-nav-item.active{
-      background:linear-gradient(135deg,var(--kagie-red-hero),var(--kagie-orange));
-      color:#fff;
-      box-shadow:0 10px 20px rgba(219,15,22,.18);
-    }
-    .bottom-nav-kicker{font-size:9px;opacity:.72;letter-spacing:.08em}
-  </style>
+  <link rel="stylesheet" href="css/profile-dashboard.css?v=20261014-palette-blue" />
+  <link rel="stylesheet" href="css/bottom-nav.css?v=20261014-palette-blue" />
+  <script defer src="js/bottom-nav.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/student-workspace.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
 </head>
-<body>
+<body class="kagie-student-workspace" data-kagie-page="profile">
   <div class="top-strip">
     <div id="timeNow">--:--</div>
     <span>Profile and account center</span>
@@ -119,14 +37,14 @@
     <div class="brand">
       <div class="brand-badge">K</div>
       <div>
-        <h1>KAGIE</h1>
+        <h1>Kagie</h1>
         <p>Profile Dashboard</p>
       </div>
     </div>
 
     <div class="header-actions">
       <a class="btn" href="home.html">Home</a>
-      <a class="btn" href="home.html">Home Hub</a>
+      <a class="btn" href="Dashboard.html">Dashboard</a>
       <a class="btn blue" href="upload.html">Upload docs</a>
     </div>
   </header>
@@ -196,21 +114,21 @@
               </div>
               <button class="mini blue" id="saveBtn" type="button">Save profile</button>
             </div>
-            <div class="status-note" id="profileMsg"></div>
+            <div class="status-note" id="profileMsg" role="status" aria-live="polite"></div>
           </div>
           <div class="panel-body">
             <div class="grid-2">
               <div class="field">
                 <label for="fullName">Full name</label>
-                <input id="fullName" type="text" placeholder="Full name" />
+                <input id="fullName" type="text" autocomplete="name" required placeholder="Full name" />
               </div>
               <div class="field">
                 <label for="email">Email</label>
-                <input id="email" type="email" placeholder="Email" />
+                <input id="email" type="email" autocomplete="email" required placeholder="Email" />
               </div>
               <div class="field">
                 <label for="phone">Phone</label>
-                <input id="phone" type="text" placeholder="Phone" />
+                <input id="phone" type="tel" autocomplete="tel" placeholder="Phone" />
               </div>
               <div class="field">
                 <label for="province">Province</label>
@@ -338,6 +256,17 @@
                 <div class="chevron">&gt;</div>
               </a>
 
+              <a href="account-deletion.html" class="nav-card">
+                <div class="nav-left">
+                  <div class="icon-box icon-red">DEL</div>
+                  <div class="nav-text">
+                    <div class="nav-title">Account and data deletion</div>
+                    <div class="nav-subtitle">Request Kagie account or learner data deletion.</div>
+                  </div>
+                </div>
+                <div class="chevron">&gt;</div>
+              </a>
+
               <a href="#" class="nav-card" id="shareAppBtn">
                 <div class="nav-left">
                   <div class="icon-box icon-sky">SHR</div>
@@ -431,6 +360,6 @@
     </a>
   </div>
 
-  <script src="js/profile-page.js?v=20260408w"></script>
+  <script src="js/profile-page.js?v=20261014-palette-blue"></script>
 </body>
 </html>

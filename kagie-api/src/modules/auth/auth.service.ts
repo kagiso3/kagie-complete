@@ -9,6 +9,8 @@ import type {
 import { ROLES } from "@kagie/shared";
 import {
   createSupabaseAuthClient,
+  assertSupabaseUserActive,
+  getTrustedSupabaseRole,
   getSupabaseAdminClient,
   getSupabaseProfileById,
   mapSupabaseProfileToUserRecord
@@ -25,6 +27,8 @@ type RemoteAuthUser = {
   id: string;
   email?: string | null;
   user_metadata?: Record<string, unknown> | null;
+  app_metadata?: Record<string, unknown>;
+  banned_until?: string;
 };
 
 function nowISO() {
@@ -41,6 +45,74 @@ function createError(message: string, status: number) {
   return error;
 }
 
+function shouldLogAuthScaffoldDebug() {
+  return String(process.env.NODE_ENV || "").trim().toLowerCase() !== "production";
+}
+
+function logAuthScaffoldDebug(label: string, details?: Record<string, unknown>) {
+  if (!shouldLogAuthScaffoldDebug()) return;
+  try {
+    console.info(`[Kagie auth] ${label}`, details || {});
+  } catch (_error) {
+    // Debug logging must never block auth scaffolding.
+  }
+}
+
+function isMissingUserIdConflictConstraintError(error: { message?: string | null } | null | undefined) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("user_id")
+    && message.includes("on conflict")
+    && (
+      message.includes("no unique or exclusion constraint")
+      || message.includes("there is no unique or exclusion constraint")
+      || message.includes("42p10")
+    );
+}
+
+async function writeUserScopedScaffoldRow(
+  client: any,
+  table: string,
+  userId: string,
+  payload: Record<string, unknown> = {}
+) {
+  const rowPayload = {
+    user_id: userId,
+    ...payload
+  };
+  let result = await client.from(table).upsert(rowPayload, { onConflict: "user_id" });
+  let strategy = "upsert";
+
+  if (result.error && isMissingUserIdConflictConstraintError(result.error)) {
+    if (shouldLogAuthScaffoldDebug()) {
+      console.warn(`[Kagie auth] ${table} is missing a usable user_id conflict constraint. Retrying fallback write so new users still appear in staff dashboards.`, result.error);
+    }
+    const existing = await client
+      .from(table)
+      .select("user_id")
+      .eq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
+    if (existing.error) {
+      return {
+        ...existing,
+        strategy: "select"
+      };
+    }
+    if (existing.data?.user_id) {
+      result = await client.from(table).update(payload).eq("user_id", userId);
+      strategy = "update";
+    } else {
+      result = await client.from(table).insert(rowPayload);
+      strategy = "insert";
+    }
+  }
+
+  return {
+    ...result,
+    strategy
+  };
+}
+
 function readMetadataString(record: Record<string, unknown> | null | undefined, key: string) {
   const value = record?.[key];
   return typeof value === "string" ? value : "";
@@ -49,7 +121,7 @@ function readMetadataString(record: Record<string, unknown> | null | undefined, 
 function sessionToTokens(session: { access_token: string; refresh_token?: string | null } | null | undefined) {
   if (!session?.access_token || !session.refresh_token) {
     throw createError(
-      "Supabase signup/login did not return a session. Disable email confirmation for the MVP or complete the email verification step first.",
+      "Check your email to confirm your Kagie account before signing in.",
       400
     );
   }
@@ -63,6 +135,12 @@ function sessionToTokens(session: { access_token: string; refresh_token?: string
 async function ensureUserDataScaffold(userId: string, details: BasicUserDetails) {
   const client = getSupabaseAdminClient() as any;
   const timestamp = nowISO();
+  logAuthScaffoldDebug("ensureUserDataScaffold start", {
+    userId,
+    role: details.role,
+    hasEmail: Boolean(details.email),
+    hasPhone: Boolean(details.phone)
+  });
 
   const [profileResult, userProfileResult, guardianProfileResult, schoolProfileResult, cartResult] = await Promise.all([
     client
@@ -77,10 +155,10 @@ async function ensureUserDataScaffold(userId: string, details: BasicUserDetails)
       })
       .select("*")
       .single(),
-    client.from("user_profiles").upsert({ user_id: userId, updated_at: timestamp }, { onConflict: "user_id" }),
-    client.from("guardian_profiles").upsert({ user_id: userId, updated_at: timestamp }, { onConflict: "user_id" }),
-    client.from("school_profiles").upsert({ user_id: userId, updated_at: timestamp }, { onConflict: "user_id" }),
-    client.from("carts").upsert({ user_id: userId, updated_at: timestamp }, { onConflict: "user_id" })
+    writeUserScopedScaffoldRow(client, "user_profiles", userId, { updated_at: timestamp }),
+    writeUserScopedScaffoldRow(client, "guardian_profiles", userId, { updated_at: timestamp }),
+    writeUserScopedScaffoldRow(client, "school_profiles", userId, { updated_at: timestamp }),
+    writeUserScopedScaffoldRow(client, "carts", userId, { updated_at: timestamp })
   ]);
 
   const writeErrors = [
@@ -93,6 +171,15 @@ async function ensureUserDataScaffold(userId: string, details: BasicUserDetails)
   if (writeErrors.length) {
     throw createError(writeErrors[0]?.message || "Could not finish preparing the Kagie profile.", 500);
   }
+  logAuthScaffoldDebug("ensureUserDataScaffold success", {
+    userId,
+    strategies: {
+      user_profiles: userProfileResult.strategy,
+      guardian_profiles: guardianProfileResult.strategy,
+      school_profiles: schoolProfileResult.strategy,
+      carts: cartResult.strategy
+    }
+  });
 
   if (details.role === ROLES.USER) {
     const existingDraft = await client
@@ -137,10 +224,11 @@ async function hydrateOrCreateUserRecord(user: RemoteAuthUser, fallbackRole: Rol
     fullName: readMetadataString(user.user_metadata, "full_name") || "Kagie User",
     email: normalizeEmail(user.email || ""),
     phone: readMetadataString(user.user_metadata, "phone"),
-    role: (readMetadataString(user.user_metadata, "role") as Role) || fallbackRole
+    role: getTrustedSupabaseRole(user)
   };
 
   const existing = await getSupabaseProfileById(user.id);
+  assertSupabaseUserActive(user, existing);
   if (existing) {
     if (
       existing.full_name !== details.fullName
@@ -150,7 +238,7 @@ async function hydrateOrCreateUserRecord(user: RemoteAuthUser, fallbackRole: Rol
     ) {
       return ensureUserDataScaffold(user.id, details);
     }
-    return mapSupabaseProfileToUserRecord(existing);
+    return mapSupabaseProfileToUserRecord({ ...existing, role: details.role });
   }
 
   return ensureUserDataScaffold(user.id, details);
@@ -178,6 +266,7 @@ export async function registerStudent(input: RegisterStudentInput): Promise<Auth
     throw createError(error?.message || "Could not create the Kagie student account.", error?.message?.toLowerCase().includes("already") ? 409 : 500);
   }
 
+  const tokens = sessionToTokens(data.session);
   const user = await ensureUserDataScaffold(data.user.id, {
     fullName,
     email,
@@ -187,24 +276,12 @@ export async function registerStudent(input: RegisterStudentInput): Promise<Auth
 
   return {
     user,
-    tokens: sessionToTokens(data.session)
+    tokens
   };
 }
 
 export async function bootstrapMasterAdmin(input: BootstrapMasterAdminInput): Promise<AuthSession> {
   const client = getSupabaseAdminClient() as any;
-  const existingMaster = await client
-    .from("profiles")
-    .select("id", { head: true, count: "exact" })
-    .eq("role", ROLES.MASTER_ADMIN);
-
-  if (existingMaster.error) {
-    throw createError(existingMaster.error.message || "Could not check the Kagie admin roster.", 500);
-  }
-  if ((existingMaster.count || 0) > 0) {
-    throw createError("A Kagie master admin already exists. Create future admins from protected routes.", 409);
-  }
-
   const email = normalizeEmail(input.email);
   const fullName = input.fullName.trim();
   const phone = input.phone.trim();

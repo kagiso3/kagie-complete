@@ -1,0 +1,129 @@
+/* One account journey, from registration to password recovery. */
+body.kagie-account-page { margin: 0; min-height: 100dvh; display: grid; place-items: center; padding: 32px 16px; }
+body.kagie-account-page .page { width: 100%; min-height: auto; padding: 0; display: grid; place-items: center; }
+body.kagie-account-page :is(.auth-card, .card) { width: min(480px, 100%); max-width: 480px; padding: 32px; border: 1px solid var(--kagie-border); border-radius: 16px; background: #fff; box-shadow: var(--kagie-shadow); }
+.auth-brand { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 28px; color: var(--kagie-ink); font-size: 20px; font-weight: 700; text-decoration: none; }
+.auth-brand-mark { width: 36px; height: 36px; display: grid; place-items: center; background: var(--kagie-primary); border-radius: 10px; color: #fff; font-size: 24px; }
+body.kagie-account-page h1 { margin: 0; text-align: left; font-size: 28px; line-height: 1.3; font-weight: 700; color: var(--kagie-ink); letter-spacing: -.025em; }
+body.kagie-account-page :is(.sub, .top-text) { margin: 8px 0 24px; color: var(--kagie-muted); font-size: 14px; line-height: 1.6; text-align: left; }
+body.kagie-account-page .field { position: relative; margin-bottom: 16px; }
+body.kagie-account-page :is(label, .field-label, .auth-field-label) { display: block; margin: 0 0 8px; padding: 0; position: static; font-size: 14px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--kagie-ink); background: transparent; }
+body.kagie-account-page :where(input:not([type="checkbox"]), .input) { width: 100%; height: 48px; padding: 11px 12px; border: 1px solid #ccd5e0; border-radius: 10px; background: #fff; color: var(--kagie-ink); font: 400 16px var(--kagie-font); box-shadow: none; }
+body.kagie-account-page input::placeholder { color: var(--kagie-muted); text-transform: none; letter-spacing: 0; font-weight: 400; }
+body.kagie-account-page input:focus { border-color: var(--kagie-focus); outline: 3px solid #d0e9fe; outline-offset: 1px; transform: none; }
+body.kagie-account-page .input-wrap { position: relative; }
+body.kagie-account-page .input-wrap input { padding-right: 76px; }
+body.kagie-account-page .toggle-pass { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); border: 0; border-radius: 8px; min-height: 44px; padding: 8px 12px; color: var(--kagie-muted); background: transparent; font: 600 13px var(--kagie-font); cursor: pointer; }
+body.kagie-account-page :where(.btn, button[type="submit"]) { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; height: auto; margin: 8px 0 0; padding: 12px 16px; border: 1px solid var(--kagie-primary); border-radius: 10px; background: var(--kagie-primary); color: #fff; font: 600 15px/1.4 var(--kagie-font); text-transform: none; letter-spacing: 0; box-shadow: none; cursor: pointer; }
+body.kagie-account-page :where(.btn, button[type="submit"]):hover { filter: brightness(.96); transform: none; }
+body.kagie-account-page button:disabled { opacity: .6; cursor: not-allowed; }
+body.kagie-account-page .auth-panel { display: none; }
+body.kagie-account-page .auth-panel.active { display: block; }
+body.kagie-account-page .remember-row { display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; cursor: pointer; }
+body.kagie-account-page .remember-row input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--kagie-primary); }
+.remember-copy { display: grid; gap: 4px; }
+.remember-title { font-size: 14px; font-weight: 600; }
+.remember-note { color: var(--kagie-muted); font-size: 12px; font-weight: 400; line-height: 1.5; }
+body.kagie-account-page .links { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; border-top: 1px solid var(--kagie-border); padding-top: 20px; margin-top: 20px; text-align: left; }
+body.kagie-account-page :is(.links a, .top-text a, .actions a) { display: inline-flex; align-items: center; min-height: 44px; color: var(--kagie-primary); font-size: 14px; font-weight: 600; text-decoration: none; }
+body.kagie-account-page .hint { color: var(--kagie-muted); font-size: 12px; margin-top: 16px; text-align: left; }
+body.kagie-account-page .message { min-height: 20px; margin-top: 16px; text-align: left; font-size: 14px; font-weight: 400; line-height: 1.6; }
+body.kagie-account-page .message:empty { display: none; }
+body.kagie-account-page .message.error { color: var(--kagie-danger); }
+body.kagie-account-page .message.success { color: var(--kagie-success); }
+body.kagie-account-page .bg-blur { display: none; }
+
+/* Shared account entrance. The original palette continues to own all existing colors. */
+.auth-page-shell { width: min(1040px, 100%); margin: 0 auto; }
+.auth-site-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 28px; }
+.auth-site-header .auth-brand { margin: 0; font-size: 22px; }
+.auth-header-note { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--kagie-ink); }
+.auth-header-note svg { width: 20px; height: 20px; color: var(--kagie-primary); }
+.auth-frame { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 24px; align-items: start; }
+.auth-frame > * { min-width: 0; }
+body.kagie-account-page .auth-frame .auth-card { width: 100%; max-width: none; padding: 40px; }
+.auth-story { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 36px; align-self: stretch; padding: 36px; border-radius: 16px; background: #fd0505; color: #fff; overflow: hidden; }
+.auth-story .auth-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: #fff; }
+.auth-story .auth-eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #ffb500; }
+.auth-story h2 { font-size: clamp(30px, 3.5vw, 40px); line-height: 1.15; letter-spacing: -.035em; margin: 18px 0 16px; color: #fff; }
+.auth-story p { margin: 0; font-size: 15px; line-height: 1.7; color: rgba(255,255,255,.9); }
+body.kagie-account-page .auth-story p { color: rgba(255,255,255,.9); }
+body.kagie-account-page .auth-site-header .auth-brand { background: transparent; color: var(--kagie-ink); }
+body.kagie-account-page .auth-page-footer a { background: transparent; color: var(--kagie-muted); }
+body[data-kagie-page="changepassword"] .auth-card .links a { background: transparent; color: var(--blue); }
+.auth-story-art { display: grid; gap: 10px; }
+.auth-story-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid rgba(255,255,255,.18); border-radius: 12px; background: rgba(255,255,255,.1); }
+.auth-story-row strong { font-size: 14px; font-weight: 600; }
+.auth-story-row small { display: block; margin-top: 2px; color: rgba(255,255,255,.8); font-size: 12px; }
+.auth-story-icon { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border-radius: 10px; color: #4c3800; background: #ffb500; }
+.auth-story-icon.blue { color: #fff; background: #2d9df9; }
+.auth-story-icon.orange { color: #fff; background: #fd0505; }
+.auth-story-icon svg { width: 22px; height: 22px; }
+.auth-story-foot { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.88); font-size: 12px; }
+.auth-story-foot svg { flex-shrink: 0; width: 18px; height: 18px; }
+.auth-card .auth-step-kicker { color: var(--kagie-primary); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
+body.kagie-account-page .auth-frame h1 { font-size: 28px; }
+body.kagie-account-page .auth-frame :is(.sub, .top-text) { margin: 10px 0 28px; }
+.auth-label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+body.kagie-account-page .auth-label-row label { margin: 0; }
+.auth-text-link { display: inline-flex; align-items: center; min-height: 32px; color: var(--kagie-primary); font-size: 13px; font-weight: 600; text-decoration: none; }
+.auth-text-link:hover { text-decoration: underline; }
+.auth-field-hint { margin: 6px 0 0; color: var(--muted, var(--kagie-muted)); font-size: 12px; line-height: 1.5; }
+.auth-field-error { display: block; margin: 6px 0 0; color: #fd0505; font-size: 12px; font-weight: 500; line-height: 1.5; }
+body.kagie-account-page .input[aria-invalid="true"] { border-color: #fd0505; }
+body.kagie-account-page .input[aria-invalid="true"]:focus { outline-color: rgba(253, 5, 5,.16); border-color: #fd0505; }
+.auth-fields-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.auth-date-control { position: relative; }
+body.kagie-account-page .auth-date-control input { padding-right: 44px; cursor: pointer; }
+.auth-date-control svg { width: 20px; height: 20px; position: absolute; top: 14px; right: 12px; color: var(--kagie-primary); pointer-events: none; }
+body.kagie-account-page .auth-frame .remember-row { margin: 4px 0 20px; padding: 12px; border: 1px solid rgba(17,24,39,.08); border-radius: 10px; }
+body.kagie-account-page .auth-frame .btn { gap: 10px; }
+.auth-arrow { width: 18px; height: 18px; flex-shrink: 0; }
+body.kagie-account-page .auth-frame .links { justify-content: center; align-items: center; gap: 6px; padding-top: 20px; margin-top: 24px; font-size: 14px; }
+body.kagie-account-page .auth-frame .links a { min-height: 32px; }
+.auth-account-note { margin: 16px 0 0; font-size: 12px; line-height: 1.6; color: var(--muted, var(--kagie-muted)); }
+.auth-page-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--kagie-muted); font-size: 12px; margin-top: 24px; }
+.auth-page-footer nav { display: flex; gap: 16px; }
+.auth-page-footer a { color: inherit; min-height: 32px; display: inline-flex; align-items: center; text-decoration: none; }
+.auth-page-footer a:hover { text-decoration: underline; }
+.auth-reset-result { display: grid; gap: 16px; }
+.auth-state-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; background: #fff5f5; color: #fd0505; }
+.auth-state-icon svg { width: 28px; height: 28px; }
+.auth-reset-result h2 { font-size: 22px; margin: 0; color: var(--text, var(--kagie-ink)); }
+.auth-reset-result p { margin: 0; color: var(--muted, var(--kagie-muted)); font-size: 14px; line-height: 1.7; }
+.auth-reset-result strong { color: var(--text, var(--kagie-ink)); overflow-wrap: anywhere; }
+.auth-secondary-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; border: 1px solid var(--kagie-border); border-radius: 10px; background: #fff; color: var(--kagie-ink); font: 600 14px var(--kagie-font); cursor: pointer; text-decoration: none; }
+.auth-secondary-action:hover { background: var(--kagie-bg); }
+body.kagie-account-page .auth-card .auth-primary-link { text-decoration: none; }
+.auth-link-stack { display: grid; gap: 8px; margin-top: 4px; }
+@media (max-width: 959px) {
+  .auth-page-shell { max-width: 560px; }
+  .auth-frame { grid-template-columns: minmax(0, 1fr); }
+  .auth-story { display: none; }
+}
+@media (max-width: 599px) {
+  .auth-site-header { margin-bottom: 20px; }
+  .auth-header-note { font-size: 11px; gap: 6px; }
+  .auth-header-note svg { width: 18px; height: 18px; }
+  body.kagie-account-page .auth-frame .auth-card { padding: 28px 24px; }
+  .auth-fields-pair { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .auth-page-footer { align-items: flex-start; }
+}
+@media (max-width: 359px) {
+  body.kagie-account-page .auth-frame .auth-card { padding: 24px 20px; }
+  .auth-header-note { display: none; }
+  .auth-label-row { align-items: flex-start; }
+  .auth-text-link { font-size: 12px; }
+}
+@media (max-width: 479px) {
+  body.kagie-account-page { padding: 24px 16px; align-items: start; }
+  body.kagie-account-page :is(.auth-card, .card) { padding: 24px 20px; }
+}
+
+/* Google OAuth shares the email sign-in form and its pending state. */
+body.kagie-account-page .auth-card .auth-google-button { display: flex; width: 100%; min-height: 48px; padding: 12px 16px; margin: 0; align-items: center; justify-content: center; gap: 12px; border: 1px solid #ccd5e0; border-radius: 10px; background: #fff; color: var(--kagie-ink); font: 600 15px/1.4 var(--kagie-font); cursor: pointer; }
+body.kagie-account-page .auth-card .auth-google-button:hover { background: #f8fafc; border-color: #2d9df9; }
+body.kagie-account-page .auth-card .auth-google-button:disabled { opacity: .65; cursor: wait; }
+.auth-google-button svg { flex: 0 0 20px; }
+.auth-signin-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--kagie-muted); font-size: 12px; }
+.auth-signin-divider::before, .auth-signin-divider::after { content: ""; flex: 1; height: 1px; background: var(--kagie-border); }

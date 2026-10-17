@@ -1,8 +1,17 @@
+const { config: yocoConfig, hostedUrl, diagnostic } = require('./_yoco');
+const { reserveCheckout, completeCheckout } = require('./_payment-reservation');
+const { assertActiveActor } = require('./_admin-auth');
+const { priceCart, snapshot, orderSnapshot, safeReturnUrl, cartItemHash } = require("./_payment-checkout");
 const PAYMENT_NOTE_PREFIX = "__KAGIE_PAYMENT_META__";
 
 const STATUS = {
   application: {
     DRAFT: "Draft",
+    PACKAGE_SELECTED: "Package Selected",
+    AWAITING_PAYMENT: "Awaiting Payment",
+    PENDING_DETAILS: "Pending Details",
+    INCOMPLETE: "Incomplete",
+    DOCUMENTS_MISSING: "Documents Missing",
     MISSING_DOCUMENTS: "Missing Documents",
     PROCESSING: "Application being processed"
   },
@@ -42,9 +51,6 @@ function trim(value) {
   return String(value || "").trim();
 }
 
-function normalizeBaseUrl(value) {
-  return trim(value).replace(/\/+$/, "");
-}
 
 function normalizeRole(value) {
   const role = trim(value).toLowerCase();
@@ -52,6 +58,58 @@ function normalizeRole(value) {
   if (["assistant_admin", "assistant admin", "assistant-admin", "assistantadmin", "assistant", "admin", "staff", "administrator", "support", "support_staff", "support-staff", "support staff"].includes(role)) return "assistant_admin";
   if (["user", "learner", "student", "authenticated"].includes(role)) return "user";
   return role || "user";
+}
+
+function normalizeApplicationTypeKey(value) {
+  const type = trim(value).toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
+  if (!type) return "";
+  if (["late", "late_application", "late_applications"].includes(type)) return "late";
+  if (["bridging", "bridge", "bridging_programme", "bridging_programmes"].includes(type)) return "bridging";
+  if (["postgraduate", "post_graduate", "post_graduate_application", "post_graduate_applications", "post_grad", "postgrad"].includes(type)) return "postgraduate";
+  if (["undergraduate", "undergrad", "under_graduate", "undergraduate_application", "undergraduate_applications", "under_graduate_application", "under_graduate_applications"].includes(type)) return "undergraduate";
+  if (type.includes("transfer")) return "transfer";
+  return type;
+}
+
+function remoteApplicationTypeKey(value) {
+  const type = normalizeApplicationTypeKey(value);
+  if (type === "postgraduate") return "POST_GRADUATE";
+  if (type === "bridging") return "BRIDGING";
+  if (type === "transfer") return "TRANSFER";
+  if (type === "late") return "LATE";
+  return "UNDERGRADUATE";
+}
+
+function cartPackageApplicationType(packageItem) {
+  return normalizeApplicationTypeKey(
+    packageItem?.applicationType ||
+    packageItem?.application_type ||
+    packageItem?.forms?.applicationType?.type ||
+    packageItem?.formValues?.applicationType?.type ||
+    packageItem?.package?.applicationType ||
+    packageItem?.selectedPackage?.applicationType ||
+    packageItem?.typeKey ||
+    ""
+  );
+}
+
+function checkoutStartStatus(currentStatus) {
+  const status = trim(currentStatus);
+  const keepStatuses = new Set([
+    STATUS.application.PROCESSING,
+    "Submitted",
+    "Under Review",
+    "Documents Required",
+    "Awaiting Institution Fee",
+    "Submitted to Institution",
+    "Ready to Apply",
+    "Applied",
+    "Pending Feedback",
+    "Accepted",
+    "Rejected",
+    "Cancelled"
+  ]);
+  return keepStatuses.has(status) ? "" : STATUS.application.AWAITING_PAYMENT;
 }
 
 function nowISO() {
@@ -73,7 +131,7 @@ async function readResponse(response) {
 }
 
 async function supabaseFetch(supabaseUrl, path, options) {
-  const response = await fetch(`${supabaseUrl}${path}`, options);
+  const response = await fetch(`${supabaseUrl}${path}`, {signal:AbortSignal.timeout(10000),...options});
   const payload = await readResponse(response);
   if (!response.ok) {
     const error = new Error(
@@ -115,6 +173,8 @@ function parsePaymentNoteState(rawNote) {
     promoCode: "",
     promoTitle: "",
     offerNote: "",
+    checkoutCartId: "",
+    checkoutCartItemIds: [],
     discountAmount: 0
   };
 
@@ -139,6 +199,8 @@ function parsePaymentNoteState(rawNote) {
       promoCode: String(payload?.promoCode || ""),
       promoTitle: String(payload?.promoTitle || ""),
       offerNote: String(payload?.offerNote || ""),
+      checkoutCartId: trim(payload?.checkoutCartId),
+      checkoutCartItemIds: Array.isArray(payload?.checkoutCartItemIds) ? payload.checkoutCartItemIds.map(trim).filter(Boolean) : [],
       discountAmount: Number(payload?.discountAmount || 0)
     };
   } catch (_error) {
@@ -163,6 +225,8 @@ function serializePaymentNoteState(payment) {
     promoCode: trim(payment?.promoCode),
     promoTitle: trim(payment?.promoTitle),
     offerNote: trim(payment?.offerNote),
+    checkoutCartId: trim(payment?.checkoutCartId),
+    checkoutCartItemIds: Array.isArray(payment?.checkoutCartItemIds) ? payment.checkoutCartItemIds.map(trim).filter(Boolean) : [],
     discountAmount: Number(payment?.discountAmount || 0)
   };
   const hasMeta = Object.entries(meta).some(([key, value]) => key !== "customerNote" && value);
@@ -173,12 +237,13 @@ function normalizeCartItem(row) {
   const metadata = row?.metadata && typeof row.metadata === "object" ? row.metadata : {};
   return {
     ...metadata,
+    sourceHash: cartItemHash(row),
     id: trim(row?.id || metadata.id),
     refId: trim(row?.ref_id || metadata.refId || metadata.remoteId),
     type: trim(row?.item_type || metadata.type || "custom"),
     name: trim(row?.name || metadata.name || metadata.packName || metadata.serviceName || metadata.institutionName || "Cart item"),
     price: Number(row?.price ?? metadata.price ?? metadata.packPrice ?? metadata.servicePrice ?? 0),
-    quantity: Number(row?.quantity || metadata.quantity || 1),
+    quantity: Number(row?.quantity ?? metadata.quantity ?? 1),
     createdAt: row?.created_at || metadata.createdAt || nowISO()
   };
 }
@@ -210,9 +275,9 @@ function normalizeInstitutionNameKey(value) {
 }
 
 function isInstitutionClosed(row) {
-  const manualStatus = trim(row?.manual_status).toLowerCase();
+  const manualStatus = trim(row?.manual_status || row?.application_status).toLowerCase();
   const closingDate = trim(row?.closing_date);
-  if (row?.is_active === false) return true;
+  if (row?.is_active === false || row?.is_visible === false) return true;
   if (manualStatus === "closed") return true;
   if (closingDate && /^\d{4}-\d{2}-\d{2}$/.test(closingDate)) {
     const today = new Date().toISOString().slice(0, 10);
@@ -230,18 +295,9 @@ async function assertInstitutionsOpen(supabaseUrl, serviceRoleKey, institutions)
     .filter((item) => item.name);
   if (!requested.length) return;
 
-  let rows = [];
-  try {
-    rows = await supabaseFetch(
-      supabaseUrl,
-      "/rest/v1/institutions?select=name,year,is_active,manual_status,closing_date&limit=1000",
-      { method: "GET", headers: adminHeaders(serviceRoleKey) }
-    );
-  } catch (error) {
-    const message = String(error?.message || "").toLowerCase();
-    if (message.includes("institutions") || message.includes("does not exist") || message.includes("could not find")) return;
-    throw error;
-  }
+  const rows = await supabaseFetch(supabaseUrl,
+    "/rest/v1/institutions?select=*&limit=1000",
+    { method: "GET", headers: adminHeaders(serviceRoleKey) });
 
   const catalog = new Map();
   (Array.isArray(rows) ? rows : []).forEach((row) => {
@@ -253,9 +309,13 @@ async function assertInstitutionsOpen(supabaseUrl, serviceRoleKey, institutions)
 
   const closed = requested.find((item) => {
     const match = catalog.get(`${normalizeInstitutionNameKey(item.name)}|${item.year}`) || catalog.get(`${normalizeInstitutionNameKey(item.name)}|`);
-    return match && isInstitutionClosed(match);
+    return !match || isInstitutionClosed(match);
   });
-  if (closed) throw new Error("Applications for this institution are currently closed.");
+  if (closed) {
+    const error = new Error("This institution is unavailable or applications are currently closed.");
+    error.status = 409;
+    throw error;
+  }
 }
 
 async function getOrCreateCart(supabaseUrl, serviceRoleKey, userId) {
@@ -280,20 +340,74 @@ async function getOrCreateCart(supabaseUrl, serviceRoleKey, userId) {
   }).then((rows) => (Array.isArray(rows) ? rows[0] || null : null));
 }
 
-async function getOrCreateDraftApplication(supabaseUrl, serviceRoleKey, userId) {
+const APPLICATION_SELECT = "id,user_id,status,payment_status,payer_name,payer_phone,payment_reference,payment_method,payment_note,payment_amount,submitted_at,package_id,application_type";
+
+async function getApplicationByIdForUser(supabaseUrl, serviceRoleKey, applicationId, userId) {
+  const appId = trim(applicationId);
+  if (!appId) return null;
+
   const rows = await supabaseFetch(
     supabaseUrl,
-    `/rest/v1/applications?user_id=eq.${encodeFilter(userId)}&select=id,user_id,status,payment_status,payer_name,payer_phone,payment_reference,payment_method,payment_note,payment_amount,submitted_at,package_id&order=updated_at.desc&limit=10`,
+    `/rest/v1/applications?id=eq.${encodeFilter(appId)}&user_id=eq.${encodeFilter(userId)}&select=${APPLICATION_SELECT}&limit=1`,
+    {
+      method: "GET",
+      headers: adminHeaders(serviceRoleKey)
+    }
+  );
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getOrCreateDraftApplication(supabaseUrl, serviceRoleKey, userId, packageItem = null) {
+  const requestedApplicationId = trim(
+    packageItem?.applicationId ||
+    packageItem?.appId ||
+    packageItem?.draftId ||
+    packageItem?.application?.id
+  );
+  const requestedApplicationType = cartPackageApplicationType(packageItem);
+
+  const requestedApplication = await getApplicationByIdForUser(
+    supabaseUrl,
+    serviceRoleKey,
+    requestedApplicationId,
+    userId
+  );
+  if (requestedApplication) return requestedApplication;
+  if (requestedApplicationId) {
+    const error = new Error("This application is unavailable for your account.");
+    error.status = 403;
+    throw error;
+  }
+
+  const rows = await supabaseFetch(
+    supabaseUrl,
+    `/rest/v1/applications?user_id=eq.${encodeFilter(userId)}&select=${APPLICATION_SELECT}&order=updated_at.desc&limit=20`,
     {
       method: "GET",
       headers: adminHeaders(serviceRoleKey)
     }
   );
 
+  const reusableStatuses = new Set([
+    STATUS.application.DRAFT,
+    STATUS.application.PACKAGE_SELECTED,
+    STATUS.application.AWAITING_PAYMENT,
+    STATUS.application.PENDING_DETAILS,
+    STATUS.application.INCOMPLETE,
+    STATUS.application.MISSING_DOCUMENTS,
+    STATUS.application.DOCUMENTS_MISSING
+  ]);
   const draft = (Array.isArray(rows) ? rows : []).find((row) =>
-    row.status === STATUS.application.DRAFT || row.status === STATUS.application.MISSING_DOCUMENTS
+    reusableStatuses.has(row.status) &&
+    !["Verified", "Paid", "Refunded"].includes(row.payment_status) &&
+    (!requestedApplicationType || normalizeApplicationTypeKey(row.application_type) === requestedApplicationType)
   );
   if (draft) return draft;
+
+  const createPayload = { user_id: userId };
+  if (requestedApplicationType) {
+    createPayload.application_type = remoteApplicationTypeKey(requestedApplicationType);
+  }
 
   return supabaseFetch(supabaseUrl, "/rest/v1/applications", {
     method: "POST",
@@ -301,7 +415,7 @@ async function getOrCreateDraftApplication(supabaseUrl, serviceRoleKey, userId) 
       "Content-Type": "application/json",
       Prefer: "return=representation"
     }),
-    body: JSON.stringify([{ user_id: userId }])
+    body: JSON.stringify([createPayload])
   }).then((createdRows) => (Array.isArray(createdRows) ? createdRows[0] || null : null));
 }
 
@@ -332,114 +446,10 @@ async function findApplicationPackId(supabaseUrl, serviceRoleKey, packItem) {
 
 async function saveApplicationInstitutions(supabaseUrl, serviceRoleKey, applicationId, institutions) {
   await assertInstitutionsOpen(supabaseUrl, serviceRoleKey, institutions);
-
-  await supabaseFetch(
-    supabaseUrl,
-    `/rest/v1/application_institutions?application_id=eq.${encodeFilter(applicationId)}`,
-    {
-      method: "DELETE",
-      headers: adminHeaders(serviceRoleKey, { Prefer: "return=minimal" })
-    }
-  );
-
-  const rows = buildInstitutionRows(applicationId, institutions);
-  if (!rows.length) return;
-
-  await supabaseFetch(supabaseUrl, "/rest/v1/application_institutions", {
-    method: "POST",
-    headers: adminHeaders(serviceRoleKey, {
-      "Content-Type": "application/json",
-      Prefer: "return=minimal"
-    }),
-    body: JSON.stringify(rows)
+  await supabaseFetch(supabaseUrl, '/rest/v1/rpc/replace_checkout_institutions', {
+    method:'POST',headers:adminHeaders(serviceRoleKey,{'Content-Type':'application/json'}),
+    body:JSON.stringify({p_application_id:applicationId,p_rows:buildInstitutionRows(applicationId,institutions)})
   });
-}
-
-async function savePaymentRecord(supabaseUrl, serviceRoleKey, applicationId, paymentPayload) {
-  const legacyPaymentPayload = {
-    payer_name: paymentPayload.payer_name,
-    phone: paymentPayload.phone,
-    reference: paymentPayload.reference,
-    method: paymentPayload.method,
-    note: paymentPayload.note,
-    amount: paymentPayload.amount,
-    status: paymentPayload.status
-  };
-  const hasExtendedColumns = Object.keys(paymentPayload || {}).some((key) =>
-    !Object.prototype.hasOwnProperty.call(legacyPaymentPayload, key)
-  );
-  const shouldRetryLegacy = (error) => {
-    const message = `${error?.message || ""} ${JSON.stringify(error?.payload || {})}`.toLowerCase();
-    return hasExtendedColumns && (
-      error?.status === 400 ||
-      message.includes("schema cache") ||
-      message.includes("column") ||
-      message.includes("could not find")
-    );
-  };
-
-  const existing = await supabaseFetch(
-    supabaseUrl,
-    `/rest/v1/payments?application_id=eq.${encodeFilter(applicationId)}&select=*&order=created_at.desc&limit=1`,
-    {
-      method: "GET",
-      headers: adminHeaders(serviceRoleKey)
-    }
-  );
-
-  if (Array.isArray(existing) && existing[0]) {
-    try {
-      await supabaseFetch(
-        supabaseUrl,
-        `/rest/v1/payments?id=eq.${encodeFilter(existing[0].id)}`,
-        {
-          method: "PATCH",
-          headers: adminHeaders(serviceRoleKey, {
-            "Content-Type": "application/json",
-            Prefer: "return=minimal"
-          }),
-          body: JSON.stringify(paymentPayload)
-        }
-      );
-    } catch (error) {
-      if (!shouldRetryLegacy(error)) throw error;
-      await supabaseFetch(
-        supabaseUrl,
-        `/rest/v1/payments?id=eq.${encodeFilter(existing[0].id)}`,
-        {
-          method: "PATCH",
-          headers: adminHeaders(serviceRoleKey, {
-            "Content-Type": "application/json",
-            Prefer: "return=minimal"
-          }),
-          body: JSON.stringify(legacyPaymentPayload)
-        }
-      );
-    }
-    return existing[0].id;
-  }
-
-  const insertPayload = { application_id: applicationId, ...paymentPayload };
-  try {
-    return await supabaseFetch(supabaseUrl, "/rest/v1/payments", {
-      method: "POST",
-      headers: adminHeaders(serviceRoleKey, {
-        "Content-Type": "application/json",
-        Prefer: "return=representation"
-      }),
-      body: JSON.stringify([insertPayload])
-    }).then((rows) => (Array.isArray(rows) ? rows[0]?.id || null : null));
-  } catch (error) {
-    if (!shouldRetryLegacy(error)) throw error;
-    return supabaseFetch(supabaseUrl, "/rest/v1/payments", {
-      method: "POST",
-      headers: adminHeaders(serviceRoleKey, {
-        "Content-Type": "application/json",
-        Prefer: "return=representation"
-      }),
-      body: JSON.stringify([{ application_id: applicationId, ...legacyPaymentPayload }])
-    }).then((rows) => (Array.isArray(rows) ? rows[0]?.id || null : null));
-  }
 }
 
 function buildCheckoutUrls(body) {
@@ -452,16 +462,14 @@ function buildCheckoutUrls(body) {
 
 function isAllowedReturnUrl(url, origin) {
   try {
-    const parsedUrl = new URL(url);
-    const parsedOrigin = new URL(origin);
-    return parsedUrl.origin === parsedOrigin.origin;
+    return safeReturnUrl(url, origin, {publicOnly:(process.env.YOCO_MODE || process.env.YOCO_ENV)==="live"});
   } catch (_error) {
     return false;
   }
 }
 
 exports.handler = async (event) => {
-  const origin = event.headers.origin || "*";
+  const origin = event.headers?.origin || event.headers?.Origin || "*";
 
   if (event.httpMethod === "OPTIONS") {
     return json(200, { ok: true }, origin);
@@ -473,9 +481,10 @@ exports.handler = async (event) => {
 
   const supabaseUrl = String(process.env.SUPABASE_URL || "").trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-  const yocoSecretKey = process.env.YOCO_SECRET_KEY || "";
-  const yocoApiBaseUrl = normalizeBaseUrl(process.env.YOCO_API_BASE_URL) || "https://payments.yoco.com";
-  const yocoMode = trim(process.env.YOCO_MODE || process.env.YOCO_ENV || "");
+  let gateway;
+  try { gateway = yocoConfig(); } catch (error) { diagnostic("configuration", error); return json(503, {message:error.message}, origin); }
+  const yocoSecretKey = gateway.key;
+  const yocoMode = gateway.mode;
 
   if (!supabaseUrl || !serviceRoleKey) {
     return json(500, { message: "Supabase payment configuration is missing on the server." }, origin);
@@ -498,10 +507,11 @@ exports.handler = async (event) => {
 
   const payerName = trim(body?.payerName);
   const phone = trim(body?.phone);
-  const reference = trim(body?.reference);
+  let reference = trim(body?.reference);
   const note = trim(body?.note);
   const urls = buildCheckoutUrls(body);
 
+  if (payerName.length>160 || phone.length>30 || reference.length>100 || note.length>2000) return validationError("Payment details are too long. Shorten the reference or note.",origin);
   if (!payerName || !phone || !reference) {
     return validationError("Payer name, phone, and payment reference are required.", origin);
   }
@@ -528,7 +538,7 @@ exports.handler = async (event) => {
 
     const profiles = await supabaseFetch(
       supabaseUrl,
-      `/rest/v1/profiles?id=eq.${encodeFilter(actorId)}&select=id,role,is_active,full_name,email,phone&limit=1`,
+      `/rest/v1/profiles?id=eq.${encodeFilter(actorId)}&select=*&limit=1`,
       {
         method: "GET",
         headers: adminHeaders(serviceRoleKey)
@@ -537,17 +547,13 @@ exports.handler = async (event) => {
 
     const profile = Array.isArray(profiles) ? profiles[0] || null : null;
     const actorRole = normalizeRole(
-      profile?.role ||
       actor?.app_metadata?.role ||
-      actor?.user_metadata?.role ||
       actor?.role
     );
     if (!profile || actorRole !== "user") {
       return json(403, { message: "Only student accounts can start a Yoco checkout." }, origin);
     }
-    if (profile.is_active === false) {
-      return json(403, { message: "This Kagie account is currently inactive." }, origin);
-    }
+    assertActiveActor(actor, profile);
 
     const cart = await getOrCreateCart(supabaseUrl, serviceRoleKey, actorId);
     const cartItemsRaw = await supabaseFetch(
@@ -558,7 +564,9 @@ exports.handler = async (event) => {
         headers: adminHeaders(serviceRoleKey)
       }
     );
-    const cartItems = (Array.isArray(cartItemsRaw) ? cartItemsRaw : []).map(normalizeCartItem);
+    const normalizedItems = (Array.isArray(cartItemsRaw) ? cartItemsRaw : []).map(normalizeCartItem);
+    const pricing = await priceCart(normalizedItems, { userId: actorId, read: path => supabaseFetch(supabaseUrl, path, { method: "GET", headers: adminHeaders(serviceRoleKey) }) });
+    const cartItems = pricing.items;
     if (!cartItems.length) {
       return validationError("Your cart is empty. Add a package or service before paying.", origin);
     }
@@ -568,7 +576,7 @@ exports.handler = async (event) => {
       .filter((item) => Number(item.price || 0) > 0)
       .reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
     const discountTotal = Math.abs(Number(promoItem?.price || 0));
-    const amount = cartItems.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
+    const amount = pricing.amount;
     const amountCents = toAmountCents(amount);
     const subtotalAmountCents = toAmountCents(subtotal);
     const totalDiscountCents = toAmountCents(discountTotal);
@@ -576,12 +584,16 @@ exports.handler = async (event) => {
       return validationError("Yoco requires a minimum payment of R2.00.", origin);
     }
 
-    const application = await getOrCreateDraftApplication(supabaseUrl, serviceRoleKey, actorId);
+    const packageItem = cartItems.find((item) => item.type === "application_pack") || null;
+    const application = await getOrCreateDraftApplication(supabaseUrl, serviceRoleKey, actorId, packageItem);
     if (!application?.id) {
       return json(500, { message: "Kagie could not prepare your application draft for payment." }, origin);
     }
 
-    const packageItem = cartItems.find((item) => item.type === "application_pack") || null;
+    if (["Verified", "Paid", "Refunded"].includes(application.payment_status)) {
+      return validationError("This application is already paid. Start a new application before paying again.", origin, 409);
+    }
+
     const institutionItems = cartItems.filter((item) => item.type === "institution");
     const institutions = Array.isArray(packageItem?.institutions) && packageItem.institutions.length
       ? packageItem.institutions
@@ -592,15 +604,28 @@ exports.handler = async (event) => {
           faculty: trim(item?.faculty),
           choice1: trim(item?.choice1),
           choice2: trim(item?.choice2),
-          choice3: trim(item?.choice3)
+          choice3: trim(item?.choice3),
+          applicationFee: Number(item?.applicationFee || 0),
+          applicationFeeLabel: trim(item?.applicationFeeLabel),
+          applicationFeeNote: trim(item?.applicationFeeNote)
         }));
 
+    await assertInstitutionsOpen(supabaseUrl, serviceRoleKey, institutions);
     const packageId = packageItem ? await findApplicationPackId(supabaseUrl, serviceRoleKey, packageItem) : null;
 
+    const reservation = await reserveCheckout(supabaseUrl, serviceRoleKey, {
+      applicationId: application.id, userId: actorId, provider: 'yoco', items: cartItems, cartId: cart.id,
+      payerName, phone, reference, amount, urls, mode: yocoMode
+    });
+    if (reservation.response) return json(200, { data: reservation.response }, origin);
+    if (!/^KAG-YOCO-[A-F0-9]{32}$/.test(reservation.reference || '')) throw Object.assign(new Error('Payment reference migration is required.'), { status: 503 });
+    reference = reservation.reference;
+    for (const name of ["successUrl", "cancelUrl", "failureUrl"]) { const u = new URL(urls[name]); u.searchParams.set("attempt", reservation.payment_id); urls[name] = u.href; }
     const baseNoteState = parsePaymentNoteState(application.payment_note || "");
     const paymentMeta = {
       ...baseNoteState,
       customerNote: note,
+      ...snapshot(cartItems, cart.id),
       gatewayProvider: "yoco",
       gatewayStatus: "creating",
       promoCode: trim(promoItem?.promoCode),
@@ -609,29 +634,41 @@ exports.handler = async (event) => {
       discountAmount: Math.abs(Number(promoItem?.price || 0))
     };
 
-    await supabaseFetch(
+    if (packageItem) {
+    const applicationType = cartPackageApplicationType(packageItem);
+    const applicationPatch = {
+      package_id: packageId,
+      payer_name: payerName,
+      payer_phone: phone,
+      payment_reference: reference,
+      payment_method: "Yoco Checkout",
+      payment_note: serializePaymentNoteState(paymentMeta),
+      payment_amount: amount,
+      payment_status: STATUS.payment.PENDING
+    };
+    if (applicationType) applicationPatch.application_type = remoteApplicationTypeKey(applicationType);
+    const nextCheckoutStatus = checkoutStartStatus(application.status);
+    if (nextCheckoutStatus) applicationPatch.status = nextCheckoutStatus;
+
+    const preparedRows = await supabaseFetch(
       supabaseUrl,
-      `/rest/v1/applications?id=eq.${encodeFilter(application.id)}`,
+      `/rest/v1/applications?id=eq.${encodeFilter(application.id)}&payment_status=not.in.(Verified,Paid,Refunded)`,
       {
         method: "PATCH",
         headers: adminHeaders(serviceRoleKey, {
           "Content-Type": "application/json",
-          Prefer: "return=minimal"
+          Prefer: "return=representation"
         }),
-        body: JSON.stringify({
-          package_id: packageId,
-          payer_name: payerName,
-          payer_phone: phone,
-          payment_reference: reference,
-          payment_method: "Yoco Checkout",
-          payment_note: serializePaymentNoteState(paymentMeta),
-          payment_amount: amount,
-          payment_status: STATUS.payment.PENDING
-        })
+        body: JSON.stringify(applicationPatch)
       }
     );
+    if (!Array.isArray(preparedRows) || preparedRows.length !== 1) {
+      return validationError("This application payment changed. Refresh before paying again.", origin, 409);
+    }
 
     await saveApplicationInstitutions(supabaseUrl, serviceRoleKey, application.id, institutions);
+
+    }
 
     const checkoutPayload = {
       amount: amountCents,
@@ -642,9 +679,10 @@ exports.handler = async (event) => {
       subtotalAmount: subtotalAmountCents || undefined,
       totalDiscount: totalDiscountCents || undefined,
       clientReferenceId: application.id,
-      externalId: application.id,
+      externalId: reservation.payment_id,
       metadata: {
         kagieApplicationId: application.id,
+        kagieAttemptId: reservation.payment_id,
         kagieUserId: actorId,
         kagieReference: reference,
         kagiePromoCode: trim(promoItem?.promoCode),
@@ -652,19 +690,20 @@ exports.handler = async (event) => {
       }
     };
 
-    const yocoResponse = await fetch(`${yocoApiBaseUrl}/api/checkouts`, {
+    const yocoResponse = await fetch(gateway.endpoint, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${yocoSecretKey}`,
         "Content-Type": "application/json",
-        "Idempotency-Key": `kagie-${application.id}-${reference}`.slice(0, 255)
+        "Idempotency-Key": `kagie-${reservation.payment_id}`
       },
-      body: JSON.stringify(checkoutPayload)
+      body: JSON.stringify(checkoutPayload),
+      signal: AbortSignal.timeout(15000)
     });
 
     const yocoBody = await readResponse(yocoResponse);
     if (!yocoResponse.ok) {
-      throw new Error(yocoBody?.message || yocoBody?.error || "Yoco checkout creation failed.");
+      throw Object.assign(new Error('Yoco could not create checkout. Your payment reference is preserved; retry the same order or contact support.'), { status: 503, diagnosticCode: [401,403].includes(yocoResponse.status) ? 'YOCO_CREDENTIALS' : yocoResponse.status===405 ? 'YOCO_ENDPOINT' : 'YOCO_REQUEST', providerStatus:yocoResponse.status });
     }
 
     const checkoutId = trim(yocoBody?.id);
@@ -672,7 +711,7 @@ exports.handler = async (event) => {
     const paymentId = trim(yocoBody?.paymentId);
     const redirectUrl = trim(yocoBody?.redirectUrl);
 
-    if (!checkoutId || !redirectUrl) {
+    if (!checkoutId || !hostedUrl(redirectUrl) || (yocoBody.processingMode && yocoBody.processingMode !== yocoMode) || (yocoBody.amount !== undefined && yocoBody.amount !== amountCents) || (yocoBody.currency !== undefined && yocoBody.currency !== "ZAR")) {
       throw new Error("Yoco checkout did not return a redirect URL.");
     }
 
@@ -683,6 +722,7 @@ exports.handler = async (event) => {
       gatewayStatus
     };
     const paymentPayload = {
+      checkout_snapshot: orderSnapshot(cartItems, cart.id),
       user_id: actorId,
       payer_name: payerName,
       phone,
@@ -700,10 +740,12 @@ exports.handler = async (event) => {
       paid_at: null
     };
 
-    await savePaymentRecord(supabaseUrl, serviceRoleKey, application.id, paymentPayload);
+    // The durable reservation already owns the payment record.
+
+    if (packageItem) {
     await supabaseFetch(
       supabaseUrl,
-      `/rest/v1/applications?id=eq.${encodeFilter(application.id)}`,
+      `/rest/v1/applications?id=eq.${encodeFilter(application.id)}&payment_status=not.in.(Verified,Paid,Refunded)`,
       {
         method: "PATCH",
         headers: adminHeaders(serviceRoleKey, {
@@ -716,16 +758,20 @@ exports.handler = async (event) => {
       }
     );
 
-    return json(200, {
-      data: {
+    }
+
+    const completed = await completeCheckout(supabaseUrl, serviceRoleKey, reservation.payment_id, checkoutId, paymentPayload.note, {
         applicationId: application.id,
+        paymentId: reservation.payment_id,
+        reference,
         checkoutId,
         redirectUrl,
         status: gatewayStatus
-      }
-    }, origin);
+    });
+    return json(200, { data: completed }, origin);
   } catch (error) {
-    const statusCode = typeof error?.status === "number" ? error.status : 500;
-    return json(statusCode, { message: error?.message || "Kagie could not start Yoco checkout." }, origin);
+    diagnostic("checkout", error, { ...(error.providerStatus ? { providerStatus:error.providerStatus } : {}) });
+    const statusCode = typeof error?.status === "number" ? error.status : 503;
+    return json(statusCode, { message: statusCode < 500 ? error?.message || "Kagie could not start Yoco checkout." : "Kagie could not prepare this payment. Please try again or contact support." }, origin);
   }
 };

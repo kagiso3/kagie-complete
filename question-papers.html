@@ -5,13 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kagie | Question Papers</title>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script defer src="./js/backend.js?v=20260427a"></script>
-  <script defer src="./js/supabase-config.js?v=20260413b"></script>
-  <script defer src="./js/question-papers-page.js?v=20260427a"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./css/admin-dashboard-modern.css?v=20260426c" />
+  <script defer src="./js/backend.js?v=20261015-backend-audit"></script>
+  <script defer src="./js/supabase-config.js?v=20261014-palette-blue"></script>
+  <script defer src="./js/question-papers-page.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="./css/admin-dashboard-modern.css?v=20261014-palette-blue" />
   <style>
     .paper-admin-grid .queue-header,
     .paper-admin-grid .queue-row {
@@ -27,9 +24,9 @@
       gap: 8px;
     }
     .paper-admin-actions .table-action.danger {
-      color: #d61f3d;
-      border-color: rgba(214, 31, 61, 0.2);
-      background: rgba(254, 242, 242, 0.95);
+      color: #fd0505;
+      border-color: rgba(253, 5, 5, 0.2);
+      background: rgba(255, 242, 242, 0.95);
     }
     .file-chip {
       display: inline-flex;
@@ -58,8 +55,10 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
 </head>
-<body class="admin-dashboard-body role-master">
+<body class="admin-dashboard-body role-master" data-kagie-page="question-papers">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" id="questionPapersSidebar">
       <div class="sidebar-brand">
@@ -74,22 +73,21 @@
         <div class="sidebar-section-title">Applications</div>
         <a class="sidebar-link" href="./master-admin/dashboard.html"><span>Overview</span></a>
         <a class="sidebar-link" href="./admin/users/"><span>All Users</span></a>
-        <a class="sidebar-link" href="./master-admin/dashboard.html#masterAssistantCard"><span>Assistants</span></a>
-        <a class="sidebar-link" href="./master-admin/dashboard.html#masterQueueCard"><span>Applications queue</span></a>
+        <a class="sidebar-link" href="./master-admin/dashboard.html?page=assistants"><span>Assistants</span></a>
+        <a class="sidebar-link" href="./master-admin/dashboard.html?page=applications"><span>Applications queue</span></a>
       </div>
 
       <div class="sidebar-section">
         <div class="sidebar-section-title">Management</div>
         <a class="sidebar-link" href="./institutions.html"><span>Institutions</span></a>
         <a class="sidebar-link active" href="./question-papers.html"><span>Question Papers</span></a>
-        <a class="sidebar-link" href="./forms.html"><span>Courses</span></a>
-        <a class="sidebar-link" href="./documents.html"><span>Documents</span></a>
+        <a class="sidebar-link" href="./master-admin/dashboard.html?page=assistants"><span>Form access</span></a>
+        <a class="sidebar-link" href="./master-admin/dashboard.html?page=documents"><span>Documents</span></a>
       </div>
 
       <div class="sidebar-section">
         <div class="sidebar-section-title">System</div>
         <a class="sidebar-link" href="./admin/users/"><span>Users &amp; Roles</span></a>
-        <a class="sidebar-link" href="./changepassword.html"><span>Settings</span></a>
       </div>
 
       <div class="sidebar-footer">

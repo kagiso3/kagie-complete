@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import "../../../css/yoco-payment.css";
+import { mountYoco } from "../lib/runtime";
+import { useEffect, useRef, useState } from "react";
 import { Button, Card, EmptyState, SectionHeading, TextAreaField, TextField } from "../components/ui";
 import { formatMoney } from "../lib/format";
 import type { KagieApplication, KagieCartItem, KagieSettings, KagieUser, LegacyApi } from "../lib/types";
@@ -12,6 +14,12 @@ export function CheckoutPage({
   api: LegacyApi;
   user: KagieUser;
 }) {
+  const yocoRoot = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let stopped=false;let cleanup: (()=>void)|undefined;
+    if(yocoRoot.current)void mountYoco(yocoRoot.current,api).then(fn=>{if(stopped)fn();else cleanup=fn;}).catch(()=>{if(yocoRoot.current)yocoRoot.current.textContent="Card checkout could not load. Refresh to try again.";});
+    return ()=>{stopped=true;cleanup?.();};
+  },[api,user.id]);
   const [items, setItems] = useState<KagieCartItem[]>([]);
   const [total, setTotal] = useState(0);
   const [settings, setSettings] = useState<KagieSettings>({});
@@ -26,6 +34,7 @@ export function CheckoutPage({
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const [message, setMessage] = useState("");
 
   async function hydrate() {
@@ -40,6 +49,12 @@ export function CheckoutPage({
       setTotal(nextTotal || 0);
       setLatest(nextSummary.latestApplication || null);
       setSettings(api.getSettings ? api.getSettings() : {});
+    } catch {
+      setItems(api.getCart(user.id) || []);
+      setTotal(api.getCartTotal(user.id) || 0);
+      setLatest(api.getDashboardSummary(user.id).latestApplication || null);
+      setSettings(api.getSettings?.() || {});
+      setMessage("Checkout could not refresh. Showing your saved payment details.");
     } finally {
       setLoading(false);
     }
@@ -61,7 +76,7 @@ export function CheckoutPage({
   }, [latest?.id, reference, settings.appName, settings.payments?.referencePrefix, user.id]);
 
   async function handleCheckout() {
-    if (!items.length || busy) return;
+    if (!items.length || busyRef.current) return;
     if (!payerName.trim() || !phone.trim() || !reference.trim()) {
       setMessage("Enter payer name, phone number, and payment reference before confirming.");
       return;
@@ -71,6 +86,7 @@ export function CheckoutPage({
       return;
     }
 
+    busyRef.current = true;
     setBusy(true);
     setMessage("");
     try {
@@ -103,6 +119,7 @@ export function CheckoutPage({
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Kagie could not submit the payment right now.");
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }
@@ -118,6 +135,7 @@ export function CheckoutPage({
         </div>
       </Card>
 
+      <div ref={yocoRoot} data-yoco-root aria-label="Yoco card payment" />
       <div className="kg-grid two">
         <Card>
           <SectionHeading title="Order summary" copy="Your package and paid Kagie services ready for payment." />
@@ -179,8 +197,8 @@ export function CheckoutPage({
               </div>
             ) : null}
             {message ? <div className="kg-inline-message info">{message}</div> : null}
-            <Button onClick={handleCheckout} disabled={!items.length || busy}>
-              {busy ? "Submitting payment..." : "Confirm payment"}
+            <Button onClick={handleCheckout} disabled={!items.length || busy} loading={busy} loadingLabel="Submitting payment...">
+              Confirm payment
             </Button>
           </div>
         </Card>

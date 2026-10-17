@@ -19,12 +19,17 @@ const topLevelFiles = fs.readdirSync(root, { withFileTypes: true })
   .map((entry) => entry.name)
   .filter((name) => (
     path.extname(name).toLowerCase() === ".html"
+    || path.extname(name).toLowerCase() === ".xml"
     || path.extname(name).toLowerCase() === ".webmanifest"
+    || name === "robots.txt"
     || name === "sw.js"
     || /^Kagie-Android(?:-Release)?\.apk$/i.test(name)
   ));
 
 function ensureEmptyDir(dirPath) {
+  if (path.resolve(dirPath) !== path.join(root, "web-release")) {
+    throw new Error("Release cleanup must remain inside the project's web-release directory.");
+  }
   fs.rmSync(dirPath, {
     recursive: true,
     force: true,

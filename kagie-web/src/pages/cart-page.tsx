@@ -15,6 +15,7 @@ export function CartPage({
   const [items, setItems] = useState<KagieCartItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
   async function hydrate() {
     setLoading(true);
@@ -25,6 +26,11 @@ export function CartPage({
       ]);
       setItems(nextItems || []);
       setTotal(nextTotal || 0);
+      setMessage("");
+    } catch {
+      setItems(api.getCart(user.id) || []);
+      setTotal(api.getCartTotal(user.id) || 0);
+      setMessage("Your cart could not refresh. Showing the items saved on this device.");
     } finally {
       setLoading(false);
     }
@@ -35,19 +41,28 @@ export function CartPage({
   }, [api, user.id]);
 
   async function removeItem(itemId: string) {
-    if (api.removeCartItemAsync) await api.removeCartItemAsync(itemId, user.id);
-    else api.removeCartItem(itemId, user.id);
-    await hydrate();
+    try {
+      if (api.removeCartItemAsync) await api.removeCartItemAsync(itemId, user.id);
+      else api.removeCartItem(itemId, user.id);
+      await hydrate();
+    } catch {
+      setMessage("That item could not be removed. Please try again.");
+    }
   }
 
   async function clearCart() {
-    if (api.clearCartAsync) await api.clearCartAsync(user.id);
-    else api.clearCart(user.id);
-    await hydrate();
+    try {
+      if (api.clearCartAsync) await api.clearCartAsync(user.id);
+      else api.clearCart(user.id);
+      await hydrate();
+    } catch {
+      setMessage("Your cart could not be cleared. Please try again.");
+    }
   }
 
   return (
     <div className="kg-page-stack">
+      {message ? <div className="kg-inline-message info" role="status">{message}</div> : null}
       <Card className="kg-hero-card soft">
         <SectionHeading
           eyebrow="Cart"
@@ -75,7 +90,7 @@ export function CartPage({
           title="Cart items"
           copy="The application pack controls institution limits, while support services stay as separate paid items."
           actions={
-            <Button tone="danger" onClick={clearCart} disabled={!items.length}>
+            <Button tone="danger" onClick={clearCart} disabled={!items.length} loadingLabel="Clearing...">
               Clear cart
             </Button>
           }
@@ -106,7 +121,7 @@ export function CartPage({
                   ) : null}
                 </p>
                 <div className="kg-action-row">
-                  <Button tone="ghost" onClick={() => removeItem(item.id)}>
+                  <Button tone="ghost" onClick={() => removeItem(item.id)} loadingLabel="Removing...">
                     Remove
                   </Button>
                 </div>

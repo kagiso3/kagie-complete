@@ -12,6 +12,8 @@ export function AccommodationPage({
 }) {
   const [listings, setListings] = useState<AccommodationListing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadMessage, setLoadMessage] = useState("");
+  const [requesting, setRequesting] = useState(false);
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -31,6 +33,11 @@ export function AccommodationPage({
             ? api.getAccommodationListings()
             : [];
         if (active) setListings(nextListings || []);
+      } catch {
+        if (active) {
+          setListings(api.getAccommodationListings?.() || []);
+          setLoadMessage("New housing listings could not load. Showing saved listings.");
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -48,6 +55,7 @@ export function AccommodationPage({
   const selectedListing = filteredListings.find((listing) => listing.id === selectedId) || listings.find((listing) => listing.id === selectedId) || null;
 
   async function submitRequest() {
+    if (requesting) return;
     if (!selectedListing) {
       setMessage("Choose an accommodation listing first.");
       return;
@@ -63,17 +71,25 @@ export function AccommodationPage({
       preferredMoveInDate: moveInDate,
       note
     };
-    if (api.submitAccommodationRequestAsync) await api.submitAccommodationRequestAsync(payload, user.id);
-    else if (api.submitAccommodationRequest) api.submitAccommodationRequest(payload, user.id);
-    setMessage("Accommodation request saved. Kagie will show it in your dashboard tracking.");
-    setNote("");
-    setMoveInDate("");
+    setRequesting(true);
+    try {
+      if (api.submitAccommodationRequestAsync) await api.submitAccommodationRequestAsync(payload, user.id);
+      else if (api.submitAccommodationRequest) api.submitAccommodationRequest(payload, user.id);
+      setMessage("Accommodation request saved. Kagie will show it in your dashboard tracking.");
+      setNote("");
+      setMoveInDate("");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Kagie could not submit the accommodation request right now.");
+    } finally {
+      setRequesting(false);
+    }
   }
 
   return (
     <div className="kg-page-stack">
+      {loadMessage ? <div className="kg-inline-message info" role="status">{loadMessage}</div> : null}
       <Card className="kg-hero-card soft">
-        <SectionHeading eyebrow="Accommodation" title="Student housing marketplace" copy="Master Admin listings are now available in the React app as a housing discovery and booking-support flow." />
+        <SectionHeading eyebrow="Accommodation" title="Student housing marketplace" copy="Find housing near your institution and ask Kagie for booking support." />
       </Card>
 
       <div className="kg-grid two">
@@ -125,7 +141,9 @@ export function AccommodationPage({
             <TextField label="Preferred move-in date" value={moveInDate} onChange={setMoveInDate} type="date" />
             <TextAreaField label="Notes" value={note} onChange={setNote} placeholder="Budget, room-sharing, campus preference, or anything Kagie should know." />
             {message ? <div className="kg-inline-message info">{message}</div> : null}
-            <Button onClick={() => void submitRequest()}>Request booking support</Button>
+            <Button onClick={submitRequest} disabled={requesting} loading={requesting} loadingLabel="Sending request...">
+              Request booking support
+            </Button>
           </div>
         </Card>
       </div>

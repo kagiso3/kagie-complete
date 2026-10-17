@@ -22,13 +22,211 @@
     if (text.includes("draft") || text.includes("review")) return "c-orange";
     return "c-blue";
   };
-  const normalizeApp = (app) => ({
-    ...app,
-    assignedAssistantId: app?.assignedAssistantId || app?.assistantId || null,
-    items: Array.isArray(app?.items) && app.items.length ? app.items : Array.isArray(app?.institutions) ? app.institutions : []
-  });
+  const normalizeApplicationTypeKey = (value) => {
+    const type = String(value || "").trim().toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
+    if (!type) return "";
+    if (["late", "late_application", "late_applications"].includes(type)) return "late";
+    if (["bridging", "bridge", "bridging_programme", "bridging_programmes"].includes(type)) return "bridging";
+    if (["postgraduate", "post_graduate", "post_graduate_application", "post_graduate_applications", "post_grad", "postgrad"].includes(type)) return "postgraduate";
+    if (["undergraduate", "undergrad", "under_graduate", "undergraduate_application", "undergraduate_applications", "under_graduate_application", "under_graduate_applications"].includes(type)) return "undergraduate";
+    if (type.includes("transfer")) return "transfer";
+    return type;
+  };
+  const applicationTypeLabel = (app) => {
+    const type = normalizeApplicationTypeKey(app?.applicationType || app?.forms?.applicationType?.type || app?.applicationTypeLabel || app?.forms?.applicationType?.label || app?.applicationEngine?.type || app?.lateApplication?.type) || "undergraduate";
+    const labels = {
+      undergraduate: "Undergraduate Applications",
+      late: "Late Applications",
+      postgraduate: "Postgraduate Applications",
+      transfer: "Transfer Applications",
+      bridging: "Bridging Programmes"
+    };
+    return labels[type] || app?.applicationTypeLabel || app?.forms?.applicationType?.label || "Undergraduate Applications";
+  };
+  const normalizeApp = (app) => {
+    const forms = mergedApplicationForms(app);
+    return {
+      ...app,
+      forms,
+      assignedAssistantId: app?.assignedAssistantId || app?.assistantId || null,
+      applicationTypeLabel: applicationTypeLabel({ ...app, forms }),
+      selectedPackage: app?.selectedPackage || app?.applicationPayload?.selectedPackage || app?.package || forms.packageSelection?.package || null,
+      items: applicationInstitutions(app)
+    };
+  };
   const firstFilled = (...values) => values.find((value) => String(value ?? "").trim()) || "";
+  const money = (value) => `R${Number(value || 0).toLocaleString("en-ZA")}`;
+  const readableKey = (value) => String(value || "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+  const isPlainObject = (value) => Boolean(value && typeof value === "object" && !Array.isArray(value));
+  const asRecord = (value) => isPlainObject(value) ? value : {};
+  const hasVisibleValue = (value) => {
+    if (Array.isArray(value)) return value.some(hasVisibleValue);
+    if (isPlainObject(value)) return Object.values(value).some(hasVisibleValue);
+    return value === false || value === 0 || Boolean(String(value ?? "").trim());
+  };
+  const mergeFilledRecords = (...sources) => {
+    const output = {};
+    sources.forEach((sourceArg) => {
+      Object.entries(asRecord(sourceArg)).forEach(([key, value]) => {
+        if (hasVisibleValue(value) || !Object.prototype.hasOwnProperty.call(output, key)) {
+          output[key] = value;
+        }
+      });
+    });
+    return output;
+  };
+  const firstNonEmptyArray = (...values) => values.find((value) => Array.isArray(value) && value.length) || [];
+  const marksFrom = (value) => Array.isArray(value?.subjects) ? value.subjects : (Array.isArray(value) ? value : []);
+  const applicationMarks = (app) => firstNonEmptyArray(
+    marksFrom(app?.forms?.marks),
+    marksFrom(app?.applicationPayload?.forms?.marks),
+    marksFrom(app?.applicationEngine?.formData?.marks),
+    marksFrom(app?.applicationEngine?.formData),
+    marksFrom(app?.marks)
+  );
+  const applicationInstitutions = (app) => firstNonEmptyArray(
+    app?.items,
+    app?.institutions,
+    app?.applicationPayload?.institutions,
+    app?.applicationPayload?.forms?.institutions,
+    app?.forms?.institutions,
+    app?.applicationEngine?.formData?.institutions
+  );
+  const SPECIALISED_META_KEYS = new Set(["applicationType", "package", "learner", "parent", "school", "marks", "apply", "institutions", "current", "type", "label", "currentStep", "submitted", "reference", "selectedPackage", "selectedInstitutions", "selectedCourses", "reviewConfirmed"]);
+  const unwrapApplicationValues = (sourceArg) => {
+    const source = asRecord(sourceArg);
+    if (hasVisibleValue(source.values)) return asRecord(source.values);
+    if (hasVisibleValue(source.current?.values)) return asRecord(source.current.values);
+    if (hasVisibleValue(source.current) && !source.current?.currentStep) return asRecord(source.current);
+    return Object.fromEntries(Object.entries(source).filter(([key]) => !SPECIALISED_META_KEYS.has(key)));
+  };
+  const firstFilledRecord = (...sources) => sources.map(unwrapApplicationValues).find(hasVisibleValue) || {};
+  const dynamicValuesFor = (app, formsArg) => {
+    const forms = asRecord(formsArg);
+    const type = normalizeApplicationTypeKey(
+      app?.applicationType ||
+      forms.applicationType?.type ||
+      app?.applicationTypeLabel ||
+      forms.applicationType?.label ||
+      app?.applicationEngine?.type ||
+      app?.lateApplication?.type
+    );
+    return asRecord(asRecord(forms.dynamicApplications)[type]);
+  };
+  const mergedApplicationForms = (appArg) => {
+    const app = appArg || {};
+    const payloadForms = asRecord(app.applicationPayload?.forms);
+    const forms = asRecord(app.forms);
+    const engineData = asRecord(app.applicationEngine?.formData);
+    const lateData = asRecord(app.lateApplication?.data || app.lateApplication);
+    const baseForms = { ...payloadForms, ...forms };
+    const dynamicData = dynamicValuesFor(app, baseForms);
+    const latePersonal = asRecord(lateData.personal || engineData.personal);
+    const lateDetails = asRecord(lateData.details || engineData.details);
+    const merged = {
+      ...payloadForms,
+      ...forms,
+      applicationType: mergeFilledRecords(payloadForms.applicationType, forms.applicationType),
+      packageSelection: mergeFilledRecords(payloadForms.packageSelection, forms.packageSelection),
+      dynamicApplications: {
+        ...asRecord(payloadForms.dynamicApplications),
+        ...asRecord(forms.dynamicApplications)
+      },
+      learner: mergeFilledRecords(
+        payloadForms.learner,
+        forms.learner,
+        engineData.learner,
+        latePersonal,
+        { cellphone: latePersonal.phone || lateDetails.phone, address: latePersonal.address || lateDetails.address }
+      ),
+      parent: mergeFilledRecords(payloadForms.parent, forms.parent, engineData.parent),
+      school: mergeFilledRecords(
+        payloadForms.school,
+        forms.school,
+        engineData.school,
+        {
+          schoolName: latePersonal.schoolName || lateDetails.schoolName,
+          schoolProvince: latePersonal.province || lateDetails.province,
+          completionYear: latePersonal.examYear || lateDetails.examYear,
+          educationLevel: latePersonal.educationLevel || lateDetails.educationLevel
+        }
+      ),
+      specialisedApplication: mergeFilledRecords(payloadForms.specialisedApplication, forms.specialisedApplication)
+    };
+    const marks = firstNonEmptyArray(
+      marksFrom(forms.marks),
+      marksFrom(payloadForms.marks),
+      marksFrom(engineData.marks),
+      marksFrom(app.marks)
+    );
+    merged.marks = { ...asRecord(payloadForms.marks), ...asRecord(forms.marks), subjects: marks };
+    if (!hasVisibleValue(merged.specialisedApplication?.values)) {
+      const fallbackValues = firstFilledRecord(
+        dynamicData,
+        forms.current,
+        payloadForms.current,
+        engineData,
+        lateData
+      );
+      if (hasVisibleValue(fallbackValues)) {
+        merged.specialisedApplication = {
+          ...(merged.specialisedApplication || {}),
+          values: fallbackValues
+        };
+      }
+    }
+    return merged;
+  };
+  const specialisedValues = (app) => {
+    const forms = mergedApplicationForms(app);
+    return firstFilledRecord(
+      forms.specialisedApplication?.values,
+      dynamicValuesFor(app, forms),
+      forms.current,
+      app?.applicationPayload?.forms?.specialisedApplication?.values,
+      app?.applicationEngine?.formData,
+      app?.lateApplication?.data
+    );
+  };
+  const formatDetailValue = (value) => {
+    if (value === true) return "Yes";
+    if (value === false) return "No";
+    if (Array.isArray(value)) {
+      return value.map((item) => isPlainObject(item)
+        ? firstFilled(item.name, item.institutionName, item.programme, item.choice1, item.subject, formatDetailValue(item))
+        : formatDetailValue(item)
+      ).filter(Boolean).join(", ");
+    }
+    if (isPlainObject(value)) {
+      return Object.entries(value)
+        .filter(([, child]) => hasVisibleValue(child))
+        .map(([key, child]) => `${readableKey(key)}: ${formatDetailValue(child)}`)
+        .join("; ");
+    }
+    return String(value ?? "").trim();
+  };
+  const pushDetailPairs = (pairs, sourceArg, prefix = "", depth = 0) => {
+    Object.entries(asRecord(sourceArg)).forEach(([key, value]) => {
+      if (SPECIALISED_META_KEYS.has(key) || !hasVisibleValue(value)) return;
+      const label = prefix ? `${prefix} ${readableKey(key)}` : readableKey(key);
+      if (isPlainObject(value) && depth < 2) {
+        pushDetailPairs(pairs, value, label, depth + 1);
+        return;
+      }
+      pairs.push([label, formatDetailValue(value)]);
+    });
+  };
+  const specialisedDetailPairs = (app) => {
+    const pairs = [];
+    pushDetailPairs(pairs, specialisedValues(app));
+    return pairs;
+  };
   const yesNoLabel = (value) => {
+    if (value === true) return "Yes";
+    if (value === false) return "No";
     const text = String(value || "").trim().toLowerCase();
     if (text === "yes") return "Yes";
     if (text === "no") return "No";
@@ -67,11 +265,12 @@
   function summarizeApplication(appArg, docsArg) {
     const app = appArg || {};
     const docs = Array.isArray(docsArg) ? docsArg : [];
-    const learner = app?.forms?.learner || {};
-    const parent = app?.forms?.parent || {};
-    const school = app?.forms?.school || {};
-    const marks = Array.isArray(app?.forms?.marks?.subjects) ? app.forms.marks.subjects : [];
-    const institutions = Array.isArray(app?.items) && app.items.length ? app.items : [];
+    const forms = mergedApplicationForms(app);
+    const learner = forms.learner || {};
+    const parent = forms.parent || {};
+    const school = forms.school || {};
+    const marks = applicationMarks({ ...app, forms });
+    const institutions = applicationInstitutions({ ...app, forms });
     const checks = {
       learner: Boolean((learner?.fullNames || learner?.fullName) && (learner?.email || learner?.cellphone || learner?.phone)),
       parent: Boolean((parent?.guardianFullNames || parent?.guardianName) && (parent?.guardianCell1 || parent?.guardianPhone)),
@@ -197,7 +396,7 @@
     const detailBoxes = (pairs) => pairs.map(([label, value]) => `
       <div class="box">
         <div class="label">${esc(label)}</div>
-        <div class="value">${esc(value || "-")}</div>
+        <div class="value">${esc(formatDetailValue(value) || "-")}</div>
       </div>
     `).join("");
     let portalAccessEntries = [];
@@ -285,6 +484,97 @@
       }).join("") : '<div class="empty">No institution portal details saved yet.</div>';
     };
 
+    const supportStatusLabel = (status) => {
+      const value = String(status || "open").trim().toLowerCase().replace(/[_-]+/g, " ");
+      return value ? value.replace(/\b\w/g, (char) => char.toUpperCase()) : "Open";
+    };
+
+    const loadSupportTicketsForUser = async (userId) => {
+      try {
+        const tickets = api.getSupportTicketsAsync
+          ? await api.getSupportTicketsAsync({ userId })
+          : (api.getSupportTickets?.({ userId }) || []);
+        const rows = Array.isArray(tickets) ? tickets : [];
+        return Promise.all(rows.map(async (ticket) => {
+          const messages = api.getSupportTicketMessagesAsync
+            ? await api.getSupportTicketMessagesAsync(ticket.id).catch(() => [])
+            : (api.getSupportTicketMessages?.(ticket.id) || []);
+          return { ...ticket, messages: Array.isArray(messages) ? messages : [] };
+        }));
+      } catch (error) {
+        console.warn("Could not load support tickets for learner:", error);
+        return [];
+      }
+    };
+
+    const renderSupportThreads = (tickets, legacyMessages) => {
+      const rows = Array.isArray(tickets) ? tickets : [];
+      if (rows.length) {
+        return rows.map((ticket) => `
+          <div class="item">
+            <div class="row">
+              <div>
+                <div class="title">${esc(ticket.subject || "Support request")}</div>
+                <div class="meta">Category: ${esc(ticket.category || "General")}<br>Updated: ${esc(dt(ticket.lastMessageAt || ticket.updatedAt || ticket.createdAt))}</div>
+              </div>
+              <span class="chip ${chip(ticket.status)}">${esc(supportStatusLabel(ticket.status))}</span>
+            </div>
+            ${(ticket.messages || []).length ? `<div class="list" style="margin-top:10px">${ticket.messages.map((message) => `
+              <div class="item" style="box-shadow:none">
+                <div class="row">
+                  <div>
+                    <div class="title">${esc(message.senderName || "Support")}</div>
+                    <div class="meta">${esc(message.text || message.message || "")}<br>${esc(dt(message.createdAt))}</div>
+                  </div>
+                  <span class="chip ${message.senderRole === "user" ? "c-yellow" : "c-blue"}">${esc(message.senderRole || "message")}</span>
+                </div>
+              </div>
+            `).join("")}</div>` : '<div class="meta" style="margin-top:10px">No messages in this ticket yet.</div>'}
+            <div class="action-row" style="margin-top:10px">
+              <button class="mini yellow" type="button" data-support-ticket-status="${esc(ticket.id)}|in_progress">In progress</button>
+              <button class="mini green" type="button" data-support-ticket-status="${esc(ticket.id)}|resolved">Resolved</button>
+              <button class="mini red" type="button" data-support-ticket-status="${esc(ticket.id)}|closed">Closed</button>
+            </div>
+          </div>
+        `).join("");
+      }
+      return legacyMessages.length ? legacyMessages.map((message) => `
+        <div class="item">
+          <div class="row">
+            <div>
+              <div class="title">${esc(message.senderName || "Support")}</div>
+              <div class="meta">${esc(message.text || "")}<br>${esc(dt(message.createdAt))}</div>
+            </div>
+            <span class="chip ${message.senderRole === "user" ? "c-yellow" : "c-blue"}">${esc(message.senderRole || "message")}</span>
+          </div>
+        </div>
+      `).join("") : '<div class="empty">No support tickets or messages yet.</div>';
+    };
+
+    const sendSupportReplyForApp = async (app, text) => {
+      const tickets = await loadSupportTicketsForUser(app.userId);
+      const activeTicket = tickets.find((ticket) => !["resolved", "closed"].includes(String(ticket.status || "").toLowerCase())) || tickets[0];
+      if (activeTicket?.id && (api.replySupportTicketAsync || api.replySupportTicket)) {
+        await (api.replySupportTicketAsync
+          ? api.replySupportTicketAsync(activeTicket.id, text)
+          : Promise.resolve(api.replySupportTicket(activeTicket.id, text)));
+        return;
+      }
+      if (api.createSupportTicketAsync || api.createSupportTicket) {
+        await (api.createSupportTicketAsync
+          ? api.createSupportTicketAsync({ userId: app.userId, subject: `Application ${app.id} support`, category: "Applications", message: text })
+          : Promise.resolve(api.createSupportTicket({ userId: app.userId, subject: `Application ${app.id} support`, category: "Applications", message: text })));
+        return;
+      }
+      await (api.sendSupportMessageAsync ? api.sendSupportMessageAsync(`support_${app.userId}`, text) : Promise.resolve(api.sendSupportMessage(`support_${app.userId}`, text)));
+    };
+
+    const updateSupportTicketStatus = async (ticketId, status) => {
+      await (api.updateSupportTicketStatusAsync
+        ? api.updateSupportTicketStatusAsync(ticketId, status)
+        : Promise.resolve(api.updateSupportTicketStatus(ticketId, status)));
+    };
+
     async function loadViewData() {
       let targetUserId = String(requestedUserId || "").trim();
       let rawApp = appId ? (api.getApplicationByIdAsync ? await api.getApplicationByIdAsync(appId) : api.getApplication(appId)) : null;
@@ -310,12 +600,13 @@
 
       const profile = api.getProfileAsync ? await api.getProfileAsync(targetUserId).catch(() => (api.getProfile(targetUserId) || {})) : (api.getProfile(targetUserId) || {});
       const user = api.getUserById(targetUserId) || api.getUserBySupabaseId?.(targetUserId) || {};
-      const [docs, notes, portalAccess, reviews, supportMessages, callbackItems, learnerSupport] = await Promise.all([
+      const [docs, notes, portalAccess, reviews, supportMessages, supportTickets, callbackItems, learnerSupport] = await Promise.all([
         api.getDocumentsByUserAsync ? api.getDocumentsByUserAsync(targetUserId) : api.getDocumentsByUser(targetUserId),
         api.getApplicationNotesAsync ? api.getApplicationNotesAsync(app.id) : api.getApplicationNotes(app.id),
         api.getApplicationPortalAccessAsync ? api.getApplicationPortalAccessAsync(app.id) : api.getApplicationPortalAccess(app.id),
         api.getDocumentReviewsForUserAsync ? api.getDocumentReviewsForUserAsync(targetUserId) : api.getDocumentReviewsForUser(targetUserId),
         api.getSupportMessagesAsync ? api.getSupportMessagesAsync(`support_${targetUserId}`) : api.getSupportMessages(`support_${targetUserId}`),
+        loadSupportTicketsForUser(targetUserId),
         (api.getCallRequestsAsync ? api.getCallRequestsAsync() : api.getCallRequests()).then((items) => (items || []).filter((item) => item.requesterId === targetUserId)),
         api.getApplicationLearnerSupportAsync ? api.getApplicationLearnerSupportAsync(app.id) : api.getApplicationLearnerSupport(app.id)
       ]);
@@ -331,12 +622,13 @@
         learnerSupport: learnerSupport || {},
         reviews: reviews || [],
         supportMessages: supportMessages || [],
+        supportTickets: supportTickets || [],
         callbackItems: callbackItems || []
       };
     }
 
     async function render() {
-      const { app, profile, user, docs, notes, portalAccess, learnerSupport, reviews, supportMessages, callbackItems } = await loadViewData();
+      const { app, profile, user, docs, notes, portalAccess, learnerSupport, reviews, supportMessages, supportTickets, callbackItems } = await loadViewData();
       if (!app) {
         el.hero.innerHTML = '<div class="hero-row"><div><h2>Application not found</h2><p>This applicant record could not be loaded.</p></div></div>';
         return;
@@ -359,13 +651,21 @@
       }) || null;
       const learnerPhone = firstFilled(learnerForm.cellphone, learnerForm.phone, profile.phone, user.phone, user.cellphone);
       const learnerEmail = firstFilled(learnerForm.email, profile.email, user.email);
+      const selectedPackage = app.selectedPackage || app.package || app.forms?.packageSelection?.package || {};
+      const selectedAddons = Array.isArray(app.selectedAddons)
+        ? app.selectedAddons
+        : Array.isArray(app.applicationPayload?.selectedAddons)
+          ? app.applicationPayload.selectedAddons
+        : Array.isArray(app.forms?.packageSelection?.addons)
+          ? app.forms.packageSelection.addons
+          : [];
       const callHref = telHref(learnerPhone);
       const emailHref = mailtoHref(learnerEmail);
       const learnerWhatsappHref = whatsappHref(learnerPhone, `Hello ${firstFilled(learnerForm.fullNames, user.fullName, "learner")}, this is Kagie support.`);
       el.hero.innerHTML = `
         <div class="hero-row">
           <div>
-            <h2>${esc(user.fullName || app.applicant || "Applicant")}</h2>
+            <h2>${esc(firstFilled(learnerForm.fullNames, learnerForm.fullName, profile.fullName, user.fullName, app.applicant, "Applicant"))}</h2>
             <p>Email: ${esc(learnerEmail || "-")}<br>Phone: ${esc(learnerPhone || "-")}<br>Application ID: ${esc(app.id)}<br>Assigned assistant: ${esc(assignedAssistant?.fullName || "Unassigned")}<br>Viewing as: ${esc(assistant.fullName || "Assistant")}<br>Payment reference: ${esc(app.payment?.reference || "-")}</p>
             <div class="action-row" style="margin-top:14px">
               ${callHref ? `<a class="mini green" href="${callHref}">Call learner</a>` : ""}
@@ -382,6 +682,17 @@
       `;
 
       el.details.innerHTML = detailBoxes([
+        ["Application type", app.applicationTypeLabel],
+        ["Application reference", firstFilled(app.applicationReference, app.reference)],
+        ["Selected package", firstFilled(selectedPackage.name, selectedPackage.packName)],
+        ["Package price", money(app.packagePrice ?? selectedPackage.price ?? selectedPackage.packPrice ?? 0)],
+        ["Selected add-ons", selectedAddons.length ? selectedAddons.map((addon) => firstFilled(addon.name, addon.code)).join(", ") : "None"],
+        ["Add-ons total", money(app.addonsTotal || 0)],
+        ["Final total", money(app.finalTotal || app.payment?.amount || 0)],
+        ["First institution choice", firstFilled(app.institutionChoice1, app.institutionName)],
+        ["Second institution choice", app.institutionChoice2],
+        ["Programme choice", firstFilled(app.programmeChoice, app.programme)],
+        ["Submission date", app.submittedAt ? dt(app.submittedAt) : "Not submitted"],
         ["Full names", firstFilled(learnerForm.fullNames, learnerForm.fullName, profile.fullName, user.fullName)],
         ["Surname", firstFilled(learnerForm.surname, profile.surname)],
         ["ID number", firstFilled(learnerForm.idNumber, profile.idNumber)],
@@ -409,7 +720,8 @@
         ["School province", firstFilled(schoolForm.schoolProvince, profile.schoolProvince)],
         ["School type", firstFilled(schoolForm.schoolType, profile.schoolType)],
         ["Completion year", firstFilled(schoolForm.completionYear, profile.completionYear)],
-        ["Average percent", firstFilled(schoolForm.average, profile.average)]
+        ["Average percent", firstFilled(schoolForm.average, profile.average)],
+        ...specialisedDetailPairs(app)
       ]);
       el.progressDetails.innerHTML = detailBoxes([
         ["Readiness", `${summary.readiness}%`],
@@ -423,6 +735,11 @@
         ["Current status", `${app.status || "Under Review"} | ${app.paymentStatus || "Payment Pending"}`]
       ]);
       el.payment.innerHTML = detailBoxes([
+        ["Kagie package", firstFilled(selectedPackage.name, selectedPackage.packName)],
+        ["Package price", money(app.packagePrice ?? selectedPackage.price ?? selectedPackage.packPrice ?? 0)],
+        ["Add-ons total", money(app.addonsTotal || 0)],
+        ["Final total", money(app.finalTotal || app.payment?.amount || 0)],
+        ["Payment status", app.paymentStatus],
         ["Payer name", app.payment?.payerName],
         ["Phone", app.payment?.phone],
         ["Reference", app.payment?.reference],
@@ -492,17 +809,7 @@
       renderPortalAccess();
       fillPortalForm();
 
-      el.support.innerHTML = supportMessages.length ? supportMessages.map((message) => `
-        <div class="item">
-          <div class="row">
-            <div>
-              <div class="title">${esc(message.senderName || "Support")}</div>
-              <div class="meta">${esc(message.text || "")}<br>${esc(dt(message.createdAt))}</div>
-            </div>
-            <span class="chip ${message.senderRole === "user" ? "c-yellow" : "c-blue"}">${esc(message.senderRole || "message")}</span>
-          </div>
-        </div>
-      `).join("") : '<div class="empty">No support messages yet.</div>';
+      el.support.innerHTML = renderSupportThreads(supportTickets, supportMessages || []);
 
       el.callbacks.innerHTML = callbackItems.length ? callbackItems.map((call) => `
         <div class="item">
@@ -537,6 +844,22 @@
       });
     });
 
+    el.support.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-support-ticket-status]");
+      const raw = button?.getAttribute("data-support-ticket-status");
+      if (!raw) return;
+      const [ticketId, status] = raw.split("|");
+      await runButtonAction(button, `support-ticket:${ticketId}:${status}`, "Updating...", async () => {
+        try {
+          await updateSupportTicketStatus(ticketId, status);
+          await render();
+          setMessage(el.supportMsg, `Support ticket marked ${supportStatusLabel(status)}.`, "ok");
+        } catch (error) {
+          setMessage(el.supportMsg, error.message || "Could not update support ticket.", "err");
+        }
+      });
+    });
+
     el.callbacks.addEventListener("click", async (event) => {
       const button = event.target.closest("[data-call]");
       const raw = button?.getAttribute("data-call");
@@ -557,7 +880,27 @@
       try {
         const app = appId ? normalizeApp(api.getApplicationByIdAsync ? await api.getApplicationByIdAsync(appId) : api.getApplication(appId)) : null;
         if (!app) throw new Error("Application could not be loaded.");
+        const previousStatus = app.status || "Pending";
         await (api.updateApplicationAsync ? api.updateApplicationAsync(app.id, { status: el.statusSelect.value }) : Promise.resolve(api.updateApplication(app.id, { status: el.statusSelect.value })));
+        if (el.statusSelect.value !== previousStatus && (api.postApplicationUpdateAsync || api.postApplicationUpdate)) {
+          await (api.postApplicationUpdateAsync
+            ? api.postApplicationUpdateAsync({
+              applicationId: app.id,
+              title: "Application status updated",
+              message: `Your Kagie application status changed from ${previousStatus} to ${el.statusSelect.value}.`,
+              status: el.statusSelect.value,
+              actionLabel: "Open dashboard",
+              actionUrl: "dashboard.html"
+            })
+            : Promise.resolve(api.postApplicationUpdate({
+              applicationId: app.id,
+              title: "Application status updated",
+              message: `Your Kagie application status changed from ${previousStatus} to ${el.statusSelect.value}.`,
+              status: el.statusSelect.value,
+              actionLabel: "Open dashboard",
+              actionUrl: "dashboard.html"
+            })));
+        }
         const note = el.noteInput.value.trim();
         if (note) {
           await (api.addApplicationNoteAsync ? api.addApplicationNoteAsync(app.id, note) : Promise.resolve(api.addApplicationNote(app.id, note)));
@@ -638,7 +981,7 @@
       try {
         const app = appId ? normalizeApp(api.getApplicationByIdAsync ? await api.getApplicationByIdAsync(appId) : api.getApplication(appId)) : null;
         if (!app) throw new Error("Application could not be loaded.");
-        await (api.sendSupportMessageAsync ? api.sendSupportMessageAsync(`support_${app.userId}`, text) : Promise.resolve(api.sendSupportMessage(`support_${app.userId}`, text)));
+        await sendSupportReplyForApp(app, text);
         el.supportMessage.value = "";
         setMessage(el.supportMsg, "Reply sent to learner.", "ok");
         await render();

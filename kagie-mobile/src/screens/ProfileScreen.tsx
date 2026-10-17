@@ -1,6 +1,6 @@
 import React from "react";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
-import { Button, Card, Notice, SectionTitle, ScreenScroll } from "../components/ui";
+import { Button, Card, HeroPanel, Notice, SectionTitle, ScreenScroll } from "../components/ui";
 import { useKagieData } from "../data/KagieDataProvider";
 import { useSession } from "../session/SessionProvider";
 import { colors } from "../theme";
@@ -11,10 +11,12 @@ export function ProfileScreen() {
 
   return (
     <ScreenScroll>
-      <View style={styles.hero}>
-        <Text style={styles.heroTitle}>Profile and account</Text>
-        <Text style={styles.heroText}>Review the identity, school, and application details Kagie currently has on file for you.</Text>
-      </View>
+      <HeroPanel
+        eyebrow="Profile"
+        title="Your learner record"
+        copy="Review the account, school, guardian, and application information Kagie currently has on file."
+        tone="navy"
+      />
 
       <Card>
         <SectionTitle title="Account" hint="This comes from your secure Kagie session." />
@@ -60,34 +62,20 @@ export function ProfileScreen() {
         <Pressable onPress={() => Linking.openURL("https://kagie.app/privacy.html").catch(() => null)}>
           <Text style={styles.link}>Open privacy policy</Text>
         </Pressable>
+        <Pressable onPress={() => Linking.openURL("https://kagie.app/account-deletion.html").catch(() => null)}>
+          <Text style={styles.link}>Request account or data deletion</Text>
+        </Pressable>
       </Card>
 
       <View style={styles.actions}>
-        <Button label={syncing ? "Refreshing..." : "Refresh profile"} onPress={() => {
-          refreshProfile().catch(() => null);
-        }} tone="ghost" />
-        <Button label="Logout" onPress={() => { logout().catch(() => null); }} tone="danger" />
+        <Button label="Refresh profile" loadingLabel="Refreshing..." onPress={refreshProfile} loading={syncing} disabled={syncing} tone="ghost" />
+        <Button label="Logout" loadingLabel="Signing out..." onPress={logout} tone="danger" />
       </View>
     </ScreenScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    backgroundColor: "#102a56",
-    borderRadius: 28,
-    padding: 22,
-    gap: 8
-  },
-  heroTitle: {
-    color: "#ffffff",
-    fontSize: 26,
-    fontWeight: "900"
-  },
-  heroText: {
-    color: "rgba(255,255,255,0.88)",
-    lineHeight: 20
-  },
   value: {
     color: colors.text,
     fontWeight: "900",

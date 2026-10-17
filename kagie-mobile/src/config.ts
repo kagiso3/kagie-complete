@@ -3,15 +3,15 @@ const defaultDevApiBaseUrl = "http://10.0.2.2:4000/v1";
 const isDevRuntime = typeof __DEV__ !== "undefined" ? __DEV__ : false;
 const resolvedApiBaseUrl = configuredApiBaseUrl || (isDevRuntime ? defaultDevApiBaseUrl : "");
 const localApiPattern = /(?:^https?:\/\/)?(?:10\.0\.2\.2|127\.0\.0\.1|localhost|192\.168\.|172\.(?:1[6-9]|2\d|3[0-1])\.)/i;
-const retiredHostPattern = /(?:kagie\.co\.za)/i;
+const placeholderApiPattern = /(?:your-vercel-production-domain|example\.com|your-domain)/i;
 
 export const mobileConfig = {
   apiBaseUrl: resolvedApiBaseUrl,
   isDevRuntime,
   hasConfiguredApiBaseUrl: Boolean(configuredApiBaseUrl),
   usesLocalApiBaseUrl: localApiPattern.test(resolvedApiBaseUrl),
-  usesRetiredHostApiBaseUrl: retiredHostPattern.test(resolvedApiBaseUrl),
+  usesRetiredHostApiBaseUrl: placeholderApiPattern.test(resolvedApiBaseUrl),
   playStoreReadyApi: Boolean(resolvedApiBaseUrl)
     && (!localApiPattern.test(resolvedApiBaseUrl) || isDevRuntime)
-    && !retiredHostPattern.test(resolvedApiBaseUrl)
+    && !placeholderApiPattern.test(resolvedApiBaseUrl)
 };

@@ -10,6 +10,9 @@ export type RemoteProfile = {
   phone: string;
   role: Role;
   profile_image?: string;
+  is_active?: boolean;
+  account_status?: string;
+  status?: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -90,13 +93,28 @@ export function mapSupabaseProfileToUserRecord(profile: RemoteProfile): UserReco
   };
 }
 
+export function getTrustedSupabaseRole(user: { app_metadata?: Record<string, unknown> }): Role {
+  const role = user.app_metadata?.role;
+  return role === ROLES.MASTER_ADMIN || role === ROLES.ASSISTANT_ADMIN ? role : ROLES.USER;
+}
+
+export function assertSupabaseUserActive(user: { banned_until?: string; deleted_at?: string }, profile: RemoteProfile | null) {
+  const statuses = [profile?.account_status, profile?.status].map(value => String(value || "").trim().toLowerCase());
+  if (profile?.is_active === false || statuses.some(status => ["inactive", "disabled", "blocked", "suspended", "banned", "deleted"].includes(status)) || Boolean(user.deleted_at) || Date.parse(user.banned_until || "") > Date.now()) {
+    const error = new Error("This Kagie account is inactive. Contact support.");
+    (error as Error & { status: number }).status = 403;
+    throw error;
+  }
+}
+
 export async function assertSupabaseMasterAdmin(accessToken: string) {
   const user = await getSupabaseUserFromAccessToken(accessToken);
   const profile = await getSupabaseProfileById(user.id);
-  if (!profile || profile.role !== ROLES.MASTER_ADMIN) {
+  assertSupabaseUserActive(user, profile);
+  if (!profile || getTrustedSupabaseRole(user) !== ROLES.MASTER_ADMIN) {
     const error = new Error("Only a Kagie master admin can create assistant accounts.");
     (error as Error & { status: number }).status = 403;
     throw error;
   }
-  return { user, profile };
+  return { user, profile: { ...profile, role: ROLES.MASTER_ADMIN } };
 }

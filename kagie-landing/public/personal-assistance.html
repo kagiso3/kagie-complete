@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Personal Assistance</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="js/backend.js?v=20261015-backend-audit"></script>
+  <script defer src="js/supabase-config.js?v=20261014-palette-blue"></script>
+  <script defer src="js/personal-assistance-page.js?v=20261014-palette-blue"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/bottom-nav.css?v=20261014-palette-blue" />
+  <script defer src="js/bottom-nav.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/student-workspace.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
+</head>
+<body class="kagie-student-workspace" data-kagie-page="personal-assistance">
+  <div class="shell">
+    <header class="top">
+      <div><span class="kagie-eyebrow">Kagie · Student workspace</span><h1>Personal Assistance</h1><p>Chat with Kagie support and request a callback from the dashboard team.</p></div>
+      <div class="actions"><a class="btn" href="home.html">Home</a></div>
+    </header>
+    <section class="hero">
+      <h2 id="heroTitle">Support is ready</h2>
+      <p id="heroText">Use chat for questions about institutions, documents, payments, or pack selection.</p>
+      <div class="meta"><span id="messageMeta">0 chat messages</span><span id="ticketMeta">0 tickets</span><span id="callbackMeta">0 callback requests</span></div>
+    </section>
+    <section class="layout">
+      <section class="card">
+        <div class="head"><div><h3>Support Conversation</h3><p>Start a ticket with a subject and category, then keep replying in the same conversation.</p></div><div class="row"><button class="mini" id="newTicketBtn" type="button">New ticket</button><button class="mini" id="refreshBtn" type="button">Refresh</button></div></div>
+        <div class="chat-box">
+          <div class="messages" id="messages"></div>
+          <div class="composer">
+            <label class="auth-field-label" for="ticketSubject">Subject</label>
+            <input class="field" id="ticketSubject" type="text" placeholder="Subject, e.g. Documents, payment, application status" />
+            <label class="auth-field-label" for="ticketCategory">Support category</label>
+            <select class="field" id="ticketCategory">
+              <option value="Applications">Applications</option>
+              <option value="Documents">Documents</option>
+              <option value="Payments">Payments</option>
+              <option value="Accommodation">Accommodation</option>
+              <option value="Transport">Transport</option>
+              <option value="Career Hub">Career Hub</option>
+              <option value="General">General</option>
+            </select>
+            <label class="auth-field-label" for="messageInput">Message</label>
+            <textarea id="messageInput" placeholder="Write your message to Kagie support..."></textarea>
+            <div class="row"><button class="mini" id="sendBtn" type="button">Send message</button></div>
+          </div>
+        </div>
+      </section>
+      <div class="stack">
+        <section class="card">
+          <div class="head"><div><h3>Your Support Tickets</h3><p>Open a ticket to view or continue the conversation.</p></div></div>
+          <div class="list" id="tickets"></div>
+        </section>
+        <section class="card">
+          <div class="head"><div><h3>Request a Callback</h3><p>Ask Kagie support to call you when a live conversation is better.</p></div></div>
+          <div class="stack">
+            <label class="auth-field-label" for="callbackPhone">Phone number</label>
+            <input class="field" id="callbackPhone" type="tel" autocomplete="tel" placeholder="Phone number" />
+            <label class="auth-field-label" for="callbackTime">Preferred callback time</label>
+            <input class="field" id="callbackTime" type="text" placeholder="Preferred time, e.g. Weekdays after 4pm" />
+            <label class="auth-field-label" for="callbackReason">Reason for callback</label>
+            <textarea class="field" id="callbackReason" style="min-height:100px;resize:vertical" placeholder="Reason for callback"></textarea>
+            <button class="mini" id="callbackBtn" type="button">Request callback</button>
+          </div>
+        </section>
+        <section class="card">
+          <div class="head"><div><h3>Your Callback Requests</h3><p>Track the status of your recent support requests.</p></div></div>
+          <div class="list" id="callbacks"></div>
+        </section>
+      </div>
+    </section>
+  </div>
+  <div class="bottom-nav">
+    <a class="bottom-nav-item active" href="home.html"><span class="bottom-nav-kicker">App</span><span>Home</span></a>
+    <a class="bottom-nav-item" href="career-guidance.html"><span class="bottom-nav-kicker">Plan</span><span>Career</span></a>
+    <a class="bottom-nav-item" href="recommendation.html"><span class="bottom-nav-kicker">Match</span><span>Courses</span></a>
+    <a class="bottom-nav-item" href="more-service/accommodation-assist.html"><span class="bottom-nav-kicker">Stay</span><span>Housing</span></a>
+    <a class="bottom-nav-item" href="more-service/transport-assist.html"><span class="bottom-nav-kicker">Move</span><span>Transport</span></a>
+  </div>
+</body>
+</html>

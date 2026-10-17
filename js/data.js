@@ -191,7 +191,7 @@
       roomType: "Single room",
       availabilityStatus: "Available",
       distanceFromCampus: "1.1 km from Howard College",
-      images: [buildSceneArtwork("Campus Lofts", "#2fa4ff", "#0f7bd0", "#f5c84c")],
+      images: [buildSceneArtwork("Campus Lofts", "#2d9df9", "#2d9df9", "#ffb500")],
       description: "Modern student apartments with study lounges, Wi-Fi, and secure access close to UKZN.",
       contactPhone: "031 555 0101"
     },
@@ -206,7 +206,7 @@
       roomType: "Studio",
       availabilityStatus: "Limited",
       distanceFromCampus: "850 m from campus",
-      images: [buildSceneArtwork("Rosebank Court", "#e45a2a", "#c93c16", "#f5c84c")],
+      images: [buildSceneArtwork("Rosebank Court", "#fd0505", "#fd0505", "#ffb500")],
       description: "Private studios with biometric access, shuttle support, and shared study zones.",
       contactPhone: "011 555 2222"
     },
@@ -221,7 +221,7 @@
       roomType: "Shared room",
       availabilityStatus: "Available",
       distanceFromCampus: "1.6 km from campus",
-      images: [buildSceneArtwork("Capitol Residence", "#14945b", "#0f7b4a", "#67caff")],
+      images: [buildSceneArtwork("Capitol Residence", "#14945b", "#0f7b4a", "#2d9df9")],
       description: "Budget-friendly shared accommodation with laundry, Wi-Fi, and study support spaces.",
       contactPhone: "012 555 4545"
     },
@@ -236,7 +236,7 @@
       roomType: "Single room",
       availabilityStatus: "Waitlist",
       distanceFromCampus: "1.4 km from upper campus",
-      images: [buildSceneArtwork("Table Mountain House", "#6d7ef8", "#3852d5", "#f5c84c")],
+      images: [buildSceneArtwork("Table Mountain House", "#2d9df9", "#2d9df9", "#ffb500")],
       description: "Premium private rooms with mountain-facing common areas and controlled visitor access.",
       contactPhone: "021 555 8800"
     }

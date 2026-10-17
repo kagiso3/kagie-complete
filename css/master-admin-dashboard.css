@@ -3,17 +3,17 @@
   --text: #333333;
   --muted: #777777;
 
-  --red: #e53935;
-  --red-dark: #cf2f2c;
-  --red-light: #feebea;
-  --red-mid: #ff6a3d;
-  --orange: #fb8c00;
-  --orange-light: #fff2e4;
-  --orange-dark: #ef7e00;
-  --yellow: #f4b400;
-  --blue: #1e88e5;
-  --blue-2: #42a5f5;
-  --soft-orange: #ffa726;
+  --red: #fd0505;
+  --red-dark: #fd0505;
+  --red-light: #ffeaea;
+  --red-mid: #fd0505;
+  --orange: #fd0505;
+  --orange-light: #ffebeb;
+  --orange-dark: #fd0505;
+  --yellow: #ffb500;
+  --blue: #2d9df9;
+  --blue-2: #2d9df9;
+  --soft-orange: #fd0505;
 
   --cream: #f5f5f5;
   --warm-white: #ffffff;
@@ -27,15 +27,15 @@
   --surface-2: #fafafa;
   --green: #2e7d32;
   --green-light: #ebf6ea;
-  --amber: #f4b400;
-  --amber-light: #fff8df;
+  --amber: #ffb500;
+  --amber-light: #fff6e1;
   --radius-sm: 8px;
   --radius: 18px;
   --radius-lg: 24px;
-  --shadow: 0 10px 30px rgba(229, 57, 53, 0.08), 0 1px 3px rgba(0,0,0,0.04);
-  --shadow-md: 0 18px 40px rgba(255, 106, 61, 0.12), 0 1px 4px rgba(0,0,0,0.06);
-  --brand-gradient: linear-gradient(135deg, #e53935 0%, #ff6a3d 100%);
-  --brand-gradient-soft: linear-gradient(135deg, rgba(229,57,53,0.08) 0%, rgba(255,106,61,0.12) 100%);
+  --shadow: 0 10px 30px rgba(253, 5, 5, 0.08), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 18px 40px rgba(253, 5, 5, 0.12), 0 1px 4px rgba(0,0,0,0.06);
+  --brand-gradient: linear-gradient(135deg, #fd0505 0%, #fd0505 100%);
+  --brand-gradient-soft: linear-gradient(135deg, rgba(253, 5, 5,0.08) 0%, rgba(253, 5, 5,0.12) 100%);
 }
 
 * {
@@ -48,8 +48,8 @@
 body {
   font-family: "DM Sans", sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(255,166,38,0.12), transparent 28%),
-    radial-gradient(circle at top right, rgba(66,165,245,0.1), transparent 24%),
+    radial-gradient(circle at top left, rgba(253, 5, 5,0.12), transparent 28%),
+    radial-gradient(circle at top right, rgba(45, 157, 249,0.1), transparent 24%),
     var(--cream);
   color: var(--charcoal);
   min-height: 100vh;
@@ -66,7 +66,7 @@ section[id] {
   z-index: 100;
   background: rgba(255,255,255,0.94);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(229,57,53,0.08);
+  border-bottom: 1px solid rgba(253, 5, 5,0.08);
   box-shadow: 0 10px 30px rgba(0,0,0,0.04);
   padding: 0 20px;
   min-height: 72px;
@@ -112,10 +112,10 @@ section[id] {
   color: var(--red);
   letter-spacing: 0.8px;
   text-transform: uppercase;
-  background: rgba(229,57,53,0.08);
+  background: rgba(253, 5, 5,0.08);
   padding: 4px 10px;
   border-radius: 20px;
-  border: 1px solid rgba(229,57,53,0.18);
+  border: 1px solid rgba(253, 5, 5,0.18);
 }
 
 .topbar-actions {
@@ -129,7 +129,7 @@ section[id] {
 .topbar-profile {
   border-radius: 999px;
   background: var(--surface);
-  border: 1px solid rgba(229,57,53,0.12);
+  border: 1px solid rgba(253, 5, 5,0.12);
   box-shadow: var(--shadow);
 }
 
@@ -200,7 +200,7 @@ section[id] {
   height: 38px;
   padding: 0 14px;
   border-radius: 12px;
-  border: 1px solid rgba(229,57,53,0.12);
+  border: 1px solid rgba(253, 5, 5,0.12);
   background: var(--surface);
   color: var(--charcoal-3);
   font-size: 13px;
@@ -212,7 +212,7 @@ section[id] {
 
 .topbar-btn:hover {
   transform: translateY(-1px);
-  border-color: rgba(229,57,53,0.25);
+  border-color: rgba(253, 5, 5,0.25);
   color: var(--charcoal);
 }
 
@@ -300,7 +300,7 @@ section[id] {
 .hero {
   background:
     radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 28%),
-    linear-gradient(135deg, #e53935 0%, #ff6a3d 100%);
+    linear-gradient(135deg, #fd0505 0%, #fd0505 100%);
   border-radius: var(--radius-lg);
   padding: 28px 28px 24px;
   margin-bottom: 24px;
@@ -330,7 +330,7 @@ section[id] {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(244,180,0,0.18) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 181, 0,0.18) 0%, transparent 70%);
 }
 
 .hero-label {
@@ -503,17 +503,17 @@ section[id] {
 }
 
 .panel-blue {
-  background: rgba(30,136,229,0.12);
+  background: rgba(45, 157, 249,0.12);
   color: var(--blue);
 }
 
 .panel-gold {
-  background: rgba(244,180,0,0.14);
+  background: rgba(255, 181, 0,0.14);
   color: #8a6500;
 }
 
 .panel-orange {
-  background: rgba(251,140,0,0.14);
+  background: rgba(253, 5, 5,0.14);
   color: var(--orange-dark);
 }
 
@@ -621,7 +621,7 @@ section[id] {
   font-size: 11px;
   font-weight: 700;
   color: var(--orange-dark);
-  background: rgba(251,140,0,0.12);
+  background: rgba(253, 5, 5,0.12);
   padding: 4px 9px;
   border-radius: 999px;
 }
@@ -720,7 +720,7 @@ section[id] {
 .field-textarea:focus,
 .search-input:focus {
   border-color: var(--red);
-  box-shadow: 0 0 0 3px rgba(194,72,72,0.08);
+  box-shadow: 0 0 0 3px rgba(253, 5, 5,0.08);
 }
 
 .form-actions {
@@ -824,7 +824,7 @@ section[id] {
   padding: 0 18px;
   border-radius: 12px;
   background: var(--surface);
-  border: 1px solid rgba(229,57,53,0.12);
+  border: 1px solid rgba(253, 5, 5,0.12);
   color: var(--charcoal-3);
   font-size: 13px;
   font-weight: 500;
@@ -838,7 +838,7 @@ section[id] {
 }
 
 .btn-secondary:hover {
-  border-color: rgba(229,57,53,0.24);
+  border-color: rgba(253, 5, 5,0.24);
   color: var(--charcoal);
 }
 
@@ -850,7 +850,7 @@ section[id] {
 }
 
 .mini.red {
-  background: linear-gradient(135deg, #c62828, #e53935);
+  background: linear-gradient(135deg, #fd0505, #fd0505);
   border-color: transparent;
   color: white;
 }
@@ -868,8 +868,8 @@ section[id] {
 }
 
 .mini.yellow {
-  background: rgba(244,180,0,0.16);
-  border-color: rgba(244,180,0,0.24);
+  background: rgba(255, 181, 0,0.16);
+  border-color: rgba(255, 181, 0,0.24);
   color: #8a6500;
 }
 
@@ -943,27 +943,27 @@ section[id] {
 }
 
 .chip.c-blue {
-  background: rgba(30,136,229,0.1);
+  background: rgba(45, 157, 249,0.1);
   color: var(--blue);
-  border-color: rgba(30,136,229,0.16);
+  border-color: rgba(45, 157, 249,0.16);
 }
 
 .chip.c-orange {
-  background: rgba(251,140,0,0.12);
+  background: rgba(253, 5, 5,0.12);
   color: var(--orange-dark);
-  border-color: rgba(251,140,0,0.2);
+  border-color: rgba(253, 5, 5,0.2);
 }
 
 .chip.c-red {
   background: var(--red-light);
   color: var(--red-dark);
-  border-color: rgba(194,72,72,0.2);
+  border-color: rgba(253, 5, 5,0.2);
 }
 
 .chip.c-yellow {
   background: var(--amber-light);
   color: #8a6500;
-  border-color: rgba(244,180,0,0.22);
+  border-color: rgba(255, 181, 0,0.22);
 }
 
 .chip.c-green {

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Application Forms</title>
+  <meta name="theme-color" content="#fd0505" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Kagie" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/images/logos/app-icon.png" />
+  <script defer src="/js/pwa-init.js?v=20261014-palette-blue"></script>
+  <script defer src="/js/install-app.js?v=20261014-palette-blue"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="js/backend.js?v=20261015-backend-audit"></script>
+  <script defer src="js/data.js?v=20261014-palette-blue"></script>
+  <script defer src="js/supabase-config.js?v=20261014-palette-blue"></script>
+  <script defer src="js/dob-wheel-picker.js?v=20261014-palette-blue"></script>
+  <script defer src="js/forms-page.js?v=20261014-palette-blue"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link id="kagieIconStyles" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="css/bottom-nav.css?v=20261014-palette-blue" />
+  <link rel="stylesheet" href="css/apply-page.css?v=20261014-palette-blue" />
+  <script defer src="js/bottom-nav.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/student-workspace.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
+</head>
+<body class="forms-application-type-ready kagie-student-workspace" data-kagie-page="forms">
+  <div class="shell">
+    <header class="top">
+      <div class="top-copy">
+        <span class="late-header-icon"><span class="material-icons-outlined" aria-hidden="true">schedule</span></span>
+        <div><span class="kagie-eyebrow">Kagie · Student workspace</span><h1>Application Forms</h1><p>Choose your application type, select a package, pay now, and finish details later.</p></div>
+      </div>
+      <div class="actions"><a class="btn home-link" href="home.html"><span class="material-icons-outlined" aria-hidden="true">home</span><span>Home</span></a></div>
+    </header>
+    <div class="notice info" id="notice" role="status" aria-live="polite"></div>
+    <section class="layout">
+      <main class="card form-card">
+        <section class="form-intro">
+          <div class="head compact">
+            <div>
+              <h3>Steps</h3>
+              <p>Tap a step and continue.</p>
+            </div>
+            <span class="pill" id="stepIntroBadge">Step 1 / 6</span>
+          </div>
+          <div class="steps" id="stepList"></div>
+        </section>
+        <section class="section application-type-section active" data-step="type">
+          <div class="application-type-title">
+            <h3>Choose Application Type</h3>
+            <p class="application-type-copy">Select the type of application you want to submit.</p>
+            <div class="application-payment-note">
+              <span class="material-icons-outlined" aria-hidden="true">info</span>
+              <span>Complete your payment now and finish your application details later from your Dashboard. Your application will remain in 'Pending Details' until all required information has been completed.</span>
+            </div>
+          </div>
+          <div class="type-list" id="applicationTypeList">
+            <button class="type-card type-undergraduate" type="button" data-application-type="undergraduate">
+              <span class="type-left">
+                <span class="type-icon"><span class="material-icons-outlined" aria-hidden="true">school</span></span>
+                <span class="type-info">
+                  <h3>Undergraduate Applications</h3>
+                  <p>Apply for degrees, diplomas and certificates</p>
+                  <span class="type-package">Package: choose an undergraduate application pack before checkout.</span>
+                </span>
+              </span>
+              <span class="type-action">Apply <span class="material-icons-outlined" aria-hidden="true">arrow_forward</span></span>
+            </button>
+            <button class="type-card type-late" type="button" data-application-type="late">
+              <span class="type-left">
+                <span class="type-icon"><span class="material-icons-outlined" aria-hidden="true">schedule</span></span>
+                <span class="type-info">
+                  <h3>Late Applications</h3>
+                  <p>Institutions still accepting applications</p>
+                  <span class="type-package">Package: Quick, Priority, or Emergency late-application support.</span>
+                </span>
+              </span>
+              <span class="type-action">Apply <span class="material-icons-outlined" aria-hidden="true">arrow_forward</span></span>
+            </button>
+            <button class="type-card type-transfer" type="button" data-application-type="transfer">
+              <span class="type-left">
+                <span class="type-icon"><span class="material-icons-outlined" aria-hidden="true">sync_alt</span></span>
+                <span class="type-info">
+                  <h3>Transfer Applications</h3>
+                  <p>Transfer from another institution</p>
+                  <span class="type-package">Package: transfer support based on how many institutions you need.</span>
+                </span>
+              </span>
+              <span class="type-action">Select <span class="material-icons-outlined" aria-hidden="true">arrow_forward</span></span>
+            </button>
+            <button class="type-card type-bridging" type="button" data-application-type="bridging">
+              <span class="type-left">
+                <span class="type-icon"><span class="material-icons-outlined" aria-hidden="true">account_balance</span></span>
+                <span class="type-info">
+                  <h3>Bridging Programmes</h3>
+                  <p>Foundation and extended programmes</p>
+                  <span class="type-package">Package: bridging support for one or more programme choices.</span>
+                </span>
+              </span>
+              <span class="type-action">Select <span class="material-icons-outlined" aria-hidden="true">arrow_forward</span></span>
+            </button>
+            <button class="type-card type-postgraduate" type="button" data-application-type="postgraduate">
+              <span class="type-left">
+                <span class="type-icon"><span class="material-icons-outlined" aria-hidden="true">menu_book</span></span>
+                <span class="type-info">
+                  <h3>Postgraduate Applications</h3>
+                  <p>Honours, Masters and PhD</p>
+                  <span class="type-package">Package: postgraduate support from Basic to Premium.</span>
+                </span>
+              </span>
+              <span class="type-action">Continue <span class="material-icons-outlined" aria-hidden="true">arrow_forward</span></span>
+            </button>
+          </div>
+        </section>
+        <section class="section late-application-section" data-step="late">
+          <div class="late-flow" id="lateApplicationFlow"></div>
+        </section>
+        <section class="section dynamic-application-section" data-step="dynamic">
+          <div class="late-flow dynamic-application-flow" id="dynamicApplicationFlow"></div>
+        </section>
+        <section class="section" data-step="learner">
+          <div class="head"><div><h3>Learner Details</h3></div><span class="pill">Step 1 / 6</span></div>
+          <div class="grid3" id="learnerFields"></div>
+        </section>
+        <section class="section" data-step="parent">
+          <div class="head"><div><h3>Parent or Guardian</h3></div><span class="pill">Step 2 / 6</span></div>
+          <div class="grid3" id="parentFields"></div>
+        </section>
+        <section class="section" data-step="school">
+          <div class="head"><div><h3>School Information</h3></div><span class="pill">Step 3 / 6</span></div>
+          <div class="grid3" id="schoolFields"></div>
+          <datalist id="schoolNameOptions"></datalist>
+          <div class="hintbox"><p id="schoolLookupMeta" class="helper-meta">Search school or type it manually.</p></div>
+          <div class="list" id="schoolLookupResults"></div>
+        </section>
+        <section class="section" data-step="marks">
+          <div class="head"><div><h3>NSC Marks</h3></div><span class="pill">Step 4 / 6</span></div>
+          <div class="marks-row">
+            <div class="field-wrap"><label class="label" for="subjectSelect">Subject</label><select class="field" id="subjectSelect"></select></div>
+            <div class="field-wrap"><label class="label" for="subjectPercent">Percent</label><input class="field" id="subjectPercent" type="number" min="0" max="100" placeholder="0 to 100" /></div>
+            <button class="mini" id="addSubjectBtn" type="button">Add subject</button>
+          </div>
+          <div class="row"><span class="pill" id="marksCountPill">0 subjects</span><span class="pill" id="marksAvgPill">Average pending</span><span class="pill" id="apsPill">APS pending</span></div>
+          <div class="list" id="marksList"></div>
+        </section>
+        <section class="section" data-step="pack">
+          <div class="head"><div><h3>Choose Your Package</h3></div><span class="pill">Step 5 / 6</span></div>
+          <div class="pack-grid" id="packGrid"></div>
+          <div class="item" id="packSummaryCard"></div>
+        </section>
+        <section class="section" data-step="apply">
+          <div class="head"><div><h3>Institution Choices</h3></div><span class="pill">Step 6 / 6</span></div>
+          <div class="apply-grid">
+            <div class="field-wrap"><label class="label" for="applyYear">Year</label><select class="field" id="applyYear"></select></div>
+            <div class="field-wrap"><label class="label" for="applyProvince">Province</label><select class="field" id="applyProvince"></select></div>
+            <div class="field-wrap"><label class="label" for="institutionType">Institution type</label><select class="field" id="institutionType"></select></div>
+            <div class="field-wrap institution-search-wrap"><label class="label" for="institutionSearch">Search institution</label><input class="field" id="institutionSearch" type="search" placeholder="Search universities, TVET colleges, private colleges" autocomplete="off" /></div>
+            <div class="field-wrap"><label class="label" for="institutionName">Institution</label><select class="field" id="institutionName"></select></div>
+            <p class="institution-result-meta" id="institutionSearchMeta">Search or choose from grouped institutions.</p>
+            <input type="hidden" id="facultyName" />
+            <input type="hidden" id="choice1Faculty" />
+            <input type="hidden" id="choice2Faculty" />
+            <input type="hidden" id="choice3Faculty" />
+            <input type="hidden" id="choice1" />
+            <input type="hidden" id="choice2" />
+            <input type="hidden" id="choice3" />
+            <div class="choice-flow field-span-all" data-choice-flow="choice1">
+              <button class="choice-trigger" id="choice1Trigger" type="button" data-choice-open="choice1">
+                <span><span>Type choice 1</span><strong id="choice1Summary">Choose faculty first</strong><small id="choice1Meta">Tap to pick a faculty, then a course.</small></span>
+                <b class="choice-caret">v</b>
+              </button>
+              <div class="choice-panel" id="choice1Panel" hidden>
+                <div class="choice-panel-title"><span>1. Select faculty</span><span id="choice1FacultyHint"></span></div>
+                <div class="choice-picker-list" id="choice1FacultyList"></div>
+                <div class="choice-panel-title"><span>2. Select course</span><span id="choice1CourseHint"></span></div>
+                <div class="choice-picker-list" id="choice1CourseList"></div>
+              </div>
+            </div>
+            <div class="choice-flow field-span-all" data-choice-flow="choice2">
+              <button class="choice-trigger" id="choice2Trigger" type="button" data-choice-open="choice2">
+                <span><span>Type choice 2</span><strong id="choice2Summary">Choose faculty first</strong><small id="choice2Meta">Tap to pick a faculty, then a course.</small></span>
+                <b class="choice-caret">v</b>
+              </button>
+              <div class="choice-panel" id="choice2Panel" hidden>
+                <div class="choice-panel-title"><span>1. Select faculty</span><span id="choice2FacultyHint"></span></div>
+                <div class="choice-picker-list" id="choice2FacultyList"></div>
+                <div class="choice-panel-title"><span>2. Select course</span><span id="choice2CourseHint"></span></div>
+                <div class="choice-picker-list" id="choice2CourseList"></div>
+              </div>
+            </div>
+            <div class="choice-flow field-span-all" data-choice-flow="choice3">
+              <button class="choice-trigger" id="choice3Trigger" type="button" data-choice-open="choice3">
+                <span><span>Type choice 3</span><strong id="choice3Summary">Choose faculty first</strong><small id="choice3Meta">Tap to pick a faculty, then a course.</small></span>
+                <b class="choice-caret">v</b>
+              </button>
+              <div class="choice-panel" id="choice3Panel" hidden>
+                <div class="choice-panel-title"><span>1. Select faculty</span><span id="choice3FacultyHint"></span></div>
+                <div class="choice-picker-list" id="choice3FacultyList"></div>
+                <div class="choice-panel-title"><span>2. Select course</span><span id="choice3CourseHint"></span></div>
+                <div class="choice-picker-list" id="choice3CourseList"></div>
+              </div>
+            </div>
+          </div>
+          <div class="hintbox status-panel">
+            <div class="row"><span class="status-pill status-open" id="institutionStatusPill">Application year</span><span class="pill" id="instLimitPill">No package selected yet</span></div>
+            <p id="institutionDatesMeta" class="helper-meta">Pick institution status.</p>
+            <p id="applyCatalogMeta" class="helper-meta">Choose faculty and type course if needed.</p>
+          </div>
+          <div class="apply-actions">
+            <button class="mini gold" id="editPackageBtn" type="button">Edit package</button>
+            <button class="mini green" id="addInstitutionBtn" type="button">Add institution</button>
+            <button class="mini" id="goCartBtn" type="button">Continue to checkout</button>
+          </div>
+          <div class="section-block">
+            <div class="head compact"><div><h3 id="packageInstitutionsTitle">Inside selected package</h3><p id="packageInstitutionsMeta">The institutions below will move with the selected package to cart.</p></div></div>
+            <div class="list shortlist-simple" id="institutionsList"></div>
+          </div>
+        </section>
+        <div class="footer">
+          <button class="mini alt" id="prevBtn" type="button">Back</button>
+          <button class="mini" id="nextBtn" type="button">Continue</button>
+        </div>
+      </main>
+    </section>
+  </div>
+  <div class="bottom-nav">
+    <a class="bottom-nav-item active" href="home.html"><span class="bottom-nav-kicker">App</span><span>Home</span></a>
+    <a class="bottom-nav-item" href="career-guidance.html"><span class="bottom-nav-kicker">Plan</span><span>Career</span></a>
+    <a class="bottom-nav-item" href="recommendation.html"><span class="bottom-nav-kicker">Match</span><span>Courses</span></a>
+    <a class="bottom-nav-item" href="more-service/accommodation-assist.html"><span class="bottom-nav-kicker">Stay</span><span>Housing</span></a>
+    <a class="bottom-nav-item" href="more-service/transport-assist.html"><span class="bottom-nav-kicker">Move</span><span>Transport</span></a>
+  </div>
+</body>
+</html>

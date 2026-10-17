@@ -2,5 +2,7 @@ const path = require("node:path");
 const { createServerlessAdapter } = require("../../_lib/serverless-adapter");
 
 module.exports = createServerlessAdapter(
-  path.resolve(__dirname, "../../../server/functions/payfast-itn.js")
+  path.resolve(__dirname, "../../../server/functions/payfast-itn.js"),
+  { requireRawBody: true }
 );
+module.exports.config = { api: { bodyParser: false } };

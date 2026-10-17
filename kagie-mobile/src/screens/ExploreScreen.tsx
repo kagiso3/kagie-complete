@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Button, Card, Notice, SectionTitle, ScreenScroll } from "../components/ui";
+import { Button, Card, HeroPanel, Notice, SectionTitle, ScreenScroll } from "../components/ui";
 import { useKagieData } from "../data/KagieDataProvider";
 import { colors } from "../theme";
 
@@ -19,10 +19,11 @@ export function ExploreScreen() {
 
   return (
     <ScreenScroll>
-      <View style={styles.hero}>
-        <Text style={styles.heroTitle}>Explore Kagie</Text>
-        <Text style={styles.heroText}>Stay on top of deadlines, prospectus guidance, and extra paid services from the Android app.</Text>
-      </View>
+      <HeroPanel
+        eyebrow="Explore"
+        title="Discover your next move"
+        copy="See tertiary updates, prospectus highlights, and extra support services without leaving your Kagie journey."
+      />
 
       {notice ? <Notice tone={notice.tone} message={notice.text} /> : null}
 
@@ -42,7 +43,7 @@ export function ExploreScreen() {
         {(catalog?.prospectus || []).slice(0, 10).map((item) => (
           <View key={item.id} style={styles.prospectusItem}>
             <Text style={styles.prospectusTitle}>{item.institution}</Text>
-            <Text style={styles.prospectusMeta}>{item.province} · {item.type}</Text>
+            <Text style={styles.prospectusMeta}>{item.province} | {item.type}</Text>
             <Text style={styles.prospectusMeta}>Deadline: {item.applicationDeadline}</Text>
             <Text style={styles.prospectusSummary}>{item.summary}</Text>
           </View>
@@ -58,7 +59,7 @@ export function ExploreScreen() {
               <Text style={styles.servicePrice}>R{item.price}</Text>
               <Text style={styles.serviceBody}>{item.description}</Text>
             </View>
-            <Button label={syncing ? "Sending..." : "Request"} onPress={() => handleService(item.id, item.name)} tone="secondary" disabled={syncing} />
+            <Button label="Request" loadingLabel="Sending..." loading={syncing} onPress={() => handleService(item.id, item.name)} tone="secondary" disabled={syncing} />
           </View>
         ))}
       </Card>
@@ -67,25 +68,10 @@ export function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    backgroundColor: "#102a56",
-    borderRadius: 28,
-    padding: 22,
-    gap: 8
-  },
-  heroTitle: {
-    color: "#ffffff",
-    fontSize: 26,
-    fontWeight: "900"
-  },
-  heroText: {
-    color: "rgba(255,255,255,0.88)",
-    lineHeight: 20
-  },
   updateItem: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 4
   },
@@ -107,7 +93,7 @@ const styles = StyleSheet.create({
   prospectusItem: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 3
   },
@@ -126,7 +112,7 @@ const styles = StyleSheet.create({
   serviceItem: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 10
   },

@@ -296,14 +296,24 @@ create table if not exists public.promo_campaigns (
   status text not null default 'Draft' check (
     status in (
       'Draft',
+      'Package Selected',
+      'Awaiting Payment',
+      'Paid',
+      'Pending Details',
+      'Incomplete',
       'Submitted',
       'Under Review',
+      'Documents Required',
+      'Documents Missing',
       'Missing Documents',
+      'Awaiting Institution Fee',
+      'Submitted to Institution',
       'Ready to Apply',
       'Applied',
       'Pending Feedback',
       'Accepted',
       'Rejected',
+      'Cancelled',
       'Application being processed'
     )
   ),
@@ -702,9 +712,38 @@ $$;
 
 select public.seed_default_packs();
 
+alter table public.application_packs add column if not exists application_type text not null default 'UNDERGRADUATE';
+alter table public.applications add column if not exists application_type text not null default 'UNDERGRADUATE';
+
 alter table public.applications drop constraint if exists applications_payment_status_check;
 alter table public.applications add constraint applications_payment_status_check check (
   payment_status in ('Payment Pending', 'Pending Verification', 'Verified', 'Rejected', 'Failed', 'Cancelled', 'Refunded')
+);
+
+alter table public.applications drop constraint if exists applications_status_check;
+alter table public.applications add constraint applications_status_check check (
+  status in (
+    'Draft',
+    'Package Selected',
+    'Awaiting Payment',
+    'Paid',
+    'Pending Details',
+    'Incomplete',
+    'Submitted',
+    'Under Review',
+    'Documents Required',
+    'Documents Missing',
+    'Missing Documents',
+    'Awaiting Institution Fee',
+    'Submitted to Institution',
+    'Ready to Apply',
+    'Applied',
+    'Pending Feedback',
+    'Accepted',
+    'Rejected',
+    'Cancelled',
+    'Application being processed'
+  )
 );
 
 alter table public.payments drop constraint if exists payments_status_check;
@@ -883,7 +922,7 @@ drop policy if exists "promo_campaigns_master_write" on public.promo_campaigns;
 create policy "promo_campaigns_master_write" on public.promo_campaigns for all using (public.current_role() = 'master_admin') with check (public.current_role() = 'master_admin');
 
 drop policy if exists "applications_self_or_staff" on public.applications;
-create policy "applications_self_or_staff" on public.applications for select using (public.can_access_application(id));
+create policy "applications_self_or_staff" on public.applications for select using (auth.uid() = user_id or public.can_access_application(id));
 drop policy if exists "applications_user_insert" on public.applications;
 create policy "applications_user_insert" on public.applications for insert with check (auth.uid() = user_id or public.current_role() = 'master_admin');
 drop policy if exists "applications_user_or_staff_update" on public.applications;

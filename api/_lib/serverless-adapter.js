@@ -17,17 +17,34 @@ function queryParamsFromUrl(urlString) {
   return { pathname: url.pathname, queryStringParameters: params };
 }
 
-async function readRawBody(req) {
-  if (Buffer.isBuffer(req.body)) return req.body.toString("utf8");
-  if (typeof req.body === "string") return req.body;
-  if (req.body && typeof req.body === "object") return JSON.stringify(req.body);
-  if (!req.readable || ["GET", "HEAD"].includes(String(req.method || "GET").toUpperCase())) return "";
+async function readRawBody(req, { requireRawBody = false, maxBodyBytes = 1024 * 1024 } = {}) {
+  if (!req || ["GET", "HEAD"].includes(String(req.method || "GET").toUpperCase())) return "";
 
-  const chunks = [];
-  for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+  const tooLarge = () => Object.assign(new Error("Request body is too large."), { statusCode: 413 });
+  const bounded = value => {
+    if (Buffer.byteLength(value) > maxBodyBytes) throw tooLarge();
+    return value;
+  };
+
+  if (req.readable) {
+    const chunks = [];
+    let size = 0;
+    for await (const chunk of req) {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
+      size += buffer.length;
+      if (size > maxBodyBytes) throw tooLarge();
+      chunks.push(buffer);
+    }
+    if (chunks.length) return Buffer.concat(chunks).toString("utf8");
   }
-  return Buffer.concat(chunks).toString("utf8");
+
+  if (Buffer.isBuffer(req.body)) return bounded(req.body.toString("utf8"));
+  if (typeof req.body === "string") return bounded(req.body);
+  if (req.body && typeof req.body === "object") {
+    if (requireRawBody) throw Object.assign(new Error("This endpoint requires the original request body."), { statusCode: 400 });
+    return bounded(JSON.stringify(req.body));
+  }
+  return "";
 }
 
 function applyServerlessResponse(res, payload) {
@@ -54,12 +71,12 @@ function loadServerlessHandler(handlerPath) {
   return handler;
 }
 
-function createServerlessAdapter(relativeHandlerPath) {
+function createServerlessAdapter(relativeHandlerPath, options = {}) {
   const handlerPath = path.resolve(relativeHandlerPath);
 
   return async function vercelHandler(req, res) {
     try {
-      const rawBody = await readRawBody(req);
+      const rawBody = await readRawBody(req, options);
       const { pathname, queryStringParameters } = queryParamsFromUrl(req.url || "/");
       const event = {
         httpMethod: String(req.method || "GET").toUpperCase(),
@@ -76,7 +93,7 @@ function createServerlessAdapter(relativeHandlerPath) {
       res.statusCode = Number(error?.statusCode || 500);
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify({
-        message: error?.message || "Unexpected serverless adapter failure."
+        message: res.statusCode < 500 ? error?.message || "Invalid request." : "Unexpected server error."
       }));
     }
   };

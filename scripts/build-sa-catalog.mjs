@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import XLSX from "xlsx";
+import { createRequire } from "node:module";
+// Use the Node build so filesystem and legacy XLS encodings are installed.
+const XLSX = createRequire(import.meta.url)("xlsx");
 
 const ROOT = "C:/Users/LENOVO/Downloads/kagie-complete";
 const workbookPath = path.join(ROOT, "tmp_national_ordinary_schools.xls");

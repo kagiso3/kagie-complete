@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { ZodError } from "zod";
 
 export function ok<T>(res: Response, data: T, status = 200) {
   return res.status(status).json({ data });
@@ -12,6 +13,8 @@ export function notFoundHandler(_req: Request, res: Response) {
 }
 
 export function errorHandler(error: unknown, _req: Request, res: Response, _next: NextFunction) {
+  if (res.headersSent) return _next(error);
+  if (error instanceof ZodError) return res.status(400).json({ error: "Request Error", message: "Check the request fields and try again." });
   const message = error instanceof Error ? error.message : "Unexpected server error";
   const status = typeof error === "object" && error && "status" in error && typeof (error as { status?: unknown }).status === "number"
     ? (error as { status: number }).status
@@ -19,6 +22,6 @@ export function errorHandler(error: unknown, _req: Request, res: Response, _next
 
   return res.status(status).json({
     error: status >= 500 ? "Server Error" : "Request Error",
-    message
+    message: status >= 500 ? "Kagie could not complete this request. Please try again." : message
   });
 }

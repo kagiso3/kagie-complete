@@ -1,0 +1,165 @@
+/* Reusable student controls and layouts. Feature flows keep their own state logic. */
+body.kagie-student-workspace { margin: 0; min-height: 100dvh; padding: 24px 24px 112px; display: block; }
+body.kagie-student-workspace :is(.shell, .app, .app-shell) { width: min(1120px, 100%); max-width: 1120px; margin: 0 auto; }
+body.kagie-student-workspace .shell { display: grid; gap: 24px; }
+body.kagie-student-workspace :is(.shell, .layout, .stack, .card, .panel, .content, .scroll-content) { min-width: 0; }
+body.kagie-student-workspace :is(.top, .topbar, .header-bar) {
+  background: var(--kagie-surface); color: var(--kagie-ink); border: 1px solid var(--kagie-border);
+  border-radius: var(--kagie-radius); box-shadow: var(--kagie-shadow); padding: 20px 24px;
+}
+body.kagie-student-workspace .top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+body.kagie-student-workspace .top h1 { margin: 0; color: var(--kagie-ink); font: 700 clamp(22px, 3vw, 28px)/1.3 var(--kagie-font); }
+body.kagie-student-workspace .top p { margin: 8px 0 0; color: var(--kagie-muted); font-size: 14px; line-height: 1.6; opacity: 1; max-width: 680px; }
+body.kagie-student-workspace :is(.actions, .row, .item-actions) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+body.kagie-student-workspace :is(.btn, .mini, .btn-red, .btn-fill, .btn-outline, .app-action, .next-link, .continue-btn, .empty-btn, .promo-apply, .promo-remove) {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; height: auto;
+  padding: 10px 16px; border-radius: var(--kagie-control-radius); font: 600 14px/1.4 var(--kagie-font);
+  text-decoration: none; text-align: center; letter-spacing: 0; box-shadow: none; cursor: pointer;
+  border: 1px solid var(--kagie-border); background: #fff; color: var(--kagie-ink);
+  transition: background .15s ease, border-color .15s ease;
+}
+body.kagie-student-workspace :is(.mini, .btn-red, .btn-fill, .continue-btn, .promo-apply) { background: var(--kagie-primary); border-color: var(--kagie-primary); color: #fff; }
+body.kagie-student-workspace :is(.mini, .btn-red, .btn-fill, .continue-btn, .promo-apply):hover { background: var(--kagie-primary-hover); border-color: var(--kagie-primary-hover); transform: none; }
+body.kagie-student-workspace :is(.btn, .btn-outline, .app-action, .next-link, .empty-btn, .promo-remove):hover { border-color: #bdc8d5; background: var(--kagie-bg); transform: none; }
+body.kagie-student-workspace .mini:is(.secondary, .alt, .gold) { background: #fff; border-color: var(--kagie-border); color: var(--kagie-ink); }
+body.kagie-student-workspace .mini:is(.secondary, .alt, .gold):hover { background: var(--kagie-bg); border-color: #bdc8d5; }
+body.kagie-student-workspace :is(.card, .panel, .section-card, .next-card, .hero, .hello-card, .promo-card) {
+  background: var(--kagie-surface); border: 1px solid var(--kagie-border); border-radius: var(--kagie-radius); box-shadow: var(--kagie-shadow);
+}
+body.kagie-student-workspace :is(.card, .hero) { padding: 24px; }
+body.kagie-student-workspace .hero { color: var(--kagie-ink); }
+body.kagie-student-workspace .hero h2 { margin: 0; color: var(--kagie-ink); font-size: clamp(20px, 3vw, 26px); }
+body.kagie-student-workspace .hero p { margin: 8px 0 0; color: var(--kagie-muted); font-size: 14px; line-height: 1.6; }
+body.kagie-student-workspace .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+body.kagie-student-workspace .meta span { background: var(--kagie-bg); color: var(--kagie-muted); border: 1px solid var(--kagie-border); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 600; box-shadow: none; }
+body.kagie-student-workspace .layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+body.kagie-student-workspace :is(.stack, .list) { display: grid; gap: 16px; }
+body.kagie-student-workspace .head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+body.kagie-student-workspace .head h3 { margin: 0; color: var(--kagie-ink); font-size: 18px; font-weight: 700; }
+body.kagie-student-workspace .head p { margin: 6px 0 0; color: var(--kagie-muted); font-size: 14px; line-height: 1.6; }
+body.kagie-student-workspace :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea) {
+  max-width: 100%; min-width: 0; min-height: 48px; border: 1px solid #ccd5e0; border-radius: var(--kagie-control-radius);
+  padding: 11px 12px; color: var(--kagie-ink); background-color: #fff; box-shadow: none; font-weight: 400;
+}
+body.kagie-student-workspace :is(.field, .file, .composer textarea):is(input, select, textarea) { width: 100%; font-size: 16px; }
+body.kagie-student-workspace :is(input, select, textarea):focus-visible { border-color: var(--kagie-focus); outline: 3px solid #d0e9fe; outline-offset: 1px; }
+body.kagie-student-workspace :is(input, textarea)::placeholder { color: var(--kagie-muted); letter-spacing: 0; text-transform: none; font-weight: 400; }
+body.kagie-student-workspace input[type="file"]::file-selector-button { padding: 7px 10px; margin-right: 12px; border: 1px solid var(--kagie-border); border-radius: 6px; background: var(--kagie-bg); color: var(--kagie-ink); font: inherit; cursor: pointer; }
+body.kagie-student-workspace :is(.auth-field-label, .field label, .label) { font-size: 14px; font-weight: 600; color: var(--kagie-ink); letter-spacing: 0; }
+body.kagie-student-workspace :is(.item, .ticket-card, .doc-card, .nav-card, .compact-card) { border: 1px solid var(--kagie-border); border-radius: 12px; background: #fff; padding: 16px; box-shadow: none; }
+body.kagie-student-workspace .item strong { color: var(--kagie-ink); font-size: 15px; }
+body.kagie-student-workspace .item p { color: var(--kagie-muted); font-size: 14px; line-height: 1.6; margin: 6px 0 0; }
+body.kagie-student-workspace :is(.empty, .empty-card) { padding: 24px 16px; background: var(--kagie-bg); border: 1px dashed var(--kagie-border); border-radius: 12px; color: var(--kagie-muted); font-size: 14px; line-height: 1.6; text-align: center; font-weight: 400; }
+body.kagie-student-workspace :is(.status, .chip, .pill, .badge, .status-pill) { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 5px 10px; border: 1px solid var(--kagie-border); background: var(--kagie-bg); color: var(--kagie-muted); font-size: 12px; line-height: 1.4; font-weight: 600; }
+body.kagie-student-workspace :is(.status, .chip, .pill):is(.pending, .warn, .warning) { color: var(--kagie-warning); background: #fff8e8; border-color: #ffe4a2; }
+body.kagie-student-workspace :is(.status, .chip, .pill):is(.review, .info, .blue) { color: var(--kagie-info); background: #eef5fc; border-color: #cde8fe; }
+body.kagie-student-workspace :is(.status, .chip, .pill):is(.success, .green) { color: var(--kagie-success); background: #edf8f1; border-color: #cce6d6; }
+body.kagie-student-workspace :is(.status, .chip, .pill):is(.danger, .red) { color: var(--kagie-danger); background: var(--kagie-primary-soft); border-color: #ffc9c9; }
+
+/* A consistent, calm application overview. */
+body[data-kagie-page="Dashboard"] .app-shell { background: transparent; border: 0; box-shadow: none; overflow: visible; min-height: auto; }
+body[data-kagie-page="Dashboard"] .topbar { grid-template-columns: 44px minmax(0, 1fr) 44px; min-height: 80px; }
+body[data-kagie-page="Dashboard"] .topbar-title { color: var(--kagie-ink); text-align: left; font-size: 24px; font-weight: 700; }
+body[data-kagie-page="Dashboard"] :is(.topbar-back, .topbar-icon) { color: var(--kagie-ink); border: 1px solid var(--kagie-border); border-radius: 10px; width: 44px; height: 44px; }
+body[data-kagie-page="Dashboard"] :is(.topbar-back, .topbar-icon):hover { background: var(--kagie-bg); transform: none; }
+body[data-kagie-page="Dashboard"] .scroll-content { padding: 24px 0 0; overflow: visible; gap: 24px; }
+body[data-kagie-page="Dashboard"] :is(.section-card, .next-card) { padding: 24px; margin: 0; }
+body[data-kagie-page="Dashboard"] .section-title { font-size: 18px; font-weight: 700; }
+body[data-kagie-page="Dashboard"] .section-link { font-size: 14px; font-weight: 600; }
+body[data-kagie-page="Dashboard"] .stat-item { padding: 16px 8px; border: 1px solid var(--kagie-border); border-radius: 12px; background: var(--kagie-bg); }
+body[data-kagie-page="Dashboard"] .stat-num { color: var(--kagie-ink); font-size: 28px; font-weight: 700; }
+body[data-kagie-page="Dashboard"] .stat-icon { box-shadow: none; border-radius: 10px; }
+body[data-kagie-page="Dashboard"] .next-card { background: var(--kagie-primary-soft); border-color: #ffc9c9; }
+body[data-kagie-page="Dashboard"] .next-label { color: var(--kagie-primary); font-weight: 700; }
+body[data-kagie-page="Dashboard"] .next-card p { font-size: 14px; color: var(--kagie-ink); }
+
+/* Support and inbox reuse the same cards, labels and composer. */
+body[data-kagie-page="personal-assistance"] .chat-box { border: 1px solid var(--kagie-border); border-radius: 12px; overflow: hidden; }
+body[data-kagie-page="personal-assistance"] .messages { display: grid; align-content: start; gap: 12px; min-height: 220px; max-height: 400px; overflow-y: auto; padding: 16px; background: var(--kagie-bg); }
+body[data-kagie-page="personal-assistance"] .msg { max-width: 90%; padding: 12px 14px; border: 1px solid var(--kagie-border); border-radius: 12px; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+body[data-kagie-page="personal-assistance"] .msg.agent { justify-self: start; background: #fff; color: var(--kagie-ink); }
+body[data-kagie-page="personal-assistance"] .msg.user { justify-self: end; background: var(--kagie-primary-soft); border-color: #ffc9c9; color: var(--kagie-ink); }
+body[data-kagie-page="personal-assistance"] .msg small { display: block; margin-top: 6px; color: var(--kagie-muted); font-size: 11px; }
+body[data-kagie-page="personal-assistance"] .composer { display: grid; gap: 8px; border-top: 1px solid var(--kagie-border); padding: 16px; background: #fff; }
+body[data-kagie-page="personal-assistance"] .composer .auth-field-label { margin: 8px 0 0; }
+body[data-kagie-page="personal-assistance"] .composer textarea { min-height: 110px; resize: vertical; }
+body[data-kagie-page="personal-assistance"] .ticket-card { width: 100%; text-align: left; color: var(--kagie-ink); cursor: pointer; }
+body[data-kagie-page="personal-assistance"] .ticket-card.active { border-color: var(--kagie-primary); background: var(--kagie-primary-soft); box-shadow: none; }
+body[data-kagie-page="notifications"] .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+body[data-kagie-page="notifications"] .filters .pill { min-height: 44px; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+body[data-kagie-page="notifications"] .filters .pill.active { color: var(--kagie-primary); background: var(--kagie-primary-soft); border-color: #ffc9c9; }
+body[data-kagie-page="notifications"] .item.unread { border-left: 3px solid var(--kagie-primary); background: #fff; box-shadow: none; }
+
+/* Application types share a single flow rather than changing the product palette. */
+body[data-kagie-page="forms"] {
+  --flow-main: var(--kagie-primary); --flow-strong: var(--kagie-primary-hover); --flow-border: #ffc9c9;
+  --flow-soft: var(--kagie-primary-soft); --flow-disabled: #d7b0b5;
+}
+body[data-kagie-page="forms"] .top { background: #fff; }
+body[data-kagie-page="forms"] .layout { grid-template-columns: minmax(0, 1fr); }
+body[data-kagie-page="forms"] .form-card { gap: 24px; }
+body[data-kagie-page="forms"] .head { margin-bottom: 0; }
+body[data-kagie-page="forms"] .type-card {
+  --type-main: var(--kagie-primary); --type-border: var(--kagie-border); --type-soft: #fff; --type-icon-bg: var(--kagie-primary-soft);
+  background: #fff; border-radius: 16px; padding: 20px; box-shadow: none;
+}
+body[data-kagie-page="forms"] .type-card:hover { border-color: #a5d5fc; background: var(--kagie-bg); }
+body[data-kagie-page="forms"] .type-info h3 { color: var(--kagie-ink); font-weight: 700; }
+body[data-kagie-page="forms"] .application-payment-note { background: #eef5fc; border-color: #cde8fe; color: var(--kagie-info); }
+body[data-kagie-page="forms"] .late-header-icon { color: var(--kagie-primary); }
+body[data-kagie-page="forms"] :is(.pill, .badge, .status-pill) { background: var(--kagie-bg); color: var(--kagie-muted); }
+body[data-kagie-page="forms"] .mini.green { background: var(--kagie-primary); border-color: var(--kagie-primary); }
+body[data-kagie-page="forms"] :is(.pack.active, .choice-pick.active) { border-color: var(--kagie-primary); background: var(--kagie-primary-soft); color: var(--kagie-ink); }
+
+/* Checkout and cart sit in the same spacious desktop workspace. */
+body[data-kagie-page="cart"] .page { padding: 0; min-height: auto; }
+body[data-kagie-page="cart"] .shell { border: 0; background: transparent; box-shadow: none; min-height: auto; border-radius: 0; overflow: visible; animation: none; }
+body[data-kagie-page="cart"] .scroll { max-height: none; overflow: visible; padding: 0; gap: 24px; }
+body[data-kagie-page="cart"] .topbar-title { color: var(--kagie-ink); }
+body[data-kagie-page="cart"] .topbar-title h1 { margin: 0; font-size: 24px; font-weight: 700; }
+body[data-kagie-page="cart"] .topbar-title p { margin: 4px 0 0; color: var(--kagie-muted); }
+body[data-kagie-page="cart"] .hello-card { padding: 24px; }
+body[data-kagie-page="cart"] .hello-name { font-size: 20px; font-weight: 700; }
+body[data-kagie-page="cart"] .hello-sub { font-size: 14px; line-height: 1.6; margin-top: 6px; }
+body[data-kagie-page="cart"] .sec-text h3 { font-size: 18px; font-weight: 700; }
+body[data-kagie-page="cart"] .sec-text p { font-size: 14px; }
+body[data-kagie-page="cart"] .total-card { border-radius: 16px; box-shadow: var(--kagie-shadow); padding: 24px; }
+body[data-kagie-page="cart"] .total-info small { color: #bbdffd; font-size: 13px; }
+body[data-kagie-page="cart"] .zar-badge { color: #fff; background: rgba(255,255,255,.12); }
+body[data-kagie-page="cart"] .bottombar { border: 1px solid var(--kagie-border); border-radius: 16px; padding: 16px; gap: 12px; }
+body[data-kagie-page="cart"] .promo-field { padding: 6px 12px; border: 1px solid #ccd5e0; border-radius: 10px; background: #fff; }
+body[data-kagie-page="cart"] .promo-field input { min-height: 32px; border: 0; border-radius: 0; padding: 0; background: transparent; }
+body[data-kagie-page="cart"] .promo-card { padding: 24px; }
+body[data-kagie-page="cart"] :is(.card, .hello-card, .promo-card, .item):hover { transform: none; box-shadow: var(--kagie-shadow); border-color: var(--kagie-border); }
+body[data-kagie-page="cart"] :is(.btn-fill, .promo-apply, .continue-btn, .mini)::after { display: none; }
+body[data-kagie-page="checkout"] { padding: 0 0 40px; }
+body[data-kagie-page="checkout"] :is(.checkout-shell, .checkout-topbar) { max-width: 1120px; }
+body[data-kagie-page="checkout"] { --checkout-red: var(--kagie-primary); --checkout-red-dark: var(--kagie-primary-hover); --checkout-navy: var(--kagie-ink); --checkout-text: var(--kagie-ink); --checkout-muted: var(--kagie-muted); --checkout-border: var(--kagie-border); --checkout-shadow: var(--kagie-shadow); }
+body[data-kagie-page="checkout"] :is(.checkout-action, .checkout-primary-button, .checkout-secondary-button, .checkout-confirm-button, .checkout-support-link) { border-radius: 10px; box-shadow: none; font-size: 14px; font-weight: 600; min-height: 44px; }
+body[data-kagie-page="checkout"] .checkout-support-cta { background: var(--kagie-primary-soft); color: var(--kagie-ink); border-color: #ffc9c9; }
+body[data-kagie-page="checkout"] .checkout-support-cta strong { color: var(--kagie-primary); }
+
+@media (max-width: 900px) {
+  body.kagie-student-workspace .layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 767px) {
+  body.kagie-student-workspace { padding: 16px 16px 96px; }
+  body.kagie-student-workspace .shell { gap: 16px; }
+  body.kagie-student-workspace :is(.top, .topbar, .header-bar, .card, .hero) { padding: 20px 16px; }
+  body.kagie-student-workspace .layout { gap: 16px; }
+  body.kagie-student-workspace .top .actions { width: auto; }
+  body.kagie-student-workspace .top .btn { width: auto; }
+  body[data-kagie-page="Dashboard"] .scroll-content { display: grid; grid-template-columns: minmax(0, 1fr); padding-top: 16px; gap: 16px; }
+  body[data-kagie-page="Dashboard"] :is(.section-card, .next-card) { padding: 20px 16px; }
+  body[data-kagie-page="Dashboard"] .topbar-title { font-size: 20px; }
+  body[data-kagie-page="Dashboard"] .stat-num { font-size: 24px; }
+  body[data-kagie-page="Dashboard"] .stat-item { padding: 12px 4px; }
+  body[data-kagie-page="forms"] .type-card { padding: 16px; }
+  body[data-kagie-page="cart"] .scroll { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  body[data-kagie-page="cart"] :is(.hello-card, .total-card, .promo-card) { padding: 20px 16px; }
+  body[data-kagie-page="checkout"] { padding-inline: 0; }
+}
+@media (max-width: 359px) {
+  body.kagie-student-workspace { padding-inline: 12px; }
+  body[data-kagie-page="Dashboard"] .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

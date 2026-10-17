@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kagie | Upload Documents</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="js/backend.js?v=20261015-backend-audit"></script>
+  <script defer src="js/supabase-config.js?v=20261014-palette-blue"></script>
+  <script defer src="js/upload-page.js?v=20261014-documents-ui"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/bottom-nav.css?v=20261014-palette-blue" />
+  <script defer src="js/bottom-nav.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/student-workspace.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/kagie-brand-colors.css?v=20261014-palette-blue">
+  <link rel="stylesheet" href="css/upload-page.css?v=20261014-documents-ui">
+</head>
+<body class="kagie-student-workspace" data-kagie-page="upload">
+  <svg class="upload-icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="upload-document-add" viewBox="0 0 32 32"><path fill="currentColor" d="M8 2h12l8 8v18a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3Z"/><path d="M20 3v8h7M11 20h10M16 15v10" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="upload-document-lines" viewBox="0 0 32 32"><path fill="currentColor" d="M8 2h12l8 8v18a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3Z"/><path d="M20 3v8h7M11 16h10M11 21h10" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="upload-arrow" viewBox="0 0 32 32"><path d="M16 21V4M9 11l7-7 7 7M5 22v5a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs></svg>
+  <main class="shell upload-shell">
+    <header class="top upload-hero">
+      <div class="upload-hero-copy">
+        <span class="kagie-eyebrow">Kagie · Student workspace</span>
+        <h1>Upload Documents</h1>
+        <p>Store your supporting files in Kagie so assistants can review and track them.</p>
+      </div>
+      <svg class="upload-hero-art" viewBox="0 0 550 230" aria-hidden="true" focusable="false">
+        <defs><linearGradient id="paper-shade" x1="0" y1="0" x2="0.7" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#f3f5f8"/></linearGradient><linearGradient id="paper-pink" x2="0.7" y2="1"><stop stop-color="#fff" stop-opacity=".88"/><stop offset="1" stop-color="#fff" stop-opacity=".55"/></linearGradient></defs>
+        <path d="M-160 230C60 247 111 120 195 38S292-33 330-70H550V230Z" fill="#fff" opacity=".045"/>
+        <path d="M-80 250C122 250 162 165 257 120s169-3 293-121v231Z" fill="#fff" opacity=".055"/>
+        <path d="M285 230c73-28 159-29 265-127v127Z" fill="#000" opacity=".06"/>
+        <g transform="translate(213 119) rotate(13)"><rect width="104" height="180" rx="17" fill="url(#paper-pink)"/><path d="M21 36h56M21 56h59M21 76h45" stroke="#fd0505" stroke-opacity=".1" stroke-width="8" stroke-linecap="round"/></g>
+        <g transform="translate(268 39) rotate(13)"><rect width="119" height="210" rx="17" fill="url(#paper-pink)"/><path d="M24 30h43M24 51h69M24 72h61M24 93h53" stroke="#fd0505" stroke-opacity=".13" stroke-width="8" stroke-linecap="round"/></g>
+        <g transform="translate(350 25) rotate(13)"><rect width="126" height="216" rx="17" fill="url(#paper-shade)"/><path d="M25 31h40M25 53h67M25 75h62M25 97h43" stroke="#d8dce4" stroke-width="8" stroke-linecap="round"/></g>
+        <g transform="translate(340 172) rotate(13)"><circle r="42" fill="#fd0505" stroke="#fff" stroke-opacity=".25"/><path d="M0 15V-14M-9-5l9-9 9 9" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+      </svg>
+    </header>
+    <div class="layout upload-layout">
+      <section class="card upload-card upload-form-card" aria-labelledby="addDocumentTitle">
+        <div class="head upload-card-head">
+          <span class="upload-card-icon" aria-hidden="true"><svg><use href="#upload-document-add"/></svg></span>
+          <div><h2 id="addDocumentTitle">Add New Document</h2><p>Choose a category, then attach a file from your device.</p></div>
+        </div>
+        <form class="stack upload-form" id="uploadForm" novalidate>
+          <div class="upload-field-group">
+            <label class="auth-field-label" for="docCategory">Document category <span class="upload-required" aria-hidden="true">*</span></label>
+            <div class="upload-select-wrap"><select class="field" id="docCategory" aria-describedby="docCategoryError" required>
+              <option value="id_copy">Certified ID Copy</option><option value="results">Latest Results</option><option value="proof_of_residence">Proof of Residence</option><option value="proof_of_payment">Proof of Payment</option><option value="guardian_document">Guardian Document</option><option value="other">Other Supporting File</option>
+            </select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 9 7 7 7-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <p class="upload-field-error" id="docCategoryError" hidden></p>
+          </div>
+          <div class="upload-field-group">
+            <label class="auth-field-label" for="docName">Document label <span class="upload-required" aria-hidden="true">*</span></label>
+            <input class="field" id="docName" type="text" placeholder="e.g. My ID Copy, Matric Certificate, Proof of Address" autocomplete="off" aria-describedby="docNameError" required>
+            <p class="upload-field-error" id="docNameError" hidden></p>
+          </div>
+          <div class="upload-field-group">
+            <label class="auth-field-label" id="docFileLabel" for="docFile">Choose a document <span class="upload-required" aria-hidden="true">*</span></label>
+            <div class="upload-drop-zone" id="uploadDropZone" role="group" tabindex="0" aria-label="Upload a document" aria-describedby="uploadFileMeta docFileError">
+              <span class="upload-drop-icon" aria-hidden="true"><svg><use href="#upload-arrow"/></svg></span>
+              <strong>Drag and drop a file here</strong><span class="upload-drop-copy">or click to browse from your device</span>
+              <div class="upload-file-controls"><button class="upload-choose" id="chooseFileBtn" type="button">Choose File</button><span id="selectedFileName" aria-live="polite">No file chosen</span><button class="upload-remove" id="removeFileBtn" type="button" hidden>Remove</button></div>
+              <input class="upload-native-input" id="docFile" type="file" tabindex="-1" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" aria-labelledby="docFileLabel" aria-describedby="uploadFileMeta docFileError" required>
+            </div>
+            <p class="upload-field-error" id="docFileError" hidden></p>
+          </div>
+          <div class="upload-file-help" id="uploadFileMeta"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 10v7" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="1.2" fill="#fff"/></svg><span>Accepted: PDF, DOC, DOCX, JPG, JPEG, PNG. Max 8 MB.</span></div>
+          <button class="mini upload-save" id="uploadBtn" type="submit"><svg class="upload-save-icon" aria-hidden="true"><use href="#upload-arrow"/></svg><span class="upload-button-label">Save Document</span></button>
+          <p class="upload-feedback" id="uploadStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+        </form>
+      </section>
+      <section class="card upload-card upload-list-card" aria-labelledby="uploadedDocumentsTitle">
+        <div class="head upload-card-head"><span class="upload-card-icon" aria-hidden="true"><svg><use href="#upload-document-lines"/></svg></span><div><h2 id="uploadedDocumentsTitle">Your Uploaded Documents</h2><p>Track upload dates, categories, and review outcomes.</p></div></div>
+        <div class="list upload-document-list" id="docs" aria-busy="true"><p class="upload-initial-loading" role="status">Loading your documents…</p></div>
+      </section>
+    </div>
+  </main>
+  <nav class="bottom-nav" aria-label="App navigation"><a class="bottom-nav-item" href="home.html"><span class="bottom-nav-kicker">App</span><span>Home</span></a><a class="bottom-nav-item" href="career-guidance.html"><span class="bottom-nav-kicker">Plan</span><span>Career</span></a><a class="bottom-nav-item" href="recommendation.html"><span class="bottom-nav-kicker">Match</span><span>Courses</span></a><a class="bottom-nav-item" href="more-service/accommodation-assist.html"><span class="bottom-nav-kicker">Stay</span><span>Housing</span></a><a class="bottom-nav-item" href="more-service/transport-assist.html"><span class="bottom-nav-kicker">Move</span><span>Transport</span></a></nav>
+</body>
+</html>

@@ -30,6 +30,12 @@ function decodeJwtPayload(token) {
   }
 }
 
+function isPublicSupabaseKey(key) {
+  if (/^sb_publishable_[a-zA-Z0-9_-]+$/.test(key)) return true;
+  const payload = decodeJwtPayload(key);
+  return String(key || '').split('.').length === 3 && payload?.role === 'anon';
+}
+
 function normalizeSupabaseUrl(url, anonKey) {
   const direct = trim(url).replace(/\/+$/, "");
   if (/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(direct)) return direct;
@@ -46,6 +52,7 @@ module.exports = async function runtimeConfig(req, res) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Cache-Control", "no-store");
     res.end(JSON.stringify({ ok: true }));
     return;
   }
@@ -61,12 +68,13 @@ module.exports = async function runtimeConfig(req, res) {
     process.env.SUPABASE_URL || process.env.KAGIE_PUBLIC_SUPABASE_URL || PUBLIC_SUPABASE_FALLBACK.url,
     process.env.SUPABASE_ANON_KEY || process.env.KAGIE_PUBLIC_SUPABASE_ANON_KEY || PUBLIC_SUPABASE_FALLBACK.anonKey
   );
-  const supabaseAnonKey = trim(
+  const configuredSupabaseKey = trim(
     process.env.SUPABASE_ANON_KEY ||
     process.env.KAGIE_PUBLIC_SUPABASE_ANON_KEY ||
     PUBLIC_SUPABASE_FALLBACK.anonKey
   );
-
+  // Never expose a service-role or secret key through a misnamed environment variable.
+  const supabaseAnonKey = isPublicSupabaseKey(configuredSupabaseKey) ? configuredSupabaseKey : '';
   const payload = {
     data: {
       appName: trim(process.env.KAGIE_APP_NAME) || "Kagie",
@@ -80,10 +88,10 @@ module.exports = async function runtimeConfig(req, res) {
         accountType: trim(process.env.KAGIE_BANK_ACCOUNT_TYPE) || "Savings",
         branchCode: trim(process.env.KAGIE_BANK_BRANCH_CODE) || "470010",
         referencePrefix: trim(process.env.KAGIE_PAYMENT_REFERENCE_PREFIX) || "KAG",
-        verificationMessage: trim(process.env.KAGIE_PAYMENT_VERIFICATION_MESSAGE) || "Payments are confirmed automatically by Yoco after checkout.",
-        yocoEnabled: toBoolean(process.env.KAGIE_YOCO_ENABLED, true),
-        yocoPaymentLink: trim(process.env.KAGIE_YOCO_PAYMENT_LINK),
-        yocoProviderLabel: trim(process.env.KAGIE_YOCO_PROVIDER_LABEL) || "Yoco secure checkout",
+        verificationMessage: trim(process.env.KAGIE_PAYMENT_VERIFICATION_MESSAGE) || "After you transfer, Kagie verifies your payment manually. Use your Kagie reference and upload proof of payment.",
+        yocoEnabled: toBoolean(process.env.KAGIE_YOCO_ENABLED, false) && Boolean(trim(process.env.YOCO_SECRET_KEY) && trim(process.env.YOCO_WEBHOOK_SECRET)) && ["test", "live"].includes(trim(process.env.YOCO_MODE || process.env.YOCO_ENV)),
+        yocoPaymentLink: "",
+        yocoProviderLabel: "Yoco secure checkout",
         payfastEnabled: toBoolean(process.env.KAGIE_PAYFAST_ENABLED, false),
         payfastProviderLabel: trim(process.env.KAGIE_PAYFAST_PROVIDER_LABEL) || "PayFast secure checkout"
       },
@@ -100,5 +108,6 @@ module.exports = async function runtimeConfig(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify(payload));
 };

@@ -5,13 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kagie | Institutions</title>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script defer src="./js/backend.js?v=20260427a"></script>
-  <script defer src="./js/supabase-config.js?v=20260413b"></script>
-  <script defer src="./js/institutions-page.js?v=20260427a"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./css/admin-dashboard-modern.css?v=20260426c" />
+  <script defer src="./js/backend.js?v=20261015-backend-audit"></script>
+  <script defer src="./js/supabase-config.js?v=20261014-palette-blue"></script>
+  <script defer src="./js/institutions-page.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="./css/admin-dashboard-modern.css?v=20261014-palette-blue" />
   <style>
     .institutions-grid .queue-header,
     .institutions-grid .queue-row {
@@ -38,8 +35,8 @@
       color: #0d9d6c;
     }
     .switch-chip.off {
-      background: rgba(214, 31, 61, 0.1);
-      color: #d61f3d;
+      background: rgba(253, 5, 5, 0.1);
+      color: #fd0505;
     }
     .field-checkbox {
       display: flex;
@@ -66,8 +63,12 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="css/bottom-nav.css?v=20261014-palette-blue" />
+  <script defer src="js/bottom-nav.js?v=20261014-palette-blue"></script>
+  <link rel="stylesheet" href="css/app-foundation.css?v=20261014-palette-blue">
+  <script defer src="js/app-foundation.js?v=20261014-palette-blue"></script>
 </head>
-<body class="admin-dashboard-body role-master">
+<body class="admin-dashboard-body role-master" data-kagie-page="institutions">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" id="institutionsSidebar">
       <div class="sidebar-brand">
@@ -82,22 +83,21 @@
         <div class="sidebar-section-title">Applications</div>
         <a class="sidebar-link" href="./master-admin/dashboard.html"><span>Overview</span></a>
         <a class="sidebar-link" href="./admin/users/"><span>All Users</span></a>
-        <a class="sidebar-link" href="./master-admin/dashboard.html#masterAssistantCard"><span>Assistants</span></a>
-        <a class="sidebar-link" href="./master-admin/dashboard.html#masterQueueCard"><span>Applications queue</span></a>
+        <a class="sidebar-link" href="./master-admin/dashboard.html?page=assistants"><span>Assistants</span></a>
+        <a class="sidebar-link" href="./master-admin/dashboard.html?page=applications"><span>Applications queue</span></a>
       </div>
 
       <div class="sidebar-section">
         <div class="sidebar-section-title">Management</div>
         <a class="sidebar-link active" href="./institutions.html"><span>Institutions</span></a>
         <a class="sidebar-link" href="./question-papers.html"><span>Question Papers</span></a>
-        <a class="sidebar-link" href="./forms.html"><span>Courses</span></a>
-        <a class="sidebar-link" href="./documents.html"><span>Documents</span></a>
+        <a class="sidebar-link" href="./master-admin/dashboard.html?page=assistants"><span>Form access</span></a>
+        <a class="sidebar-link" href="./master-admin/dashboard.html?page=documents"><span>Documents</span></a>
       </div>
 
       <div class="sidebar-section">
         <div class="sidebar-section-title">System</div>
         <a class="sidebar-link" href="./admin/users/"><span>Users &amp; Roles</span></a>
-        <a class="sidebar-link" href="./changepassword.html"><span>Settings</span></a>
       </div>
 
       <div class="sidebar-footer">
@@ -151,7 +151,7 @@
         <section class="stats-grid">
           <article class="stat-card">
             <div class="stat-icon blue">I</div>
-            <div><div class="stat-label">Visible institutions</div><div class="stat-value" id="institutionsTotalStat">0</div><div class="stat-note">Open to the app</div></div>
+            <div><div class="stat-label">Total institutions</div><div class="stat-value" id="institutionsTotalStat">0</div><div class="stat-note">Managed catalog records</div></div>
           </article>
           <article class="stat-card">
             <div class="stat-icon green">O</div>
@@ -159,7 +159,7 @@
           </article>
           <article class="stat-card">
             <div class="stat-icon amber">C</div>
-            <div><div class="stat-label">Closing soon</div><div class="stat-value" id="institutionsClosingStat">0</div><div class="stat-note">Warning badge shown</div></div>
+            <div><div class="stat-label">Closed</div><div class="stat-value" id="institutionsClosingStat">0</div><div class="stat-note">Blocked for new applications</div></div>
           </article>
           <article class="stat-card">
             <div class="stat-icon red">D</div>
@@ -237,9 +237,10 @@
             <span class="field-label">Type</span>
             <select class="field-select" id="institutionFormType">
               <option value="University">University</option>
-              <option value="TVET">TVET</option>
+              <option value="TVET college">TVET college</option>
+              <option value="Private college">Private college</option>
               <option value="College">College</option>
-              <option value="Private Institution">Private Institution</option>
+              <option value="Other">Other</option>
             </select>
           </label>
           <label>
@@ -247,8 +248,20 @@
             <select class="field-select" id="institutionFormProvince"></select>
           </label>
           <label>
+            <span class="field-label">City</span>
+            <input class="field-input" id="institutionFormCity" type="text" placeholder="Pretoria" />
+          </label>
+          <label>
             <span class="field-label">Website</span>
             <input class="field-input" id="institutionFormWebsite" type="url" placeholder="https://www.example.ac.za" />
+          </label>
+          <label>
+            <span class="field-label">Contact email</span>
+            <input class="field-input" id="institutionFormContactEmail" type="email" placeholder="admissions@example.ac.za" />
+          </label>
+          <label>
+            <span class="field-label">Logo / image URL</span>
+            <input class="field-input" id="institutionFormLogo" type="url" placeholder="https://..." />
           </label>
           <label>
             <span class="field-label">Lifecycle status</span>
@@ -267,6 +280,10 @@
             <input class="field-input" id="institutionFormClosingDate" type="date" />
           </label>
           <label style="grid-column:1 / -1">
+            <span class="field-label">Description</span>
+            <textarea class="field-input" id="institutionFormDescription" rows="3" placeholder="Short institution description shown to learners where available."></textarea>
+          </label>
+          <label style="grid-column:1 / -1">
             <span class="field-label">Notes</span>
             <textarea class="field-input" id="institutionFormNotes" rows="4" placeholder="Application notes, support rules, or visibility reminders"></textarea>
           </label>
@@ -274,7 +291,7 @@
             <input id="institutionFormVisible" type="checkbox" checked />
             <span>Visible to learners inside the Kagie application flow</span>
           </label>
-          <p class="field-help" style="grid-column:1 / -1">Disabled institutions stay hidden from learners. Closed institutions can remain visible if you still want learners to see the badge, but they will not be shown if you turn visibility off.</p>
+          <p class="field-help" style="grid-column:1 / -1">Learners can only select institutions that are both Open and Visible. Closed or hidden institutions stay available in admin history but disappear from new learner applications.</p>
         </div>
         <p class="status-message info" id="institutionFormMessage">Changes here update the institution choices learners see when they select universities, TVET colleges, colleges, or private institutions.</p>
       </div>

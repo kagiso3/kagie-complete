@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { KagieDataProvider, useKagieData } from "../data/KagieDataProvider";
 import { HomeScreen } from "./HomeScreen";
 import { ApplyScreen } from "./ApplyScreen";
@@ -8,7 +8,7 @@ import { DocumentsScreen } from "./DocumentsScreen";
 import { InboxScreen } from "./InboxScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { ExploreScreen } from "./ExploreScreen";
-import { colors } from "../theme";
+import { colors, shadows } from "../theme";
 import { SyncBanner } from "../components/ui";
 
 type TabKey = "home" | "apply" | "docs" | "cart" | "inbox" | "explore" | "profile";
@@ -94,9 +94,14 @@ function DashboardShell() {
   if (loading && !dashboard) {
     return (
       <SafeAreaView style={styles.loadingScreen}>
-        <ActivityIndicator color="#ffffff" />
-        <Text style={styles.loadingTitle}>Syncing Kagie mobile</Text>
-        <Text style={styles.loadingText}>Loading your dashboard, draft, and support inbox.</Text>
+        <View style={styles.loadingCard}>
+          <View style={styles.loadingBadge}>
+            <Text style={styles.loadingBadgeText}>K</Text>
+          </View>
+          <ActivityIndicator color={colors.sky} />
+          <Text style={styles.loadingTitle}>Syncing Kagie mobile</Text>
+          <Text style={styles.loadingText}>Loading your dashboard, draft, and support inbox.</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -104,16 +109,37 @@ function DashboardShell() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.topBar}>
-        <View>
-          <Text style={styles.brand}>Kagie</Text>
-          <Text style={styles.topMeta}>
-            {connection.status === "online" ? "Online" : connection.status === "restored" ? "Connection restored" : connection.status === "weak" ? "Weak connection" : connection.status === "offline" ? "Offline" : "Syncing"}
-            {" | "}Unread alerts: {dashboard?.unreadCount ?? 0}
-          </Text>
+        <View style={styles.brandRow}>
+          <View style={styles.brandBadge}>
+            <Text style={styles.brandBadgeText}>K</Text>
+            <View style={styles.brandBadgeAccent} />
+          </View>
+          <View style={styles.brandCopy}>
+            <Text style={styles.brand}>Kagie</Text>
+            <Text style={styles.topMeta}>
+              {connection.status === "online" ? "Online" : connection.status === "restored" ? "Connection restored" : connection.status === "weak" ? "Weak connection" : connection.status === "offline" ? "Offline" : "Syncing"}
+              {" | "}Unread alerts: {dashboard?.unreadCount ?? 0}
+            </Text>
+          </View>
         </View>
         <View style={styles.topPill}>
+          <Text style={styles.topPillEyebrow}>Application</Text>
           <Text style={styles.topPillText}>{dashboard?.latestApplication?.status || "Draft"}</Text>
         </View>
+      </View>
+
+      <View style={styles.navDock}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.nav}>
+          {tabs.map((tab) => (
+            <Pressable
+              key={tab.key}
+              onPress={() => setActiveTab(tab.key)}
+              style={[styles.navItem, activeTab === tab.key && styles.navItemActive]}
+            >
+              <Text style={[styles.navLabel, activeTab === tab.key && styles.navLabelActive]}>{tab.label}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       </View>
 
       {connectionCopy ? (
@@ -132,16 +158,6 @@ function DashboardShell() {
       ) : null}
 
       <View style={styles.body}>{screen}</View>
-
-      <View style={styles.nav}>
-        {tabs.map((tab) => (
-          <View key={tab.key} style={styles.navItem}>
-            <Pressable onPress={() => setActiveTab(tab.key)}>
-              <Text style={[styles.navLabel, activeTab === tab.key && styles.navLabelActive]}>{tab.label}</Text>
-            </Pressable>
-          </View>
-        ))}
-      </View>
     </SafeAreaView>
   );
 }
@@ -164,75 +180,162 @@ const styles = StyleSheet.create({
   },
   loadingScreen: {
     flex: 1,
-    backgroundColor: colors.brand,
+    backgroundColor: colors.bg,
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
     padding: 24
   },
-  loadingTitle: {
+  loadingCard: {
+    width: "100%",
+    maxWidth: 340,
+    alignItems: "center",
+    gap: 12,
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: colors.surfaceGlass,
+    borderWidth: 1,
+    borderColor: colors.borderSoft
+  },
+  loadingBadge: {
+    width: 58,
+    height: 58,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.brand,
+    overflow: "hidden"
+  },
+  loadingBadgeText: {
     color: "#ffffff",
+    fontSize: 28,
+    fontWeight: "900"
+  },
+  loadingTitle: {
+    color: colors.text,
     fontSize: 22,
     fontWeight: "900"
   },
   loadingText: {
-    color: "rgba(255,255,255,0.88)",
+    color: colors.textMuted,
     textAlign: "center",
     maxWidth: 290
   },
   topBar: {
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(217,227,241,0.8)",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+    backgroundColor: colors.surfaceGlass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: colors.borderSoft,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center"
+    alignItems: "center",
+    gap: 10,
+    ...shadows.card
   },
-  brand: {
-    color: colors.brand,
+  brandRow: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  brandBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: colors.brand,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden"
+  },
+  brandBadgeAccent: {
+    position: "absolute",
+    right: -6,
+    bottom: -6,
+    width: 18,
+    height: 18,
+    borderRadius: 7,
+    backgroundColor: colors.sky
+  },
+  brandBadgeText: {
+    color: "#ffffff",
     fontSize: 22,
     fontWeight: "900"
   },
+  brandCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  brand: {
+    color: colors.text,
+    fontSize: 23,
+    fontWeight: "900"
+  },
   topMeta: {
-    color: colors.textMuted
-  },
-  topPill: {
-    backgroundColor: "#fff2d0",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 9
-  },
-  topPillText: {
-    color: "#8a5d00",
-    fontWeight: "800",
+    color: colors.textMuted,
     fontSize: 12
   },
+  topPill: {
+    maxWidth: "40%",
+    backgroundColor: colors.skySoft,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    gap: 2,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  topPillEyebrow: {
+    color: "#2d9df9",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    fontWeight: "900",
+    fontSize: 9
+  },
+  topPillText: {
+    color: "#2d9df9",
+    fontWeight: "900",
+    fontSize: 12
+  },
+  navDock: {
+    marginHorizontal: 12,
+    marginTop: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: colors.surfaceGlass,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    ...shadows.card
+  },
   nav: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(217,227,241,0.8)",
-    paddingVertical: 10
+    paddingHorizontal: 7,
+    gap: 6
   },
   navItem: {
-    width: "25%",
-    alignItems: "center"
+    minWidth: 72,
+    alignItems: "center",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  navItemActive: {
+    backgroundColor: colors.brand
   },
   navLabel: {
     color: colors.textMuted,
-    fontWeight: "700",
-    paddingVertical: 8,
-    paddingHorizontal: 8
+    fontWeight: "800",
+    fontSize: 13
   },
   navLabelActive: {
-    color: colors.sky
+    color: "#ffffff"
   },
   noticeWrap: {
     paddingHorizontal: 14,
-    paddingTop: 12,
+    paddingTop: 10,
     gap: 8
   }
 });

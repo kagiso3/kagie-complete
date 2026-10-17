@@ -1,0 +1,15 @@
+{
+  "capricorn-tvet": {
+    "website": "https://capricorncollege.edu.za/"
+  },
+  "boland-tvet": {
+    "website": "https://bolandcollege.com/",
+    "logoSource": "https://bolandcollege.com/wp-content/uploads/2022/11/Boland-Logo.png",
+    "logo": "images/institutions/boland-tvet.png"
+  },
+  "buffalo-city-tvet": {
+    "website": "https://bccollege.co.za/",
+    "logoSource": "https://bccollege.co.za/wp-content/uploads/2026/03/cropped-bcc-logo.png",
+    "logo": "images/institutions/buffalo-city-tvet.webp"
+  }
+}

@@ -12,6 +12,8 @@ export function TransportPage({
 }) {
   const [options, setOptions] = useState<TransportOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadMessage, setLoadMessage] = useState("");
+  const [requesting, setRequesting] = useState(false);
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -31,6 +33,11 @@ export function TransportPage({
             ? api.getTransportOptions()
             : [];
         if (active) setOptions(nextOptions || []);
+      } catch {
+        if (active) {
+          setOptions(api.getTransportOptions?.() || []);
+          setLoadMessage("New travel options could not load. Showing saved routes.");
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -48,6 +55,7 @@ export function TransportPage({
   const selectedOption = filteredOptions.find((option) => option.id === selectedId) || options.find((option) => option.id === selectedId) || null;
 
   async function submitRequest() {
+    if (requesting) return;
     if (!selectedOption) {
       setMessage("Choose a transport option first.");
       return;
@@ -63,22 +71,30 @@ export function TransportPage({
       phone,
       note
     };
-    if (api.submitTransportRequestAsync) await api.submitTransportRequestAsync(payload, user.id);
-    else if (api.submitTransportRequest) api.submitTransportRequest(payload, user.id);
-    setMessage("Transport request saved. Kagie will track it in your dashboard.");
-    setTravelDate("");
-    setNote("");
+    setRequesting(true);
+    try {
+      if (api.submitTransportRequestAsync) await api.submitTransportRequestAsync(payload, user.id);
+      else if (api.submitTransportRequest) api.submitTransportRequest(payload, user.id);
+      setMessage("Transport request saved. Kagie will track it in your dashboard.");
+      setTravelDate("");
+      setNote("");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Kagie could not submit the transport request right now.");
+    } finally {
+      setRequesting(false);
+    }
   }
 
   return (
     <div className="kg-page-stack">
+      {loadMessage ? <div className="kg-inline-message info" role="status">{loadMessage}</div> : null}
       <Card className="kg-hero-card soft">
-        <SectionHeading eyebrow="Transport" title="Intercity transport support" copy="Route-style travel planning now lives inside the React app instead of a disconnected page." />
+        <SectionHeading eyebrow="Transport" title="Intercity transport support" copy="Explore travel routes and keep your transport requests together." />
       </Card>
 
       <div className="kg-grid two">
         <Card>
-          <SectionHeading title="Browse routes" copy="Intercape-style route options that Kagie can track and support." />
+          <SectionHeading title="Browse routes" copy="Search available travel options by company, departure city, or destination." />
           <TextField label="Search" value={search} onChange={setSearch} placeholder="Search company or route" />
           {loading ? (
             <div className="kg-loading-inline">Loading transport options...</div>
@@ -120,7 +136,9 @@ export function TransportPage({
             <TextField label="Travel date" value={travelDate} onChange={setTravelDate} type="date" />
             <TextAreaField label="Notes" value={note} onChange={setNote} placeholder="Passenger count, luggage, student move-in plans, or any special notes." />
             {message ? <div className="kg-inline-message info">{message}</div> : null}
-            <Button onClick={() => void submitRequest()}>Request transport support</Button>
+            <Button onClick={submitRequest} disabled={requesting} loading={requesting} loadingLabel="Sending request...">
+              Request transport support
+            </Button>
           </div>
         </Card>
       </div>

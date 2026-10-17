@@ -1,3 +1,4 @@
+const { getBearerToken, assertActiveActor, actorRole } = require("./_admin-auth");
 function json(statusCode, payload, origin = "*") {
   return {
     statusCode,
@@ -5,7 +6,8 @@ function json(statusCode, payload, origin = "*") {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Cache-Control": "private, no-store"
     },
     body: JSON.stringify(payload)
   };
@@ -15,9 +17,17 @@ function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
-function getBearerToken(headers) {
-  const value = headers.authorization || headers.Authorization || "";
-  return value.startsWith("Bearer ") ? value.slice(7).trim() : "";
+function shouldLogAdminUsersDebug() {
+  return String(process.env.NODE_ENV || "").trim().toLowerCase() !== "production";
+}
+
+function logAdminUsersDebug(label, details) {
+  if (!shouldLogAdminUsersDebug()) return;
+  try {
+    console.info(`[Kagie admin-users] ${label}`, details || {});
+  } catch (_error) {
+    // Debug logging must never block the staff directory.
+  }
 }
 
 async function readResponse(response) {
@@ -233,7 +243,7 @@ function firstByUser(rows) {
 }
 
 function profileUserId(row) {
-  return String(row?.user_id || row?.id || "").trim();
+  return String(row?.id || row?.user_id || "").trim();
 }
 
 function rowUserId(row) {
@@ -258,7 +268,7 @@ async function getProfileSnapshotWithHeaders(supabaseUrl, headers, userId) {
   if (!userId) return null;
   const rows = await supabaseFetch(
     supabaseUrl,
-    `/rest/v1/profiles?or=(id.eq.${encodeFilter(userId)},user_id.eq.${encodeFilter(userId)})&select=*&limit=1`,
+    `/rest/v1/profiles?id=eq.${encodeFilter(userId)}&select=*&limit=1`,
     {
       method: "GET",
       headers
@@ -323,14 +333,11 @@ function isLearnerDirectoryRole(roleArg) {
 }
 
 function isMasterAdminActor(actor, profileRole = "") {
-  const role = normalizeKagieRole(actor?.app_metadata?.role || actor?.user_metadata?.role || profileRole || "", "user");
-  if (role === "master_admin") return true;
-  const email = normalizeEmail(actor?.email || "");
-  return ["kagisowitness79@gmail.com", "masteradmin@kagie.app"].includes(email);
+  return actorRole(actor) === "master_admin";
 }
 
 function isStaffActor(actor, profileRole = "") {
-  const role = normalizeKagieRole(actor?.app_metadata?.role || actor?.user_metadata?.role || profileRole || "", "user");
+  const role = actorRole(actor);
   return role === "master_admin" || role === "assistant_admin" || isMasterAdminActor(actor, profileRole);
 }
 
@@ -463,7 +470,7 @@ function buildAdminContext(data, actor, actorProfile) {
   const assignments = safeArray(data.assignments).sort(byNewest);
   const assignmentMap = firstByUser(assignments);
   const institutionsByApplication = groupBy(data.applicationInstitutions, "application_id");
-  const actorId = String(actorProfile?.user_id || actorProfile?.id || actor?.id || "").trim();
+  const actorId = String(actor?.id || "").trim();
   const masterActor = isMasterAdminActor(actor, actorProfile?.role || "");
 
   const assistantLearnerIds = masterActor
@@ -493,7 +500,7 @@ function buildAdminContext(data, actor, actorProfile) {
 
     const authUser = authUserArg || authUserMap.get(userId) || {};
     const profile = profileArg || profileMap.get(userId) || {};
-    const rawRole = authUser?.app_metadata?.role || authUser?.user_metadata?.role || profile?.role || "";
+    const rawRole = authUser?.id ? actorRole(authUser) : profile?.role || "";
     const role = normalizeKagieRole(
       rawRole,
       "user"
@@ -816,6 +823,23 @@ async function loadAdminData(supabaseUrl, serviceRoleKey, accessToken, anonKey, 
     includeDetails ? supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/accommodation_requests?select=*&order=updated_at.desc", { method: "GET", headers: readHeaders }) : Promise.resolve([]),
     includeDetails ? supabaseFetchAllMaybe(supabaseUrl, "/rest/v1/transport_requests?select=*&order=updated_at.desc", { method: "GET", headers: readHeaders }) : Promise.resolve([])
   ]);
+  logAdminUsersDebug("loadAdminData counts", {
+    hasServiceRole,
+    includeDetails,
+    includeAssistantScopeTables,
+    authUsers: safeArray(authUsers).length,
+    profiles: safeArray(profiles).length,
+    userProfiles: safeArray(userProfiles).length,
+    guardians: safeArray(guardians).length,
+    schools: safeArray(schools).length,
+    applications: safeArray(applications).length,
+    institutions: safeArray(applicationInstitutions).length,
+    marks: safeArray(applicationMarks).length,
+    documents: safeArray(documents).length
+  });
+  if (safeArray(profiles).length && !safeArray(userProfiles).length) {
+    console.warn("[Kagie admin-users] Profiles were loaded but no learner detail rows were returned. New users may be saving only the base profile, or the live user_profiles schema/RLS may be out of sync.");
+  }
 
   return {
     authUsers,
@@ -843,7 +867,9 @@ async function loadAdminData(supabaseUrl, serviceRoleKey, accessToken, anonKey, 
 async function handleGet(event, origin, supabaseUrl, access, actor, actorProfile) {
   const requestedUserId = String(event.queryStringParameters?.userId || event.queryStringParameters?.id || "").trim();
   const masterActor = isMasterAdminActor(actor, actorProfile?.role || "");
-  const data = await loadAdminData(supabaseUrl, access.serviceRoleKey, access.token, access.anonKey, {
+  // Assistant reads use their own JWT so database assignments, form grants, and
+  // service revocations apply to every returned child row, including documents.
+  const data = await loadAdminData(supabaseUrl, masterActor ? access.serviceRoleKey : "", access.token, access.anonKey || access.serviceRoleKey, {
     includeDetails: Boolean(requestedUserId),
     includeAssistantScope: !masterActor
   });
@@ -855,15 +881,29 @@ async function handleGet(event, origin, supabaseUrl, access, actor, actorProfile
     }
     const detail = buildUserDetail(context, requestedUserId);
     if (!detail) return json(404, { message: "User profile was not found." }, origin);
+    logAdminUsersDebug("detail fetch", {
+      requestedUserId,
+      resolvedUserId: detail.id || detail.userId || requestedUserId,
+      applications: safeArray(detail.applications).length,
+      institutions: safeArray(detail.institutions).length,
+      documents: safeArray(detail.documents).length,
+      profileCompletionPercent: Number(detail.profileCompletionPercent ?? 0)
+    });
     await insertActivityLog(supabaseUrl, access.writeHeaders, {
       admin_id: actor?.id || null,
       user_id: requestedUserId,
       application_id: detail.latestApplicationId || null,
       action: "view_profile",
-      metadata: { role: normalizeKagieRole(actorProfile?.role || actor?.app_metadata?.role || actor?.user_metadata?.role || "", "user") }
+      metadata: { role: actorRole(actor) }
     }).catch(() => {});
     return json(200, { data: detail }, origin);
   }
+
+  logAdminUsersDebug("directory fetch", {
+    actorId: String(actor?.id || actorProfile?.id || "").trim(),
+    masterActor,
+    rows: safeArray(context.rows).length
+  });
 
   return json(200, { data: context.rows }, origin);
 }
@@ -889,8 +929,15 @@ async function handleAssign(event, origin, supabaseUrl, access, actor, actorProf
   if (!isMasterAdminActor(actor, actorProfile?.role || "")) {
     return json(403, { message: "Only Master Admin can assign learners." }, origin);
   }
+  if (!access.serviceRoleKey) return json(503, { message: "Learner assignment requires secure server-side admin provisioning." }, origin);
 
-  const body = event.body ? JSON.parse(event.body) : {};
+  let body;
+  try {
+    body = event.body ? JSON.parse(event.body) : {};
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Invalid body");
+  } catch (_error) {
+    return json(400, { message: "Request body must be a JSON object." }, origin);
+  }
   const userId = String(body.userId || body.user_id || "").trim();
   const assistantAdminId = String(body.assistantAdminId || body.assistant_admin_id || body.assistantId || "").trim();
   const requestedApplicationId = String(body.applicationId || body.application_id || "").trim();
@@ -900,17 +947,28 @@ async function handleAssign(event, origin, supabaseUrl, access, actor, actorProf
   }
 
   const [learnerProfile, assistantProfile] = await Promise.all([
-    getProfileSnapshotWithHeaders(supabaseUrl, access.readHeaders, userId).catch(() => null),
-    getProfileSnapshotWithHeaders(supabaseUrl, access.readHeaders, assistantAdminId).catch(() => null)
+    getProfileSnapshotWithHeaders(supabaseUrl, access.readHeaders, userId),
+    getProfileSnapshotWithHeaders(supabaseUrl, access.readHeaders, assistantAdminId)
   ]);
   if (!learnerProfile) return json(404, { message: "Learner account was not found." }, origin);
+  if (!isLearnerDirectoryRole(learnerProfile.role)) return json(400, { message: "Only learner accounts can be assigned." }, origin);
+  assertActiveActor({ id: assistantAdminId }, assistantProfile);
   if (normalizeKagieRole(assistantProfile?.role || "", "user") !== "assistant_admin") {
     return json(400, { message: "Selected account is not an Assistant Admin." }, origin);
+  }
+  const [learnerAuth, assistantAuth] = await Promise.all([
+    supabaseFetch(supabaseUrl, `/auth/v1/admin/users/${encodeURIComponent(userId)}`, { method: "GET", headers: access.readHeaders }),
+    supabaseFetch(supabaseUrl, `/auth/v1/admin/users/${encodeURIComponent(assistantAdminId)}`, { method: "GET", headers: access.readHeaders })
+  ]);
+  assertActiveActor(learnerAuth, learnerProfile);
+  assertActiveActor(assistantAuth, assistantProfile);
+  if (actorRole(learnerAuth) !== "user" || actorRole(assistantAuth) !== "assistant_admin") {
+    return json(400, { message: "Choose a verified learner and Assistant Admin account." }, origin);
   }
 
   const applications = await supabaseFetchAllMaybe(
     supabaseUrl,
-    `/rest/v1/applications?user_id=eq.${encodeFilter(userId)}&select=id,user_id,assistant_id,status,updated_at,created_at&order=updated_at.desc`,
+    `/rest/v1/applications?user_id=eq.${encodeFilter(userId)}&select=id,user_id,assistant_id,application_type,status,updated_at,created_at&order=updated_at.desc`,
     { method: "GET", headers: access.readHeaders }
   );
   let latestApplication = requestedApplicationId
@@ -920,6 +978,21 @@ async function handleAssign(event, origin, supabaseUrl, access, actor, actorProf
     return json(404, { message: "The selected application was not found for this learner." }, origin);
   }
   let applicationId = latestApplication?.id || null;
+  const permissionRows = await supabaseFetch(supabaseUrl,
+    `/rest/v1/assistant_form_permissions?assistant_admin_id=eq.${encodeFilter(assistantAdminId)}&select=form_type,enabled`,
+    { method: "GET", headers: access.readHeaders });
+  const rawSelectedType = String(latestApplication?.application_type || "undergraduate").toLowerCase().replace(/[\s-]+/g, "_");
+  const selectedType = ({ undergrad: "undergraduate", post_graduate: "postgraduate", postgrad: "postgraduate", late_application: "late" })[rawSelectedType] || rawSelectedType;
+  const matchingPermission = safeArray(permissionRows).find(row => row.form_type === selectedType);
+  if (!matchingPermission?.enabled) {
+    return json(403, { message: "This assistant does not have access to the application's form type." }, origin);
+  }
+  const servicePermissions = await supabaseFetch(supabaseUrl,
+    `/rest/v1/assistant_service_permissions?assistant_admin_id=eq.${encodeFilter(assistantAdminId)}&service_key=eq.applications&select=enabled`,
+    { method: "GET", headers: access.readHeaders });
+  if (!safeArray(servicePermissions).some(row => row.enabled === true)) {
+    return json(403, { message: "Grant this assistant application service access before assigning learners." }, origin);
+  }
   const assignmentStatus = latestApplication?.assistant_id && String(latestApplication.assistant_id) !== assistantAdminId ? "Reassigned" : "Assigned";
 
   if (applicationId) {
@@ -1103,7 +1176,8 @@ exports.handler = async (event) => {
     const requestHeaders = serviceRoleKey
       ? adminHeaders(serviceRoleKey)
       : bearerHeaders(anonKey, token);
-    const actorProfile = await getProfileSnapshotWithHeaders(supabaseUrl, requestHeaders, actor?.id).catch(() => null);
+    const actorProfile = await getProfileSnapshotWithHeaders(supabaseUrl, requestHeaders, actor?.id);
+    assertActiveActor(actor, actorProfile);
     if (!isStaffActor(actor, actorProfile?.role || "")) {
       return json(403, { message: "Only Kagie staff can access the admin user directory." }, origin);
     }
@@ -1122,6 +1196,7 @@ exports.handler = async (event) => {
     }
     return await handleGet(event, origin, supabaseUrl, access, actor, actorProfile);
   } catch (error) {
-    return json(error.status || 500, { message: error.message || "Could not load the Kagie user directory." }, origin);
+    const status = error.status || 500;
+    return json(status, { message: status >= 500 ? "Could not load the Kagie user directory. Please try again." : error.message || "Could not load the Kagie user directory." }, origin);
   }
 };

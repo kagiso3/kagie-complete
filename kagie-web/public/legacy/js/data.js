@@ -23,6 +23,7 @@
     "Tshivenda",
     "Afrikaans",
     "Sepedi",
+    "Sepulana",
     "isiNdebele",
     "Siswati"
   ];
@@ -99,7 +100,7 @@
       slug: "accommodation-assist",
       price: 0,
       pricingLabel: "No upfront fee",
-      description: "Browse student housing listings, compare room options, and send a reservation request through Kagie."
+      description: "Browse housing, compare rooms, and send a reservation request."
     },
     {
       id: "transport_assist",
@@ -107,42 +108,42 @@
       slug: "transport-assist",
       price: 0,
       pricingLabel: "Support on request",
-      description: "Compare intercity transport routes and send a Kagie travel support request for campus or move-in travel."
+      description: "Kagie sends learner transport tickets straight into the account."
     },
     {
       id: "funding_assist",
       name: "Funding Assist",
       slug: "funding-assist",
       price: 220,
-      description: "Get NSFAS, bursary, and funding checklist support with one tracked Kagie request."
+      description: "Get bursary and funding checklist help."
     },
     {
       id: "change_email",
       name: "Change Email",
       slug: "change-email",
       price: 50,
-      description: "Request assistance updating the email linked to your institution portal or student profile."
+      description: "Update the email linked to your student portal."
     },
     {
       id: "re_apply",
       name: "Re-Apply Help",
       slug: "re-apply",
       price: 50,
-      description: "Get Kagie support for submitting a fresh or corrective application to the same institution."
+      description: "Get help with a fresh or corrective application."
     },
     {
       id: "forgot_pin",
       name: "Forgot PIN",
       slug: "forgot-pin",
       price: 10,
-      description: "Recover or reset your institution portal PIN through guided support."
+      description: "Recover or reset your portal PIN."
     },
     {
       id: "forgot_student_number",
       name: "Forgot Student Number",
       slug: "forgot-student-number",
       price: 10,
-      description: "Recover your student number so you can continue with portal access and tracking."
+      description: "Recover your student number."
     }
   ];
 
@@ -185,11 +186,12 @@
       institutionName: "University of KwaZulu-Natal",
       province: "KwaZulu-Natal",
       location: "Berea, Durban",
+      address: "12 Ridge Road, Berea, Durban",
       price: 4650,
       roomType: "Single room",
       availabilityStatus: "Available",
       distanceFromCampus: "1.1 km from Howard College",
-      images: [buildSceneArtwork("Campus Lofts", "#2fa4ff", "#0f7bd0", "#f5c84c")],
+      images: [buildSceneArtwork("Campus Lofts", "#2d9df9", "#2d9df9", "#ffb500")],
       description: "Modern student apartments with study lounges, Wi-Fi, and secure access close to UKZN.",
       contactPhone: "031 555 0101"
     },
@@ -199,11 +201,12 @@
       institutionName: "University of Johannesburg",
       province: "Gauteng",
       location: "Auckland Park, Johannesburg",
+      address: "45 Kingsway Avenue, Auckland Park, Johannesburg",
       price: 5400,
       roomType: "Studio",
       availabilityStatus: "Limited",
       distanceFromCampus: "850 m from campus",
-      images: [buildSceneArtwork("Rosebank Court", "#e45a2a", "#c93c16", "#f5c84c")],
+      images: [buildSceneArtwork("Rosebank Court", "#fd0505", "#fd0505", "#ffb500")],
       description: "Private studios with biometric access, shuttle support, and shared study zones.",
       contactPhone: "011 555 2222"
     },
@@ -213,11 +216,12 @@
       institutionName: "University of Pretoria",
       province: "Gauteng",
       location: "Hatfield, Pretoria",
+      address: "88 Burnett Street, Hatfield, Pretoria",
       price: 4950,
       roomType: "Shared room",
       availabilityStatus: "Available",
       distanceFromCampus: "1.6 km from campus",
-      images: [buildSceneArtwork("Capitol Residence", "#14945b", "#0f7b4a", "#67caff")],
+      images: [buildSceneArtwork("Capitol Residence", "#14945b", "#0f7b4a", "#2d9df9")],
       description: "Budget-friendly shared accommodation with laundry, Wi-Fi, and study support spaces.",
       contactPhone: "012 555 4545"
     },
@@ -227,70 +231,175 @@
       institutionName: "University of Cape Town",
       province: "Western Cape",
       location: "Rondebosch, Cape Town",
+      address: "17 Belmont Road, Rondebosch, Cape Town",
       price: 6200,
       roomType: "Single room",
       availabilityStatus: "Waitlist",
       distanceFromCampus: "1.4 km from upper campus",
-      images: [buildSceneArtwork("Table Mountain House", "#6d7ef8", "#3852d5", "#f5c84c")],
+      images: [buildSceneArtwork("Table Mountain House", "#2d9df9", "#2d9df9", "#ffb500")],
       description: "Premium private rooms with mountain-facing common areas and controlled visitor access.",
       contactPhone: "021 555 8800"
     }
   ];
 
-  const transportOptions = [
-    {
-      id: "trans_dbn_jhb_intercape",
-      company: "Intercape",
-      departureCity: "Durban",
-      destinationCity: "Johannesburg",
-      travelDateLabel: "Daily service",
-      routeType: "Intercity coach",
-      estimatedPrice: 430,
-      supportFee: 60,
-      duration: "8h 30m",
-      luggage: "2 suitcases + hand luggage",
-      description: "Reliable long-distance coach support for students travelling between Durban and Johannesburg."
-    },
-    {
-      id: "trans_plk_pta_city",
-      company: "City to City",
-      departureCity: "Polokwane",
-      destinationCity: "Pretoria",
-      travelDateLabel: "Daily service",
-      routeType: "Intercity coach",
-      estimatedPrice: 310,
-      supportFee: 50,
-      duration: "4h 20m",
-      luggage: "Standard coach luggage policy",
-      description: "Useful for move-in and registration trips from Limpopo to Pretoria campuses."
-    },
-    {
-      id: "trans_ec_jhb_eagle",
-      company: "Eagle Liner",
-      departureCity: "East London",
-      destinationCity: "Johannesburg",
-      travelDateLabel: "Selected weekdays",
-      routeType: "Intercity coach",
-      estimatedPrice: 470,
-      supportFee: 65,
-      duration: "11h 10m",
-      luggage: "1 large suitcase + carry-on",
-      description: "Long-route option for students heading to Gauteng institutions from the Eastern Cape."
-    },
-    {
-      id: "trans_kimberley_ct_intercape",
-      company: "Intercape",
-      departureCity: "Kimberley",
-      destinationCity: "Cape Town",
-      travelDateLabel: "Selected days",
-      routeType: "Intercity coach",
-      estimatedPrice: 390,
-      supportFee: 55,
-      duration: "9h 15m",
-      luggage: "2 bags included",
-      description: "Cape-bound student route for registration and accommodation move-in support."
-    }
+  const transportNetworkCities = [
+    { city: "Johannesburg", province: "Gauteng", x: 61, y: 38, hub: true, campus: "Wits, UJ, Rosebank and Braamfontein study hub" },
+    { city: "Pretoria", province: "Gauteng", x: 64, y: 35, hub: true, campus: "UP, TUT and Hatfield study hub" },
+    { city: "Benoni", province: "Gauteng", x: 63, y: 38, hub: false, campus: "East Rand departure lane" },
+    { city: "Soweto", province: "Gauteng", x: 59, y: 40, hub: false, campus: "South west Gauteng connector" },
+    { city: "Germiston", province: "Gauteng", x: 62, y: 39, hub: false, campus: "Ekurhuleni transfer lane" },
+    { city: "Roodepoort", province: "Gauteng", x: 58, y: 39, hub: false, campus: "West Rand departure lane" },
+    { city: "Vereeniging", province: "Gauteng", x: 58, y: 44, hub: false, campus: "Vaal triangle connector" },
+    { city: "Vanderbijlpark", province: "Gauteng", x: 57, y: 43, hub: false, campus: "VUT and Sedibeng study lane" },
+    { city: "Durban", province: "KwaZulu-Natal", x: 77, y: 59, hub: true, campus: "DUT, UKZN and coastal move-in hub" },
+    { city: "Pietermaritzburg", province: "KwaZulu-Natal", x: 73, y: 53, hub: true, campus: "UKZN PMB and Midlands study hub" },
+    { city: "Richards Bay", province: "KwaZulu-Natal", x: 83, y: 49, hub: false, campus: "North coast connector" },
+    { city: "Port Shepstone", province: "KwaZulu-Natal", x: 78, y: 66, hub: false, campus: "South coast connector" },
+    { city: "Kokstad", province: "KwaZulu-Natal", x: 67, y: 58, hub: false, campus: "Southern KZN connector" },
+    { city: "Ladysmith", province: "KwaZulu-Natal", x: 69, y: 48, hub: false, campus: "Northern KZN connector" },
+    { city: "Newcastle", province: "KwaZulu-Natal", x: 72, y: 41, hub: false, campus: "Amajuba connector" },
+    { city: "Cape Town", province: "Western Cape", x: 18, y: 86, hub: true, campus: "UCT, CPUT and city campus hub" },
+    { city: "Bellville", province: "Western Cape", x: 20, y: 84, hub: false, campus: "Cape Peninsula connector" },
+    { city: "Stellenbosch", province: "Western Cape", x: 24, y: 82, hub: true, campus: "SU and Winelands study hub" },
+    { city: "Paarl", province: "Western Cape", x: 22, y: 80, hub: false, campus: "Boland connector" },
+    { city: "Worcester", province: "Western Cape", x: 24, y: 78, hub: false, campus: "Cape winelands connector" },
+    { city: "George", province: "Western Cape", x: 38, y: 72, hub: false, campus: "Garden Route connector" },
+    { city: "Mossel Bay", province: "Western Cape", x: 35, y: 74, hub: false, campus: "Garden Route coastal connector" },
+    { city: "Gqeberha", province: "Eastern Cape", x: 55, y: 71, hub: true, campus: "NMU and coastal TVET hub" },
+    { city: "East London", province: "Eastern Cape", x: 64, y: 62, hub: true, campus: "Buffalo City study hub" },
+    { city: "Mthatha", province: "Eastern Cape", x: 67, y: 55, hub: true, campus: "WSU and inland Eastern Cape hub" },
+    { city: "Butterworth", province: "Eastern Cape", x: 65, y: 58, hub: false, campus: "Transkei connector" },
+    { city: "Komani", province: "Eastern Cape", x: 58, y: 58, hub: false, campus: "Queenstown corridor connector" },
+    { city: "Graaff-Reinet", province: "Eastern Cape", x: 49, y: 64, hub: false, campus: "Karoo connector" },
+    { city: "Bloemfontein", province: "Free State", x: 49, y: 50, hub: true, campus: "UFS and central study hub" },
+    { city: "Welkom", province: "Free State", x: 50, y: 44, hub: false, campus: "Goldfields connector" },
+    { city: "Bethlehem", province: "Free State", x: 57, y: 48, hub: false, campus: "Eastern Free State connector" },
+    { city: "Harrismith", province: "Free State", x: 60, y: 47, hub: false, campus: "N3 connector" },
+    { city: "Kroonstad", province: "Free State", x: 54, y: 45, hub: false, campus: "N1 central connector" },
+    { city: "Polokwane", province: "Limpopo", x: 62, y: 23, hub: true, campus: "UL and Capricorn study hub" },
+    { city: "Makhado", province: "Limpopo", x: 64, y: 16, hub: false, campus: "Far north connector" },
+    { city: "Thohoyandou", province: "Limpopo", x: 68, y: 18, hub: true, campus: "UNIVEN study hub" },
+    { city: "Tzaneen", province: "Limpopo", x: 67, y: 24, hub: false, campus: "Mopani connector" },
+    { city: "Burgersfort", province: "Limpopo", x: 68, y: 28, hub: false, campus: "Sekhukhune connector" },
+    { city: "Lephalale", province: "Limpopo", x: 54, y: 21, hub: false, campus: "Waterberg connector" },
+    { city: "Mbombela", province: "Mpumalanga", x: 74, y: 33, hub: true, campus: "Lowveld study hub" },
+    { city: "Emalahleni", province: "Mpumalanga", x: 66, y: 35, hub: false, campus: "Highveld connector" },
+    { city: "Middelburg", province: "Mpumalanga", x: 68, y: 34, hub: false, campus: "Nkangala connector" },
+    { city: "Ermelo", province: "Mpumalanga", x: 69, y: 39, hub: false, campus: "Eastern Highveld connector" },
+    { city: "Secunda", province: "Mpumalanga", x: 67, y: 41, hub: false, campus: "Energy belt connector" },
+    { city: "Mahikeng", province: "North West", x: 44, y: 33, hub: true, campus: "NWU Mahikeng hub" },
+    { city: "Rustenburg", province: "North West", x: 53, y: 34, hub: false, campus: "Bojanala connector" },
+    { city: "Potchefstroom", province: "North West", x: 51, y: 39, hub: true, campus: "NWU Potchefstroom hub" },
+    { city: "Klerksdorp", province: "North West", x: 49, y: 37, hub: false, campus: "Matlosana connector" },
+    { city: "Kimberley", province: "Northern Cape", x: 39, y: 54, hub: true, campus: "Sol Plaatje and central NC hub" },
+    { city: "De Aar", province: "Northern Cape", x: 36, y: 58, hub: false, campus: "National rail and coach connector" },
+    { city: "Upington", province: "Northern Cape", x: 25, y: 48, hub: false, campus: "Kalahari connector" },
+    { city: "Kuruman", province: "Northern Cape", x: 34, y: 43, hub: false, campus: "Northern Cape mining belt connector" },
+    { city: "Springbok", province: "Northern Cape", x: 15, y: 54, hub: false, campus: "Namaqualand connector" }
   ];
+
+  const transportOperators = [
+    { name: "Intercape Mainliner", luggage: "2 suitcases + hand luggage" },
+    { name: "City to City", luggage: "Standard coach luggage policy" },
+    { name: "Eagle Liner Transport", luggage: "1 large suitcase + 1 hand bag" },
+    { name: "Intercity Xpress", luggage: "2 bags included" },
+    { name: "Citiliner Plus", luggage: "1 suitcase + 1 hand bag" },
+    { name: "Translux", luggage: "2 suitcases + hand luggage" },
+    { name: "African People Mover", luggage: "1 suitcase + 1 backpack" },
+    { name: "Campus Connect", luggage: "Student luggage allowance" }
+  ];
+
+  function slugifyTransportValue(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  }
+
+  function formatTransportDuration(hoursValue) {
+    const totalMinutes = Math.max(135, Math.round(Number(hoursValue || 0) * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+  }
+
+  function formatTransportClock(totalMinutesValue) {
+    const minutes = ((Math.round(Number(totalMinutesValue || 0)) % 1440) + 1440) % 1440;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+  }
+
+  function buildTransportDescription(origin, destination, durationHours) {
+    const tripType = origin.province === destination.province ? "province-to-campus" : "interprovincial";
+    if (destination.hub && tripType === "interprovincial") {
+      return `Nationwide student route from ${origin.city} into the ${destination.campus}, useful for applications, move-in, and registration support.`;
+    }
+    if (destination.hub) {
+      return `Student route from ${origin.city} into the ${destination.campus}, helpful for day trips, documents, and campus follow-up.`;
+    }
+    if (durationHours >= 10) {
+      return `Long-haul coach support between ${origin.city} and ${destination.city}, suitable for semester travel, residence move-ins, and holiday return trips.`;
+    }
+    return `Flexible student travel route between ${origin.city} and ${destination.city} for campus support, family travel, and admin follow-up days.`;
+  }
+
+  function buildSouthAfricaTransportOptions() {
+    const routes = [];
+
+    transportNetworkCities.forEach((origin, originIndex) => {
+      transportNetworkCities.forEach((destination, destinationIndex) => {
+        if (origin.city === destination.city) return;
+
+        const dx = destination.x - origin.x;
+        const dy = destination.y - origin.y;
+        const distanceUnits = Math.sqrt((dx * dx) + (dy * dy));
+        const sameProvince = origin.province === destination.province;
+        const tripBias = origin.hub || destination.hub ? 0.45 : 0.95;
+        const durationHours = Number(Math.max(sameProvince ? 2.4 : 3.8, (distanceUnits / 3.25) + tripBias).toFixed(1));
+        const hashedIndex = ((originIndex + 3) * 17 + (destinationIndex + 5) * 11) % transportOperators.length;
+        const operator = transportOperators[hashedIndex];
+        const departureWindow = durationHours >= 9 ? 17 * 60 : durationHours >= 5 ? 7 * 60 : 6 * 60 + 30;
+        const departureMinutes = departureWindow + ((((originIndex * 23) + (destinationIndex * 17)) % 6) * 25);
+        const arrivalMinutes = departureMinutes + Math.round(durationHours * 60);
+        const estimatedPrice = Math.max(
+          sameProvince ? 170 : 250,
+          Math.round(((distanceUnits * 22) + (durationHours * 26) + (destination.hub ? 40 : 10)) / 10) * 10
+        );
+        const supportFee = Math.round((Math.min(95, 38 + (durationHours * 3.4))) / 5) * 5;
+        const bookingStatus = ((originIndex + destinationIndex) % 9 === 0) ? "Limited" : "Available";
+        const travelDateLabel = durationHours >= 10 ? "Daily overnight" : sameProvince ? "Daily service" : (((originIndex + destinationIndex) % 3 === 0) ? "Daily service" : "Daily + weekend");
+
+        routes.push({
+          id: `trans_${slugifyTransportValue(origin.city)}_${slugifyTransportValue(destination.city)}_${slugifyTransportValue(operator.name)}`,
+          company: operator.name,
+          departureCity: origin.city,
+          destinationCity: destination.city,
+          departureProvince: origin.province,
+          destinationProvince: destination.province,
+          departureTime: formatTransportClock(departureMinutes),
+          arrivalTime: formatTransportClock(arrivalMinutes),
+          travelDateLabel,
+          routeType: sameProvince ? "Regional coach" : "Intercity coach",
+          estimatedPrice,
+          supportFee,
+          duration: formatTransportDuration(durationHours),
+          luggage: operator.luggage,
+          bookingStatus,
+          description: buildTransportDescription(origin, destination, durationHours)
+        });
+      });
+    });
+
+    return routes.sort((a, b) =>
+      String(a.departureCity).localeCompare(String(b.departureCity))
+      || String(a.destinationCity).localeCompare(String(b.destinationCity))
+      || Number(a.estimatedPrice || 0) - Number(b.estimatedPrice || 0)
+    );
+  }
+
+  const transportOptions = buildSouthAfricaTransportOptions();
 
   function todayKey() {
     return new Date().toISOString().slice(0, 10);
@@ -320,14 +429,113 @@
     return "open";
   }
 
+  function formatInstitutionFee(value) {
+    return `R${Number(value || 0).toLocaleString("en-ZA")}`;
+  }
+
+  function defaultInstitutionApplicationFee(record) {
+    const type = String(record?.type || record?.institutionType || "").trim().toLowerCase();
+    const name = String(record?.name || "").trim().toLowerCase();
+    if (!type && !name) return 0;
+    if (type === "tvet" || /tvet/.test(name)) return 0;
+    if (/cape town|stellenbosch|witwatersrand|wits|pretoria/.test(name)) return 100;
+    if (/johannesburg|ukzn|kwazulu-natal|western cape|ufs|free state|nelson mandela|north-west|walter sisulu/.test(name)) return 200;
+    if (/tshwane university of technology|durban university of technology|mangosuthu/.test(name)) return 240;
+    if (/unisa|south africa/.test(name)) return 140;
+    if (type === "university of technology") return 240;
+    if (type === "university") return 200;
+    return 0;
+  }
+
+  function uniqueStrings(items) {
+    return [...new Set((Array.isArray(items) ? items : []).map((item) => String(item || "").trim()).filter(Boolean))];
+  }
+
+  function inferFacultySummary(name, courses) {
+    const label = String(name || "").trim().toLowerCase();
+    const count = uniqueStrings(courses).length;
+    if (/engineering|built environment|architecture|survey/.test(label)) {
+      return `Strong for learners who enjoy maths, science, design, and practical problem-solving across ${count} guided courses.`;
+    }
+    if (/health|medicine|nursing|clinical|pharmacy|public health|dental/.test(label)) {
+      return `Built for health-focused learners who want people-centred study paths, science depth, and professional career options across ${count} guided courses.`;
+    }
+    if (/education|teaching/.test(label)) {
+      return `Designed for future teachers, education specialists, and learner-support careers with ${count} guided study choices.`;
+    }
+    if (/business|management|commerce|economic|accounting|informatics|ict/.test(label)) {
+      return `Good for commerce, business, finance, admin, and digital-office pathways with ${count} guided course options.`;
+    }
+    if (/science|technology|it|computer|informatics|natural sciences|applied sciences/.test(label)) {
+      return `Suitable for analytical learners who like technology, research, systems, and science-based careers through ${count} guided options.`;
+    }
+    if (/humanities|arts|human sciences|social work|psychology|law|communication/.test(label)) {
+      return `A flexible pathway for people-focused, communication, law, and social-impact careers with ${count} guided courses.`;
+    }
+    if (/agri|agriculture|environmental/.test(label)) {
+      return `A practical route into agriculture, environmental systems, and community-impact work with ${count} guided courses.`;
+    }
+    return `This faculty gives Kagie learners ${count} guided course options to compare before applying.`;
+  }
+
+  function inferCourseFocus(course) {
+    const label = String(course || "").trim().toLowerCase();
+    if (/engineering|mechanical|electrical|civil|chemical|industrial/.test(label)) return "Maths and science intensive";
+    if (/accounting|economics|business|management|marketing|auditing|public management/.test(label)) return "Business and commerce pathway";
+    if (/nursing|medicine|pharmacy|physio|dent|clinical|public health/.test(label)) return "Health and care pathway";
+    if (/computer|information|informatics|systems|multimedia|it\b/.test(label)) return "Digital and technology pathway";
+    if (/education|teaching|foundation phase|senior phase/.test(label)) return "Teaching and learner development";
+    if (/law|psychology|social work|media|journalism|communication|history|language/.test(label)) return "People, media, or society pathway";
+    if (/agri|food|environment|biotech|biochemistry|science|mathematics|physics/.test(label)) return "Science and research pathway";
+    return "Career-focused study option";
+  }
+
+  function enrichFacultyRecord(faculty) {
+    const courses = uniqueStrings(faculty?.courses);
+    return {
+      ...faculty,
+      name: String(faculty?.name || "").trim(),
+      courses,
+      courseCount: courses.length,
+      featuredCourses: courses.slice(0, 4),
+      summary: String(faculty?.summary || "").trim() || inferFacultySummary(faculty?.name, courses),
+      focusTags: uniqueStrings(courses.map((course) => inferCourseFocus(course))).slice(0, 3)
+    };
+  }
+
+  function buildInstitutionStudyOverview(faculties) {
+    const list = Array.isArray(faculties) ? faculties : [];
+    const facultyCount = list.length;
+    const courseCount = list.reduce((sum, faculty) => sum + Number(faculty?.courseCount || uniqueStrings(faculty?.courses).length || 0), 0);
+    return {
+      facultyCount,
+      courseCount,
+      studyOverview: facultyCount
+        ? `${facultyCount} guided faculties and ${courseCount} visible course options are ready in Kagie for comparison.`
+        : "Kagie is still waiting for the richer faculty and course catalogue for this institution."
+    };
+  }
+
   function normalizeInstitutionRecord(record) {
     const year = String(record.year || record.applicationDeadline?.slice(0, 4) || new Date().getFullYear());
     const closingDate = String(record.closingDate || record.closing_date || record.applicationDeadline || "").trim();
     const openingDate = String(record.openingDate || record.opening_date || `${year}-01-15`).trim();
     const isActive = record.isActive !== false && record.is_active !== false;
+    const numericFee = Number(record.applicationFee ?? record.application_fee ?? record.fee ?? record.feeAmount ?? 0);
+    const applicationFee = Number.isFinite(numericFee) ? Math.max(0, numericFee) : defaultInstitutionApplicationFee(record);
+    const enrichedFaculties = (Array.isArray(record.faculties) ? record.faculties : []).map(enrichFacultyRecord).filter((faculty) => faculty.name);
+    const studyMeta = buildInstitutionStudyOverview(enrichedFaculties);
     const normalized = {
       ...record,
+      faculties: enrichedFaculties,
+      facultyCount: studyMeta.facultyCount,
+      courseCount: studyMeta.courseCount,
+      studyOverview: String(record.studyOverview || "").trim() || studyMeta.studyOverview,
       year,
+      applicationFee,
+      application_fee: applicationFee,
+      applicationFeeLabel: String(record.applicationFeeLabel || record.application_fee_label || (applicationFee > 0 ? `Institution fee: ${formatInstitutionFee(applicationFee)}` : "Institution fee: Free")).trim(),
+      applicationFeeNote: String(record.applicationFeeNote || record.application_fee_note || (applicationFee > 0 ? "This fee is charged by the institution, not by Kagie. It may change by programme or intake." : "This institution may not charge an application fee. That is separate from Kagie pricing.")).trim(),
       openingDate,
       opening_date: openingDate,
       closingDate,
@@ -341,6 +549,62 @@
       ...normalized,
       status: deriveInstitutionStatus(normalized)
     };
+  }
+
+  function institutionDedupeKey(record) {
+    const name = String(record?.name || record?.institution || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .replace(/[.,'"]/g, "")
+      .toLowerCase();
+    return name || "";
+  }
+
+  function mergeInstitutionFaculties(primary, duplicate) {
+    const byName = new Map();
+    [primary, duplicate].forEach((record) => {
+      (Array.isArray(record?.faculties) ? record.faculties : []).forEach((faculty) => {
+        const name = String(faculty?.name || "").trim();
+        if (!name) return;
+        const key = name.toLowerCase();
+        const existing = byName.get(key) || { ...faculty, courses: [] };
+        const courses = uniqueStrings([...(existing.courses || []), ...(faculty.courses || [])]);
+        byName.set(key, {
+          ...existing,
+          ...faculty,
+          name,
+          courses,
+          courseCount: Math.max(Number(existing.courseCount || 0), Number(faculty.courseCount || 0), courses.length)
+        });
+      });
+    });
+    return Array.from(byName.values());
+  }
+
+  function dedupeInstitutionRecords(records) {
+    const byKey = new Map();
+    (Array.isArray(records) ? records : []).forEach((record) => {
+      const key = institutionDedupeKey(record);
+      if (!key) return;
+      const current = byKey.get(key);
+      if (!current) {
+        byKey.set(key, record);
+        return;
+      }
+      const preferred = (record.status === "open" && current.status !== "open") || (record.faculties || []).length > (current.faculties || []).length
+        ? record
+        : current;
+      const secondary = preferred === record ? current : record;
+      const faculties = mergeInstitutionFaculties(preferred, secondary);
+      byKey.set(key, normalizeInstitutionRecord({
+        ...secondary,
+        ...preferred,
+        faculties,
+        facultyCount: faculties.length,
+        courseCount: faculties.reduce((sum, faculty) => sum + Number(faculty.courseCount || (faculty.courses || []).length || 0), 0)
+      }));
+    });
+    return Array.from(byKey.values());
   }
 
   const rawInstitutions = [
@@ -654,7 +918,7 @@
     }
   ];
 
-  const institutions = rawInstitutions.map(normalizeInstitutionRecord);
+  const institutions = dedupeInstitutionRecords(rawInstitutions.map(normalizeInstitutionRecord));
 
   const prospectus = institutions.map((institution) => ({
     id: institution.id,
@@ -704,6 +968,66 @@
     }
   ];
 
+  const pastPaperGrades = ["Grade 12", "Grade 11", "Grade 10", "Grade 9", "Grade 8"];
+  const pastPaperYearOptions = [2026, 2025, 2024, 2023, 2022];
+  const commonPastPaperSubjects = dbeSubjects.slice();
+  const pastPaperSubjectMap = pastPaperGrades.reduce((acc, grade) => {
+    acc[grade] = commonPastPaperSubjects.slice();
+    return acc;
+  }, {});
+
+  const pastPaperSessions = [
+    {
+      id: "jan_feb",
+      label: "Jan/Feb",
+      description: "Start the year with a baseline paper and catch weak spots early.",
+      paperNumbers: ["paper_1", "paper_2", "paper_1_memo", "paper_2_memo"]
+    },
+    {
+      id: "may_june",
+      label: "May/June",
+      description: "Mid-year exam papers for serious revision and timing practice.",
+      paperNumbers: ["paper_1", "paper_2", "paper_1_memo", "paper_2_memo"]
+    },
+    {
+      id: "sept_oct",
+      label: "Sept/Oct",
+      description: "Pre-final revision papers to sharpen recall and confidence.",
+      paperNumbers: ["paper_1", "paper_2", "paper_1_memo", "paper_2_memo"]
+    },
+    {
+      id: "nov_dec",
+      label: "Nov/Dec",
+      description: "Final exam paper cycle for full-pressure practice.",
+      paperNumbers: ["paper_1", "paper_2", "paper_1_memo", "paper_2_memo"]
+    },
+    {
+      id: "learner_guides",
+      label: "Learner Guides",
+      description: "Study support files, exemplars, and learner-friendly revision guides.",
+      paperNumbers: ["guide"]
+    }
+  ];
+
+  const pastPaperPaperNumbers = {
+    paper_1: { id: "paper_1", label: "Paper 1" },
+    paper_2: { id: "paper_2", label: "Paper 2" },
+    paper_1_memo: { id: "paper_1_memo", label: "Paper 1 Memo" },
+    paper_2_memo: { id: "paper_2_memo", label: "Paper 2 Memo" },
+    guide: { id: "guide", label: "Learner Guide" }
+  };
+
+  const pastPaperBlueprint = {
+    grades: pastPaperGrades.slice(),
+    years: pastPaperYearOptions.slice(),
+    provinces: provinces.slice(),
+    subjectsByGrade: JSON.parse(JSON.stringify(pastPaperSubjectMap)),
+    sessions: JSON.parse(JSON.stringify(pastPaperSessions)),
+    paperNumbers: JSON.parse(JSON.stringify(pastPaperPaperNumbers))
+  };
+
+  const pastPapers = [];
+
   function groupInstitutionsForLegacy(records) {
     return records.reduce((acc, institution) => {
       acc[institution.province] = acc[institution.province] || {};
@@ -728,13 +1052,17 @@
     transportOptions,
     institutions,
     prospectus,
-    updates
+    updates,
+    pastPapers,
+    pastPaperBlueprint
   };
 
   window.KAGIE_PACKS = applicationPacks;
   window.KAGIE_SERVICES = extraServices;
   window.KAGIE_ACCOMMODATION = accommodationListings;
   window.KAGIE_TRANSPORT = transportOptions;
+  window.KAGIE_PAST_PAPER_BLUEPRINT = pastPaperBlueprint;
+  window.KAGIE_PAST_PAPERS = pastPapers;
   window.KAGIE_INSTITUTIONS = institutions.map((institution) => ({
     province: institution.province,
     name: institution.name,

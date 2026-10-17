@@ -1,0 +1,529 @@
+/* Informational page layouts share the Kagie design system. */
+
+/* about.html */
+
+    body[data-kagie-page="about"] {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--kagie-font);
+      background: #f3f5f7;
+      color: #0f172a;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    body[data-kagie-page="about"] .card {
+      width: min(760px, 100%);
+      background: #fff;
+      border-radius: var(--kagie-radius);
+      padding: 30px;
+      box-shadow: var(--kagie-shadow);
+    }
+
+    body[data-kagie-page="about"] h1 { margin-top: 0; }
+    body[data-kagie-page="about"] p, body[data-kagie-page="about"] li { line-height: 1.7; color: #475569; }
+    body[data-kagie-page="about"] .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    body[data-kagie-page="about"] a {
+      height: 46px;
+      padding: 0 16px;
+      border-radius: var(--kagie-radius);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      background: rgba(45, 157, 249, 0.1);
+      color: #2d9df9;
+    }
+  
+/* terms.html */
+
+    body[data-kagie-page="terms"] {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--kagie-font);
+      background: #f3f5f7;
+      color: #0f172a;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    body[data-kagie-page="terms"] .card {
+      width: min(760px, 100%);
+      background: #fff;
+      border-radius: var(--kagie-radius);
+      padding: 30px;
+      box-shadow: var(--kagie-shadow);
+    }
+
+    body[data-kagie-page="terms"] h1 { margin-top: 0; }
+    body[data-kagie-page="terms"] p, body[data-kagie-page="terms"] li { line-height: 1.7; color: #475569; }
+    body[data-kagie-page="terms"] .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    body[data-kagie-page="terms"] a {
+      height: 46px;
+      padding: 0 16px;
+      border-radius: var(--kagie-radius);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      background: rgba(45, 157, 249, 0.1);
+      color: #2d9df9;
+    }
+  
+/* privacy.html */
+
+    body[data-kagie-page="privacy"] * { box-sizing: border-box; }
+
+    body[data-kagie-page="privacy"] {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--kagie-font);
+      background: var(--wash);
+      color: var(--ink);
+      line-height: 1.65;
+    }
+
+    body[data-kagie-page="privacy"] header {
+      background: var(--kagie-bg);
+      color: #fff;
+      padding: 42px 20px;
+      text-align: center;
+    }
+
+    body[data-kagie-page="privacy"] header h1 {
+      margin: 0 0 8px;
+      font-size: clamp(30px, 5vw, 46px);
+      line-height: 1.1;
+    }
+
+    body[data-kagie-page="privacy"] header p {
+      margin: 0;
+      opacity: 0.94;
+    }
+
+    body[data-kagie-page="privacy"] main {
+      width: min(920px, calc(100% - 32px));
+      margin: -28px auto 48px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--kagie-radius);
+      box-shadow: var(--kagie-shadow);
+      padding: clamp(22px, 4vw, 42px);
+    }
+
+    body[data-kagie-page="privacy"] h2 {
+      margin: 30px 0 8px;
+      font-size: 20px;
+    }
+
+    body[data-kagie-page="privacy"] h2:first-child { margin-top: 0; }
+
+    body[data-kagie-page="privacy"] p, body[data-kagie-page="privacy"] li { color: var(--muted); }
+
+    body[data-kagie-page="privacy"] a { color: var(--brand); font-weight: 700; }
+
+    body[data-kagie-page="privacy"] .meta {
+      background: #fff4f4;
+      border: 1px solid #ffd7d7;
+      border-radius: var(--kagie-radius);
+      padding: 14px 16px;
+      margin-bottom: 22px;
+      color: #fd0505;
+    }
+
+    body[data-kagie-page="privacy"] .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    body[data-kagie-page="privacy"] .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 10px 16px;
+      border-radius: 12px;
+      background: var(--brand);
+      color: #fff;
+      text-decoration: none;
+    }
+
+    body[data-kagie-page="privacy"] .button.secondary {
+      background: #f3f4f6;
+      color: var(--ink);
+    }
+  
+/* account-deletion.html */
+
+    body[data-kagie-page="account-deletion"] * { box-sizing: border-box; }
+
+    body[data-kagie-page="account-deletion"] {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--kagie-font);
+      background: var(--wash);
+      color: var(--ink);
+      line-height: 1.65;
+    }
+
+    body[data-kagie-page="account-deletion"] header {
+      background: var(--kagie-bg);
+      color: #fff;
+      padding: 42px 20px;
+      text-align: center;
+    }
+
+    body[data-kagie-page="account-deletion"] header h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 5vw, 46px);
+      line-height: 1.1;
+    }
+
+    body[data-kagie-page="account-deletion"] header p {
+      margin: 0;
+      opacity: 0.94;
+    }
+
+    body[data-kagie-page="account-deletion"] main {
+      width: min(920px, calc(100% - 32px));
+      margin: -28px auto 48px;
+      padding: clamp(22px, 4vw, 42px);
+      border: 1px solid var(--line);
+      border-radius: var(--kagie-radius);
+      background: var(--paper);
+      box-shadow: var(--kagie-shadow);
+    }
+
+    body[data-kagie-page="account-deletion"] h2 {
+      margin: 28px 0 8px;
+      font-size: 21px;
+    }
+
+    body[data-kagie-page="account-deletion"] h2:first-of-type { margin-top: 0; }
+
+    body[data-kagie-page="account-deletion"] p, body[data-kagie-page="account-deletion"] li { color: var(--muted); }
+
+    body[data-kagie-page="account-deletion"] a {
+      color: var(--brand);
+      font-weight: 700;
+    }
+
+    body[data-kagie-page="account-deletion"] .meta, body[data-kagie-page="account-deletion"] .notice {
+      padding: 14px 16px;
+      border: 1px solid #ffd7d7;
+      border-radius: var(--kagie-radius);
+      background: var(--soft);
+      color: #fd0505;
+    }
+
+    body[data-kagie-page="account-deletion"] .notice {
+      margin-top: 20px;
+    }
+
+    body[data-kagie-page="account-deletion"] .steps {
+      margin: 10px 0 0;
+      padding-left: 22px;
+    }
+
+    body[data-kagie-page="account-deletion"] .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    body[data-kagie-page="account-deletion"] .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 10px 16px;
+      border-radius: 12px;
+      background: var(--brand);
+      color: #fff;
+      text-decoration: none;
+    }
+
+    body[data-kagie-page="account-deletion"] .button:hover {
+      background: var(--brand-dark);
+    }
+
+    body[data-kagie-page="account-deletion"] .button.secondary {
+      border: 1px solid var(--line);
+      background: #f3f4f6;
+      color: var(--ink);
+    }
+  
+/* language.html */
+
+    body[data-kagie-page="language"] * { box-sizing: border-box; }
+
+    body[data-kagie-page="language"] {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--kagie-font);
+      color: var(--text);
+      background:
+        var(--kagie-bg);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    body[data-kagie-page="language"] .card {
+      width: min(460px, 100%);
+      background: var(--card);
+      border-radius: var(--kagie-radius);
+      padding: 28px;
+      box-shadow: var(--kagie-shadow);
+      border: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+
+    body[data-kagie-page="language"] h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      line-height: 1.1;
+    }
+
+    body[data-kagie-page="language"] p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    body[data-kagie-page="language"] label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    body[data-kagie-page="language"] select {
+      width: 100%;
+      height: 48px;
+      border: 1px solid var(--line);
+      border-radius: var(--kagie-radius);
+      padding: 0 14px;
+      font: inherit;
+      outline: none;
+      background: #fff;
+    }
+
+    body[data-kagie-page="language"] select:focus {
+      border-color: var(--blue);
+      box-shadow: var(--kagie-shadow);
+    }
+
+    body[data-kagie-page="language"] .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    body[data-kagie-page="language"] button, body[data-kagie-page="language"] a {
+      height: 48px;
+      border: none;
+      border-radius: var(--kagie-radius);
+      padding: 0 18px;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    body[data-kagie-page="language"] button {
+      background: var(--kagie-primary);
+      color: #fff;
+    }
+
+    body[data-kagie-page="language"] a {
+      background: rgba(45, 157, 249, 0.1);
+      color: var(--blue);
+    }
+
+    body[data-kagie-page="language"] .message {
+      min-height: 20px;
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a6b4a;
+    }
+  
+/* android-app.html */
+
+    body[data-kagie-page="android-app"] * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--kagie-font);
+    }
+
+    body[data-kagie-page="android-app"] {
+      min-height: 100vh;
+      background: #f5f7fb;
+      color: #10203a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    body[data-kagie-page="android-app"] .shell {
+      width: min(100%, 460px);
+      background: #ffffff;
+      border-radius: var(--kagie-radius);
+      padding: 36px 24px 28px;
+      box-shadow: var(--kagie-shadow);
+      text-align: center;
+      border: 1px solid #e7edf5;
+    }
+
+    body[data-kagie-page="android-app"] .logo {
+      font-size: 48px;
+      line-height: 1;
+      font-weight: 800;
+      color: var(--kagie-primary);
+      letter-spacing: -1px;
+      margin-bottom: 14px;
+      text-transform: lowercase;
+    }
+
+    body[data-kagie-page="android-app"] .title {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    body[data-kagie-page="android-app"] .copy {
+      color: #60708c;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    body[data-kagie-page="android-app"] .download-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 58px;
+      border-radius: var(--kagie-radius);
+      background: var(--kagie-primary);
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 18px;
+      font-weight: 700;
+      box-shadow: var(--kagie-shadow);
+      margin-bottom: 18px;
+    }
+
+    body[data-kagie-page="android-app"] .download-btn.is-disabled {
+      pointer-events: none;
+      background: #d7dee8;
+      color: #5a6677;
+      box-shadow: none;
+    }
+
+    body[data-kagie-page="android-app"] .download-btn.is-loading {
+      pointer-events: none;
+      opacity: .78;
+    }
+
+    body[data-kagie-page="android-app"] .download-spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, .42);
+      border-top-color: #ffffff;
+      animation: spin .78s linear infinite;
+    }
+
+    body[data-kagie-page="android-app"] .secondary-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 52px;
+      border-radius: var(--kagie-radius);
+      background: #ffffff;
+      color: #10203a;
+      border: 1px solid #d8e1ed;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    body[data-kagie-page="android-app"] .status {
+      border-radius: var(--kagie-radius);
+      padding: 14px;
+      margin-bottom: 16px;
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.5;
+      background: #eef6ff;
+      color: #2d9df9;
+      border: 1px solid #d1e9fe;
+    }
+
+    body[data-kagie-page="android-app"] .status.error {
+      background: #fff2f2;
+      color: #9f1239;
+      border-color: #ffd0d0;
+    }
+
+    body[data-kagie-page="android-app"] .help {
+      background: #fff8e6;
+      color: #6b5524;
+      border-radius: var(--kagie-radius);
+      padding: 16px 14px;
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    body[data-kagie-page="android-app"] .help strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #4b3609;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  
+/* 404.html */
+
+    body[data-kagie-page="404"] *{box-sizing:border-box}body[data-kagie-page="404"]{margin:0;min-height:100vh;padding:18px;font-family:var(--kagie-font);color:var(--text);background:var(--kagie-bg);display:grid;place-items:center}
+    body[data-kagie-page="404"] .card{width:min(560px,100%);padding:28px;border-radius:var(--kagie-radius);background:var(--card);border:1px solid rgba(255,255,255,.7);box-shadow:var(--kagie-shadow);text-align:center}
+    body[data-kagie-page="404"] .eyebrow{display:inline-flex;padding:8px 12px;border-radius:999px;background:rgba(45, 157, 249,.1);color:var(--blue);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+    body[data-kagie-page="404"] h1{margin:16px 0 10px;font:800 34px var(--kagie-font)}
+    body[data-kagie-page="404"] p{margin:0;color:var(--muted);line-height:1.65}
+    body[data-kagie-page="404"] .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:22px}
+    body[data-kagie-page="404"] a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:var(--kagie-radius);text-decoration:none;font-weight:800}
+    body[data-kagie-page="404"] .primary{background:var(--kagie-primary);color:#fff}
+    body[data-kagie-page="404"] .secondary{background:var(--kagie-bg);color:#fff}
+  
+/* Shared informational surfaces and actions. */
+body.kagie-information-page { background:var(--kagie-bg); font:14px/1.6 var(--kagie-font); color:var(--kagie-ink); }
+body.kagie-information-page :is(.card,.shell,main) { border-color:var(--kagie-border); border-radius:16px; box-shadow:var(--kagie-shadow); background:#fff; }
+body.kagie-information-page :is(h1,.title) { color:var(--kagie-ink); font-size:clamp(24px,4vw,32px); line-height:1.3; font-weight:700; letter-spacing:-.025em; }
+body.kagie-information-page :is(h2,h3) { font-weight:700; color:var(--kagie-ink); }
+body.kagie-information-page :is(.button,.primary,.download-btn,.actions a,.actions button) { border-radius:10px; min-height:44px; height:auto; padding:10px 16px; border:1px solid var(--kagie-primary); background:var(--kagie-primary); color:#fff; font:600 14px/1.4 var(--kagie-font); box-shadow:none; }
+body.kagie-information-page :is(.button.secondary,.secondary,.actions a:last-child) { background:#fff; color:var(--kagie-ink); border:1px solid var(--kagie-border); }
+body.kagie-information-page :is(input,select) { font:400 16px var(--kagie-font); border:1px solid #ccd5e0; border-radius:10px; min-height:48px; background:#fff; padding:10px 12px; }
+body.kagie-information-page .logo { color:var(--kagie-primary); }

@@ -113,6 +113,11 @@ type RemoteApplicationPack = {
   price: number | string | null;
   institution_limit?: number | null;
   is_unlimited?: boolean | null;
+  application_type?: string | null;
+  package_level?: string | null;
+  features?: unknown;
+  is_popular?: boolean | null;
+  is_premium?: boolean | null;
   description?: string | null;
   highlight?: string | null;
   is_active?: boolean | null;
@@ -131,6 +136,7 @@ type RemoteApplication = {
   payment_method?: string | null;
   payment_note?: string | null;
   payment_amount?: number | string | null;
+  application_type?: string | null;
   submitted_at?: string | null;
   created_at: string;
   updated_at: string;
@@ -341,150 +347,6 @@ const updateCards: UpdateCard[] = [
   }
 ];
 
-const seedInstitutionCatalog: CatalogInstitution[] = [
-  {
-    id: "uj",
-    name: "University of Johannesburg",
-    province: "Gauteng",
-    type: "University",
-    applicationDeadline: "2026-10-31",
-    faculties: [
-      { name: "Engineering and the Built Environment", courses: ["Electrical Engineering", "Industrial Engineering", "Architecture"] },
-      { name: "Humanities", courses: ["Education", "Psychology", "Journalism"] },
-      { name: "Management", courses: ["Accounting", "Marketing", "Human Resource Management"] }
-    ]
-  },
-  {
-    id: "up",
-    name: "University of Pretoria",
-    province: "Gauteng",
-    type: "University",
-    applicationDeadline: "2026-08-31",
-    faculties: [
-      { name: "Economic and Management Sciences", courses: ["BCom Accounting", "Economics", "Financial Sciences"] },
-      { name: "Health Sciences", courses: ["Medicine", "Nursing", "Radiography"] },
-      { name: "Engineering", courses: ["Civil Engineering", "Mechanical Engineering", "Mining Engineering"] }
-    ]
-  },
-  {
-    id: "dut",
-    name: "Durban University of Technology",
-    province: "KwaZulu-Natal",
-    type: "University of Technology",
-    applicationDeadline: "2026-09-30",
-    faculties: [
-      { name: "Accounting and Informatics", courses: ["Accounting", "Information Technology", "Internal Auditing"] },
-      { name: "Management Sciences", courses: ["Marketing", "Operations Management", "Public Management"] },
-      { name: "Engineering and the Built Environment", courses: ["Civil Engineering", "Electrical Engineering", "Construction Management"] }
-    ]
-  },
-  {
-    id: "ukzn",
-    name: "University of KwaZulu-Natal",
-    province: "KwaZulu-Natal",
-    type: "University",
-    applicationDeadline: "2026-09-30",
-    faculties: [
-      { name: "Health Sciences", courses: ["Medicine", "Nursing", "Pharmacy"] },
-      { name: "Humanities", courses: ["Education", "Psychology", "Social Work"] },
-      { name: "Engineering", courses: ["Civil Engineering", "Chemical Engineering", "Mechanical Engineering"] }
-    ]
-  },
-  {
-    id: "cput",
-    name: "Cape Peninsula University of Technology",
-    province: "Western Cape",
-    type: "University of Technology",
-    applicationDeadline: "2026-09-30",
-    faculties: [
-      { name: "Applied Sciences", courses: ["Biotechnology", "Food Technology", "Marine Science"] },
-      { name: "Business and Management Sciences", courses: ["Hospitality Management", "Marketing", "Retail Business Management"] },
-      { name: "Informatics and Design", courses: ["Information Technology", "Multimedia", "Fashion Design"] }
-    ]
-  },
-  {
-    id: "uct",
-    name: "University of Cape Town",
-    province: "Western Cape",
-    type: "University",
-    applicationDeadline: "2026-07-31",
-    faculties: [
-      { name: "Commerce", courses: ["Accounting", "Economics", "Business Science"] },
-      { name: "Humanities", courses: ["Law", "Psychology", "Politics"] },
-      { name: "Science", courses: ["Computer Science", "Environmental Science", "Mathematics"] }
-    ]
-  },
-  {
-    id: "tut",
-    name: "Tshwane University of Technology",
-    province: "Gauteng",
-    type: "University of Technology",
-    applicationDeadline: "2026-09-30",
-    faculties: [
-      { name: "ICT", courses: ["Computer Science", "Information Technology", "Informatics"] },
-      { name: "Engineering", courses: ["Industrial Engineering", "Electrical Engineering", "Civil Engineering"] },
-      { name: "Management Sciences", courses: ["Marketing", "Supply Chain Management", "Human Resources"] }
-    ]
-  },
-  {
-    id: "cut",
-    name: "Central University of Technology",
-    province: "Free State",
-    type: "University of Technology",
-    applicationDeadline: "2026-09-30",
-    faculties: [
-      { name: "Engineering, Built Environment and IT", courses: ["Information Technology", "Civil Engineering", "Construction"] },
-      { name: "Health and Environmental Sciences", courses: ["Clinical Technology", "Dental Assisting", "Radiography"] },
-      { name: "Management Sciences", courses: ["Accounting", "Hospitality", "Office Management"] }
-    ]
-  },
-  {
-    id: "majuba-tvet",
-    name: "Majuba TVET College",
-    province: "KwaZulu-Natal",
-    type: "TVET",
-    applicationDeadline: "2026-11-15",
-    faculties: [
-      { name: "Engineering Studies", courses: ["Electrical Engineering N4", "Mechanical Engineering N4", "Civil Engineering N4"] },
-      { name: "Business Studies", courses: ["Financial Management N4", "Business Management N4", "Marketing Management N4"] }
-    ]
-  },
-  {
-    id: "coastal-tvet",
-    name: "Coastal TVET College",
-    province: "KwaZulu-Natal",
-    type: "TVET",
-    applicationDeadline: "2026-11-15",
-    faculties: [
-      { name: "Business Studies", courses: ["Business Management N4", "Public Management N4", "Management Assistant N4"] },
-      { name: "Engineering Studies", courses: ["Electrical Engineering N4", "Civil Engineering N4", "Mechanical Engineering N4"] }
-    ]
-  },
-  {
-    id: "taletso-tvet",
-    name: "Taletso TVET College",
-    province: "North West",
-    type: "TVET",
-    applicationDeadline: "2026-11-15",
-    faculties: [
-      { name: "Business and Utility Studies", courses: ["Management Assistant N4", "Financial Management N4", "Hospitality"] },
-      { name: "Engineering", courses: ["Boilermaking", "Fitting and Turning", "Electrical Infrastructure Construction"] }
-    ]
-  },
-  {
-    id: "nmu",
-    name: "Nelson Mandela University",
-    province: "Eastern Cape",
-    type: "University",
-    applicationDeadline: "2026-09-30",
-    faculties: [
-      { name: "Business and Economic Sciences", courses: ["Accounting", "Economics", "Business Management"] },
-      { name: "Engineering", courses: ["Mechatronics", "Industrial Engineering", "Electrical Engineering"] },
-      { name: "Health Sciences", courses: ["Nursing", "Emergency Medical Care", "Biokinetics"] }
-    ]
-  }
-];
-
 function normalizeInstitutionStatus(status?: string | null, allowAuto = false) {
   const value = String(status || "").trim().toLowerCase();
   if (value === "open") return "open";
@@ -501,10 +363,12 @@ function todayKey() {
 function deriveInstitutionStatus(record: CatalogInstitution) {
   if (record.isActive === false) return "closed";
   const manualStatus = normalizeInstitutionStatus(record.manualStatus);
-  if (manualStatus) return manualStatus as "open" | "closing_soon" | "closed";
+  if (manualStatus === "closed") return "closed";
+  if (record.openingDate && todayKey() < record.openingDate) return "closed";
   const closingDate = String(record.closingDate || record.applicationDeadline || "").trim();
-  if (!closingDate) return "open";
+  if (!closingDate) return manualStatus === "closing_soon" ? "closing_soon" : "open";
   if (todayKey() > closingDate) return "closed";
+  if (manualStatus === "closing_soon") return "closing_soon";
   const diffMs = new Date(`${closingDate}T23:59:59`).getTime() - new Date(`${todayKey()}T00:00:00`).getTime();
   const diffDays = Math.ceil(diffMs / 86400000);
   return diffDays <= 7 ? "closing_soon" : "open";
@@ -517,7 +381,7 @@ function normalizeCatalogInstitution(record: CatalogInstitution): CatalogInstitu
     ...record,
     shortName: record.shortName || "",
     year,
-    openingDate: record.openingDate || `${year}-01-15`,
+    openingDate: record.openingDate || "",
     closingDate,
     applicationDeadline: closingDate,
     isActive: record.isActive !== false,
@@ -530,9 +394,7 @@ function normalizeCatalogInstitution(record: CatalogInstitution): CatalogInstitu
   };
 }
 
-let institutionCatalogState: CatalogInstitution[] = seedInstitutionCatalog.map(normalizeCatalogInstitution);
-
-function getInstitutionCatalogState(filters?: {
+function filterInstitutionCatalog(institutions: CatalogInstitution[], filters?: {
   year?: string;
   status?: string;
   province?: string;
@@ -544,12 +406,12 @@ function getInstitutionCatalogState(filters?: {
   const year = String(filters?.year || "").trim();
   const status = normalizeInstitutionStatus(filters?.status);
 
-  return institutionCatalogState.filter((institution) => {
+  return institutions.filter((institution) => {
     if (filters?.province && institution.province !== filters.province) return false;
     if (filters?.type && institution.type !== filters.type) return false;
     if (year && String(institution.year) !== year) return false;
     if (status && institution.status !== status) return false;
-    if (filters?.includeInactive === false && institution.isActive === false) return false;
+    if (filters?.includeInactive !== true && institution.isActive === false) return false;
     if (query) {
       const haystack = [
         institution.name,
@@ -568,14 +430,76 @@ function getInstitutionCatalogState(filters?: {
   });
 }
 
-function findInstitutionCatalogEntry(name: string, year?: string) {
+function findInstitutionCatalogEntry(institutions: CatalogInstitution[], name: string, year?: string) {
   const normalizedName = String(name || "").trim().toLowerCase();
   if (!normalizedName) return null;
-  return institutionCatalogState.find((institution) => {
+  return institutions.find((institution) => {
     if (institution.name.trim().toLowerCase() !== normalizedName) return false;
     if (year && String(institution.year) !== String(year)) return false;
     return true;
   }) || null;
+}
+
+type RemoteCatalogInstitution = {
+  id: string;
+  name: string;
+  province?: string | null;
+  institution_type?: string | null;
+  application_status?: string | null;
+  opening_date?: string | null;
+  closing_date?: string | null;
+  is_visible?: boolean | null;
+  catalog_metadata?: Record<string, unknown> | null;
+};
+
+function mapCatalogInstitution(row: RemoteCatalogInstitution): CatalogInstitution {
+  const metadata = row.catalog_metadata && typeof row.catalog_metadata === "object" && !Array.isArray(row.catalog_metadata)
+    ? row.catalog_metadata : {};
+  return normalizeCatalogInstitution({
+    id: row.id,
+    name: row.name,
+    province: row.province || "",
+    type: row.institution_type || "",
+    shortName: cleanText(metadata.shortName),
+    year: cleanText(metadata.year) || row.closing_date?.slice(0, 4) || row.opening_date?.slice(0, 4),
+    openingDate: row.opening_date || "",
+    closingDate: row.closing_date || "",
+    applicationDeadline: row.closing_date || "",
+    manualStatus: normalizeInstitutionStatus(row.application_status) as CatalogInstitution["manualStatus"],
+    isActive: row.is_visible !== false,
+    faculties: Array.isArray(metadata.faculties) ? metadata.faculties
+      .filter((item): item is { name: string; courses: unknown[] } => Boolean(item) && typeof item === "object" &&
+        typeof (item as { name?: unknown }).name === "string" && Array.isArray((item as { courses?: unknown }).courses))
+      .map((item) => ({ name: item.name, courses: item.courses.filter((course): course is string => typeof course === "string") })) : []
+  });
+}
+
+async function getInstitutionCatalogRows(): Promise<RemoteCatalogInstitution[]> {
+  const result = await getClient().from("institutions").select("*").order("name", { ascending: true });
+  if (result.error) throw createError("Could not load the shared institution catalog.", 503);
+  return (result.data || []) as RemoteCatalogInstitution[];
+}
+
+async function getInstitutionCatalog() {
+  return (await getInstitutionCatalogRows()).map(mapCatalogInstitution);
+}
+
+function catalogInstitutionPayload(institution: CatalogInstitution, previous?: RemoteCatalogInstitution) {
+  return {
+    name: institution.name.trim(),
+    province: institution.province,
+    institution_type: institution.type,
+    application_status: institution.manualStatus || "auto",
+    opening_date: institution.openingDate || null,
+    closing_date: institution.closingDate || null,
+    is_visible: institution.isActive !== false,
+    catalog_metadata: {
+      ...(previous?.catalog_metadata || {}),
+      year: institution.year,
+      shortName: institution.shortName || "",
+      faculties: institution.faculties
+    }
+  };
 }
 
 function nowISO() {
@@ -586,6 +510,62 @@ function createError(message: string, status: number) {
   const error = new Error(message);
   (error as Error & { status: number }).status = status;
   return error;
+}
+
+const EDITABLE_APPLICATION_STATUSES = new Set<string>([
+  APPLICATION_STATUSES.DRAFT,
+  APPLICATION_STATUSES.PENDING_DETAILS,
+  APPLICATION_STATUSES.INCOMPLETE,
+  APPLICATION_STATUSES.DOCUMENTS_REQUIRED,
+  APPLICATION_STATUSES.MISSING_DOCUMENTS,
+  APPLICATION_STATUSES.DOCUMENTS_MISSING
+]);
+
+const CHECKOUTABLE_APPLICATION_STATUSES = new Set<string>([
+  APPLICATION_STATUSES.DRAFT,
+  APPLICATION_STATUSES.PACKAGE_SELECTED,
+  APPLICATION_STATUSES.AWAITING_PAYMENT,
+  APPLICATION_STATUSES.INCOMPLETE
+]);
+
+const EDITABLE_DETAIL_PENDING_STATUSES = new Set<string>([
+  APPLICATION_STATUSES.PENDING_DETAILS,
+  APPLICATION_STATUSES.INCOMPLETE
+]);
+
+const UNSTARTED_PAYMENT_STATUSES = new Set<string>([
+  "",
+  PAYMENT_STATUSES.UNPAID,
+  PAYMENT_STATUSES.PENDING,
+  PAYMENT_STATUSES.PAYMENT_PENDING
+]);
+
+function paymentHasStarted(application: RemoteApplication) {
+  return !UNSTARTED_PAYMENT_STATUSES.has(String(application.payment_status || ""));
+}
+
+function assertEditableApplication(application: RemoteApplication, action: string) {
+  if (!EDITABLE_APPLICATION_STATUSES.has(application.status)) {
+    throw createError(`Only editable applications can ${action}.`, 400);
+  }
+}
+
+function assertPackageCanChange(application: RemoteApplication) {
+  if (paymentHasStarted(application)) {
+    throw createError("Packages cannot be changed after payment has started.", 400);
+  }
+  if (!CHECKOUTABLE_APPLICATION_STATUSES.has(application.status)) {
+    throw createError("Only applications before payment can change packages.", 400);
+  }
+}
+
+function assertCheckoutableApplication(application: RemoteApplication) {
+  if (paymentHasStarted(application)) {
+    throw createError("This application already has payment progress.", 400);
+  }
+  if (!CHECKOUTABLE_APPLICATION_STATUSES.has(application.status)) {
+    throw createError("Only applications before payment can be checked out.", 400);
+  }
 }
 
 function getClient() {
@@ -615,8 +595,8 @@ function safePathPart(value: string) {
 
 function ensureAllowedDocumentMime(mimeType: string) {
   const normalized = (mimeType.toLowerCase().split(";")[0] || "").trim();
-  if (!["application/pdf", "image/jpeg", "image/png"].includes(normalized)) {
-    throw createError("Upload a PDF, JPG, or PNG document.", 400);
+  if (!["application/pdf", "image/jpeg", "image/png", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"].includes(normalized)) {
+    throw createError("Upload a PDF, DOC, DOCX, JPG, or PNG document.", 400);
   }
   return normalized;
 }
@@ -637,13 +617,55 @@ function emptyForms(): ApplicationFormsSnapshot {
   };
 }
 
+function normalizeApplicationType(value: unknown): ApplicationPack["applicationType"] {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  if (["undergraduate", "under_graduate", "undergraduate_applications"].includes(normalized)) return "undergraduate";
+  if (["late", "late_application", "late_applications"].includes(normalized)) return "late";
+  if (["transfer", "transfer_application", "transfer_applications"].includes(normalized)) return "transfer";
+  if (["bridging", "bridging_programme", "bridging_programmes"].includes(normalized)) return "bridging";
+  if (["postgraduate", "post_graduate", "post_graduate_application", "post_graduate_applications"].includes(normalized)) return "postgraduate";
+  return undefined;
+}
+
+function applicationTypeLabel(value: ApplicationPack["applicationType"]) {
+  const labels: Record<NonNullable<ApplicationPack["applicationType"]>, string> = {
+    undergraduate: "Undergraduate Applications",
+    late: "Late Applications",
+    transfer: "Transfer Applications",
+    bridging: "Bridging Programmes",
+    postgraduate: "Postgraduate Applications"
+  };
+  return value ? labels[value] : undefined;
+}
+
+function toRemoteApplicationType(value: ApplicationPack["applicationType"]) {
+  const remote: Record<NonNullable<ApplicationPack["applicationType"]>, string> = {
+    undergraduate: "UNDERGRADUATE",
+    late: "LATE",
+    transfer: "TRANSFER",
+    bridging: "BRIDGING",
+    postgraduate: "POST_GRADUATE"
+  };
+  return value ? remote[value] : "UNDERGRADUATE";
+}
+
 function mapPack(row: RemoteApplicationPack): ApplicationPack {
   const fallback = fallbackPacks.find((item) => item.name === row.name || item.id === row.code);
+  const applicationType = normalizeApplicationType(row.application_type);
+  const features = Array.isArray(row.features) ? row.features.map((item) => String(item || "")).filter(Boolean) : fallback?.features;
   return {
     id: row.id,
+    code: row.code || undefined,
     name: row.name,
     price: asNumber(row.price),
     institutionLimit: row.is_unlimited ? "unlimited" : (row.institution_limit ?? fallback?.institutionLimit ?? 0),
+    applicationType,
+    level: cleanText(row.package_level) || fallback?.level,
+    features,
+    badge: row.is_premium ? "Premium" : row.is_popular ? "Popular" : fallback?.badge,
     description: cleanText(row.description) || fallback?.description || "",
     highlight: cleanText(row.highlight) || fallback?.highlight || ""
   };
@@ -658,8 +680,8 @@ function mapMark(row: RemoteApplicationMark): ApplicationMark {
   };
 }
 
-function mapInstitution(row: RemoteApplicationInstitution): InstitutionChoice {
-  const matched = findInstitutionCatalogEntry(row.institution_name);
+function mapInstitution(row: RemoteApplicationInstitution, catalog: CatalogInstitution[]): InstitutionChoice {
+  const matched = findInstitutionCatalogEntry(catalog, row.institution_name);
   return {
     id: row.id,
     institutionId: matched?.id,
@@ -795,11 +817,14 @@ function mapApplication(
   marks: ApplicationMark[],
   institutions: InstitutionChoice[]
 ): ApplicationRecord {
+  const applicationType = normalizeApplicationType(application.application_type || forms.applicationType?.type);
   return {
     id: application.id,
     userId: application.user_id,
     assistantId: application.assistant_id || null,
     packageId: application.package_id || null,
+    applicationType,
+    applicationTypeLabel: applicationTypeLabel(applicationType),
     status: application.status,
     paymentStatus: application.payment_status,
     submittedAt: application.submitted_at || null,
@@ -825,6 +850,27 @@ function calculateReadiness(application: ApplicationRecord) {
     application.institutions.length >= 1
   ];
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+}
+
+function getApplicationCompletionIssues(application: ApplicationRecord) {
+  const learner = application.forms.learner || {};
+  const parent = application.forms.parent || {};
+  const school = application.forms.school || {};
+  const parentFields = parent as Record<string, unknown>;
+  const parentName = parent.fullNames || parentFields.guardianFullNames || parentFields.guardianName;
+  const parentPhone = parent.phone1 || parentFields.guardianCell1 || parentFields.guardianPhone || parentFields.phone;
+  const issues: string[] = [];
+
+  if (!learner.fullNames) issues.push("Learner full names are required.");
+  if (!learner.surname) issues.push("Learner surname is required.");
+  if (!learner.email && !learner.cellphone) issues.push("Learner email or cellphone is required.");
+  if (!parentName || !parentPhone) issues.push("Parent or guardian details are required.");
+  if (!school.schoolName || !school.schoolProvince || !school.completionYear) issues.push("School information is required.");
+  if (application.marks.length < 5) issues.push("Capture at least 5 academic subjects.");
+  if (!application.packageId && !application.selectedPackage) issues.push("Selected package is required.");
+  if (!application.institutions.length) issues.push("At least one institution choice is required.");
+
+  return issues;
 }
 
 async function ensureSupportingRows(userId: string) {
@@ -930,9 +976,10 @@ async function loadProfileRows(userId: string) {
 
 async function loadApplicationChildren(applicationId: string) {
   const client = getClient();
-  const [marksResult, institutionsResult] = await Promise.all([
+  const [marksResult, institutionsResult, catalog] = await Promise.all([
     client.from("application_marks").select("*").eq("application_id", applicationId).order("created_at", { ascending: true }),
-    client.from("application_institutions").select("*").eq("application_id", applicationId).order("created_at", { ascending: true })
+    client.from("application_institutions").select("*").eq("application_id", applicationId).order("created_at", { ascending: true }),
+    getInstitutionCatalog()
   ]);
 
   const failures = [marksResult.error, institutionsResult.error].filter(Boolean);
@@ -941,7 +988,7 @@ async function loadApplicationChildren(applicationId: string) {
   }
 
   const marks = ((marksResult.data as RemoteApplicationMark[] | null) || []).map(mapMark);
-  const institutions = ((institutionsResult.data as RemoteApplicationInstitution[] | null) || []).map(mapInstitution);
+  const institutions = ((institutionsResult.data as RemoteApplicationInstitution[] | null) || []).map((row) => mapInstitution(row, catalog));
 
   return { marks, institutions };
 }
@@ -1061,6 +1108,27 @@ async function syncCartFromApplication(userId: string, application: ApplicationR
     .filter(Boolean);
   if (failures.length) {
     throw createError(failures[0]?.message || "Could not sync the Kagie cart.", 500);
+  }
+}
+
+function logCartMirrorWarning(action: string, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || "Unknown cart mirror error.");
+  console.warn(`Kagie cart mirror skipped while ${action}: ${message}`);
+}
+
+async function tryClearCartRecords(userId: string, action: string) {
+  try {
+    await clearCartRecords(userId);
+  } catch (error) {
+    logCartMirrorWarning(action, error);
+  }
+}
+
+async function trySyncCartFromApplication(userId: string, application: ApplicationRecord, action: string) {
+  try {
+    await syncCartFromApplication(userId, application);
+  } catch (error) {
+    logCartMirrorWarning(action, error);
   }
 }
 
@@ -1201,9 +1269,10 @@ export async function getReferenceCatalog(filters?: {
   type?: string;
   search?: string;
 }) {
-  const institutions = getInstitutionCatalogState({
+  const catalog = await getInstitutionCatalog();
+  const institutions = filterInstitutionCatalog(catalog, {
     ...(filters || {}),
-    includeInactive: true
+    includeInactive: false
   });
   return {
     packs: await getPackCatalog(),
@@ -1213,7 +1282,7 @@ export async function getReferenceCatalog(filters?: {
     subjects: [...subjects],
     paymentMethods: [...paymentMethods],
     institutionTypes: ["University", "University of Technology", "TVET"],
-    institutionYears: [...new Set(institutionCatalogState.map((institution) => String(institution.year || "")).filter(Boolean))].sort((a, b) => b.localeCompare(a)),
+    institutionYears: [...new Set(catalog.filter((institution) => institution.isActive !== false).map((institution) => String(institution.year || "")).filter(Boolean))].sort((a, b) => b.localeCompare(a)),
     institutions: institutions.map((institution) => ({ ...institution })),
     services: [...extraServices],
     updates: [...updateCards],
@@ -1239,16 +1308,17 @@ export async function listInstitutions(filters?: {
   search?: string;
   includeInactive?: boolean;
 }) {
-  return getInstitutionCatalogState(filters);
+  return filterInstitutionCatalog(await getInstitutionCatalog(), filters);
 }
 
 export async function addInstitutionCatalogEntry(input: (Omit<Partial<CatalogInstitution>, "status" | "manualStatus"> & { name: string; province: string; type: string; year: string; }) & { status?: string; manualStatus?: string; }) {
-  const duplicate = findInstitutionCatalogEntry(input.name, input.year);
+  const duplicate = findInstitutionCatalogEntry(await getInstitutionCatalog(), input.name, input.year);
   if (duplicate) throw createError("Institution already exists for that year.", 409);
 
   const created = normalizeCatalogInstitution({
     id: input.id || randomUUID(),
     name: input.name,
+    shortName: input.shortName,
     province: input.province,
     type: input.type,
     year: input.year,
@@ -1261,32 +1331,38 @@ export async function addInstitutionCatalogEntry(input: (Omit<Partial<CatalogIns
     faculties: Array.isArray(input.faculties) ? input.faculties : []
   });
 
-  institutionCatalogState = [...institutionCatalogState, created];
-  return created;
+  const saved = await getClient().from("institutions").insert({ id: created.id, ...catalogInstitutionPayload(created) }).select("*").single();
+  if (saved.error || !saved.data) throw createError("Could not save the shared institution catalog entry.", saved.error?.code === "23505" ? 409 : 503);
+  return mapCatalogInstitution(saved.data);
 }
 
 export async function updateInstitutionCatalogEntry(id: string, patch: Omit<Partial<CatalogInstitution>, "status" | "manualStatus"> & { status?: string; manualStatus?: string; }) {
-  const current = institutionCatalogState.find((institution) => institution.id === id);
-  if (!current) throw createError("Institution not found.", 404);
+  const rows = await getInstitutionCatalogRows();
+  const currentRow = rows.find((institution) => institution.id === id);
+  if (!currentRow) throw createError("Institution not found.", 404);
+  const current = mapCatalogInstitution(currentRow);
   const { status: _status, manualStatus: _manualStatus, ...restPatch } = patch;
 
   const updated = normalizeCatalogInstitution({
     ...current,
     ...restPatch,
     id,
-    manualStatus: normalizeInstitutionStatus(patch.manualStatus || patch.status, true) === "auto"
-      ? ""
-      : normalizeInstitutionStatus(patch.manualStatus || patch.status) as CatalogInstitution["manualStatus"]
+    manualStatus: patch.manualStatus === undefined && patch.status === undefined ? current.manualStatus :
+      normalizeInstitutionStatus(patch.manualStatus || patch.status) as CatalogInstitution["manualStatus"]
   });
 
-  institutionCatalogState = institutionCatalogState.map((institution) => institution.id === id ? updated : institution);
-  return updated;
+  const duplicate = findInstitutionCatalogEntry(rows.filter((row) => row.id !== id).map(mapCatalogInstitution), updated.name, updated.year);
+  if (duplicate) throw createError("Institution already exists for that year.", 409);
+  const saved = await getClient().from("institutions").update(catalogInstitutionPayload(updated, currentRow)).eq("id", id).select("*").maybeSingle();
+  if (saved.error) throw createError("Could not update the shared institution catalog entry.", saved.error.code === "23505" ? 409 : 503);
+  if (!saved.data) throw createError("Institution not found.", 404);
+  return mapCatalogInstitution(saved.data);
 }
 
 export async function deleteInstitutionCatalogEntry(id: string) {
-  const current = institutionCatalogState.find((institution) => institution.id === id);
-  if (!current) throw createError("Institution not found.", 404);
-  institutionCatalogState = institutionCatalogState.filter((institution) => institution.id !== id);
+  const result = await getClient().from("institutions").delete().eq("id", id).select("id").maybeSingle();
+  if (result.error) throw createError("Could not delete the shared institution catalog entry.", 503);
+  if (!result.data) throw createError("Institution not found.", 404);
   return { success: true };
 }
 
@@ -1295,7 +1371,7 @@ export async function ensureDraft(userId: string) {
   const existing = await getDraftApplicationRow(userId);
   if (existing) {
     const assembled = await assembleApplication(existing);
-    await syncCartFromApplication(userId, assembled);
+    await trySyncCartFromApplication(userId, assembled, "loading an existing draft");
     return assembled;
   }
 
@@ -1316,7 +1392,7 @@ export async function ensureDraft(userId: string) {
   await pushNotification(userId, "Draft ready", "Your Kagie mobile draft is ready. Complete your details and choose a package.", "info");
 
   const assembled = await assembleApplication(created.data as RemoteApplication);
-  await syncCartFromApplication(userId, assembled);
+  await trySyncCartFromApplication(userId, assembled, "creating a draft");
   return assembled;
 }
 
@@ -1333,6 +1409,7 @@ export async function saveFormSection(
 ) {
   await ensureSupportingRows(userId);
   const application = await getOwnedApplicationRow(userId, applicationId);
+  assertEditableApplication(application, "save form details");
   const client = getClient();
   const timestamp = nowISO();
 
@@ -1380,37 +1457,20 @@ export async function saveFormSection(
 
 export async function saveMarks(userId: string, applicationId: string, marks: ApplicationMark[]) {
   const application = await getOwnedApplicationRow(userId, applicationId);
+  assertEditableApplication(application, "save marks");
   const client = getClient();
 
-  const deleteResult = await client.from("application_marks").delete().eq("application_id", application.id);
-  if (deleteResult.error) {
-    throw createError(deleteResult.error.message || "Could not replace the application marks.", 500);
-  }
-
-  if (marks.length) {
-    const insertResult = await client.from("application_marks").insert(
-      marks.map((mark) => ({
-        id: mark.id && /^[0-9a-fA-F-]{36}$/.test(mark.id) ? mark.id : randomUUID(),
-        application_id: application.id,
-        subject: mark.subject,
-        percent: mark.percent,
-        level: mark.level
-      }))
-    );
-    if (insertResult.error) {
-      throw createError(insertResult.error.message || "Could not save the application marks.", 500);
-    }
-  }
-
-  await touchApplication(application.id);
+  const result = await client.rpc("replace_application_marks", {
+    p_application_id: application.id, p_owner_id: userId,
+    p_marks: marks.map(({ subject, percent, level }) => ({ subject, percent, level }))
+  });
+  if (result.error) throw createError("Could not save the application marks. Your previous marks are preserved.", 500);
   return assembleApplication(await getOwnedApplicationRow(userId, applicationId));
 }
 
 export async function setPackage(userId: string, applicationId: string, packageId: string) {
   const application = await getOwnedApplicationRow(userId, applicationId);
-  if (application.status !== APPLICATION_STATUSES.DRAFT) {
-    throw createError("Only draft applications can change packages.", 400);
-  }
+  assertPackageCanChange(application);
 
   const pack = await getPackById(packageId);
   if (!pack) {
@@ -1422,6 +1482,7 @@ export async function setPackage(userId: string, applicationId: string, packageI
     .from("applications")
     .update({
       package_id: pack.id,
+      application_type: toRemoteApplicationType(pack.applicationType),
       payment_amount: pack.price,
       updated_at: nowISO()
     })
@@ -1433,15 +1494,13 @@ export async function setPackage(userId: string, applicationId: string, packageI
 
   await pushNotification(userId, "Package selected", `${pack.name} has been attached to your draft.`, "success");
   const assembled = await assembleApplication(await getOwnedApplicationRow(userId, applicationId));
-  await syncCartFromApplication(userId, assembled);
+  await trySyncCartFromApplication(userId, assembled, "saving a package selection");
   return assembled;
 }
 
 export async function addInstitution(userId: string, applicationId: string, payload: Omit<InstitutionChoice, "id">) {
   const application = await getOwnedApplicationRow(userId, applicationId);
-  if (application.status !== APPLICATION_STATUSES.DRAFT) {
-    throw createError("Only draft applications can add institutions.", 400);
-  }
+  assertEditableApplication(application, "add institutions");
 
   const pack = await getPackById(application.package_id);
   if (!pack) {
@@ -1459,7 +1518,8 @@ export async function addInstitution(userId: string, applicationId: string, payl
     throw createError(existingInstitutions.error.message || "Could not check the current shortlist.", 500);
   }
 
-  const mappedExisting = ((existingInstitutions.data as RemoteApplicationInstitution[] | null) || []).map(mapInstitution);
+  const catalog = await getInstitutionCatalog();
+  const mappedExisting = ((existingInstitutions.data as RemoteApplicationInstitution[] | null) || []).map((row) => mapInstitution(row, catalog));
   if (pack.institutionLimit !== "unlimited" && mappedExisting.length >= pack.institutionLimit) {
     throw createError(`${pack.name} allows only ${pack.institutionLimit} institutions.`, 400);
   }
@@ -1472,7 +1532,7 @@ export async function addInstitution(userId: string, applicationId: string, payl
     throw createError("That institution and faculty combination is already in your shortlist.", 409);
   }
 
-  const catalogInstitution = findInstitutionCatalogEntry(payload.institutionName, payload.year);
+  const catalogInstitution = findInstitutionCatalogEntry(catalog, payload.institutionName, payload.year);
   if (catalogInstitution && (catalogInstitution.isActive === false || catalogInstitution.status === "closed")) {
     throw createError("Applications for this institution are closed.", 400);
   }
@@ -1495,12 +1555,13 @@ export async function addInstitution(userId: string, applicationId: string, payl
   await touchApplication(application.id);
   await pushNotification(userId, "Institution saved", `${payload.institutionName} has been added to your Kagie shortlist.`, "success");
   const assembled = await assembleApplication(await getOwnedApplicationRow(userId, applicationId));
-  await syncCartFromApplication(userId, assembled);
+  await trySyncCartFromApplication(userId, assembled, "adding an institution");
   return assembled;
 }
 
 export async function removeInstitution(userId: string, applicationId: string, institutionId: string) {
   const application = await getOwnedApplicationRow(userId, applicationId);
+  assertEditableApplication(application, "remove institutions");
   const client = getClient();
   const deletion = await client
     .from("application_institutions")
@@ -1514,14 +1575,14 @@ export async function removeInstitution(userId: string, applicationId: string, i
 
   await touchApplication(application.id);
   const assembled = await assembleApplication(await getOwnedApplicationRow(userId, applicationId));
-  await syncCartFromApplication(userId, assembled);
+  await trySyncCartFromApplication(userId, assembled, "removing an institution");
   return assembled;
 }
 
 export async function getCartSummary(userId: string) {
   const draft = await getDraftApplicationRow(userId);
   if (!draft) {
-    await clearCartRecords(userId);
+    await tryClearCartRecords(userId, "loading an empty cart summary");
     return {
       applicationId: null,
       pack: null,
@@ -1535,14 +1596,14 @@ export async function getCartSummary(userId: string) {
 
   const assembled = await assembleApplication(draft);
   const pack = await getPackById(assembled.packageId);
-  await syncCartFromApplication(userId, assembled);
+  await trySyncCartFromApplication(userId, assembled, "loading the cart summary");
 
   return {
     applicationId: assembled.id,
     pack,
     institutions: assembled.institutions,
     total: pack?.price || 0,
-    canCheckout: Boolean(pack && assembled.institutions.length),
+    canCheckout: Boolean(pack),
     paymentStatus: assembled.paymentStatus,
     status: assembled.status
   };
@@ -1550,9 +1611,7 @@ export async function getCartSummary(userId: string) {
 
 export async function clearCart(userId: string, applicationId: string) {
   const application = await getOwnedApplicationRow(userId, applicationId);
-  if (application.status !== APPLICATION_STATUSES.DRAFT) {
-    throw createError("Only draft applications can be cleared.", 400);
-  }
+  assertPackageCanChange(application);
 
   const client = getClient();
   const [deleteInstitutions, updateApplication] = await Promise.all([
@@ -1570,74 +1629,27 @@ export async function clearCart(userId: string, applicationId: string) {
     throw createError(failures[0]?.message || "Could not clear the current Kagie cart.", 500);
   }
 
-  await clearCartRecords(userId);
+  await tryClearCartRecords(userId, "clearing a draft cart");
   await pushNotification(userId, "Cart cleared", "Your package and institution shortlist were removed from the current draft.", "warn");
   return assembleApplication(await getOwnedApplicationRow(userId, applicationId));
 }
 
 export async function submitCheckout(userId: string, applicationId: string, payload: CheckoutPayload) {
   const application = await getOwnedApplicationRow(userId, applicationId);
-  if (application.status !== APPLICATION_STATUSES.DRAFT) {
-    throw createError("Only draft applications can be checked out.", 400);
-  }
 
   const assembled = await assembleApplication(application);
   const pack = await getPackById(assembled.packageId);
   if (!pack) {
     throw createError("Choose a package before checking out.", 400);
   }
-  if (!assembled.institutions.length) {
-    throw createError("Add at least one institution before checking out.", 400);
-  }
-
   const client = getClient();
-  const timestamp = nowISO();
-  const paymentInsert = await client
-    .from("payments")
-    .insert({
-      application_id: application.id,
-      payer_name: payload.payerName,
-      phone: payload.phone,
-      reference: payload.reference,
-      method: payload.method,
-      note: payload.note || "",
-      amount: pack.price,
-      status: PAYMENT_STATUSES.PENDING_VERIFICATION
-    })
-    .select("*")
-    .single();
-
-  if (paymentInsert.error || !paymentInsert.data) {
-    throw createError(paymentInsert.error?.message || "Could not log the Kagie payment.", 500);
-  }
-
-  const appUpdate = await client
-    .from("applications")
-    .update({
-      package_id: pack.id,
-      payment_status: PAYMENT_STATUSES.PENDING_VERIFICATION,
-      status: APPLICATION_STATUSES.PROCESSING,
-      payer_name: payload.payerName,
-      payer_phone: payload.phone,
-      payment_reference: payload.reference,
-      payment_method: payload.method,
-      payment_note: payload.note || "",
-      payment_amount: pack.price,
-      submitted_at: timestamp,
-      updated_at: timestamp
-    })
-    .eq("id", application.id);
-
-  if (appUpdate.error) {
-    throw createError(appUpdate.error.message || "Could not move the application into processing.", 500);
-  }
-
-  await clearCartRecords(userId);
-  await Promise.all([
-    pushNotification(userId, "Payment submitted", `Your ${pack.name} payment was logged. Kagie will verify it shortly.`, "success"),
-    pushNotification(userId, "Application being processed", "Your shortlist has moved into the Kagie processing queue.", "info")
-  ]);
-
+  const recorded = await client.rpc('record_manual_payment', {
+    p_application_id: application.id, p_owner_id: userId, p_pack_id: pack.id,
+    p_payer_name: payload.payerName, p_phone: payload.phone, p_reference: payload.reference,
+    p_method: payload.method, p_note: payload.note || ''
+  });
+  if (recorded.error || !recorded.data?.payment) throw createError('Could not submit this payment. An existing payment may need staff reconciliation.', 409);
+  const paymentInsert = { data: recorded.data.payment };
   return {
     application: await assembleApplication(await getOwnedApplicationRow(userId, applicationId)),
     payment: {
@@ -1654,6 +1666,51 @@ export async function submitCheckout(userId: string, applicationId: string, payl
       updatedAt: paymentInsert.data.updated_at
     } as PaymentRecord
   };
+}
+
+export async function submitApplicationDetails(userId: string, applicationId: string) {
+  const application = await getOwnedApplicationRow(userId, applicationId);
+  assertEditableApplication(application, "submit details");
+  if (application.payment_status !== PAYMENT_STATUSES.VERIFIED) {
+    throw createError("Payment must be verified before submitting application details.", 403);
+  }
+
+  const assembled = await assembleApplication(application);
+  const issues = getApplicationCompletionIssues(assembled);
+  const client = getClient();
+  const timestamp = nowISO();
+
+  if (issues.length) {
+    const incompleteUpdate = await client
+      .from("applications")
+      .update({
+        status: APPLICATION_STATUSES.INCOMPLETE,
+        updated_at: timestamp
+      })
+      .eq("id", application.id);
+
+    if (incompleteUpdate.error) {
+      throw createError(incompleteUpdate.error.message || "Could not mark the application incomplete.", 500);
+    }
+
+    throw createError(`Complete required fields before final submission: ${issues.join(" ")}`, 400);
+  }
+
+  const submitted = await client
+    .from("applications")
+    .update({
+      status: APPLICATION_STATUSES.SUBMITTED,
+      submitted_at: timestamp,
+      updated_at: timestamp
+    })
+    .eq("id", application.id);
+
+  if (submitted.error) {
+    throw createError(submitted.error.message || "Could not submit the completed application.", 500);
+  }
+
+  await pushNotification(userId, "Application submitted", "Your completed application details were submitted for Kagie review.", "success");
+  return assembleApplication(await getOwnedApplicationRow(userId, applicationId));
 }
 
 export async function listDocuments(userId: string) {
@@ -1681,8 +1738,8 @@ export async function uploadDocument(userId: string, applicationId: string, payl
   if (!payload.buffer.length) {
     throw createError("Select a document before uploading.", 400);
   }
-  if (payload.buffer.length > 20 * 1024 * 1024) {
-    throw createError("Keep each upload below 20 MB so it stays fast on mobile data.", 400);
+  if (payload.buffer.length > 8 * 1024 * 1024) {
+    throw createError("Keep each upload at or below 8 MB.", 400);
   }
 
   const mimeType = ensureAllowedDocumentMime(payload.mimeType);
@@ -1720,6 +1777,7 @@ export async function uploadDocument(userId: string, applicationId: string, payl
     .single();
 
   if (insert.error || !insert.data) {
+    await client.storage.from("kagie-documents").remove([objectPath]).catch(() => {});
     throw createError(insert.error?.message || "Could not save document record.", 500);
   }
 
@@ -1744,6 +1802,7 @@ export async function getDashboardSummary(userId: string) {
       latest.marks.length < 5 ? "Capture at least 5 subjects" : null,
       !latest.packageId ? "Choose an application pack" : null,
       !latest.institutions.length ? "Add at least one institution" : null,
+      EDITABLE_DETAIL_PENDING_STATUSES.has(latest.status) ? "Complete application details before final review" : null,
       latest.status === APPLICATION_STATUSES.PROCESSING ? "Wait for Kagie payment verification" : null
     ].filter(Boolean),
     notifications: notifications.slice(0, 5),

@@ -14,6 +14,7 @@ export function HomePage({
 }) {
   const [summary, setSummary] = useState<KagieDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -24,6 +25,11 @@ export function HomePage({
           ? await api.getDashboardSummaryAsync(user.id)
           : api.getDashboardSummary(user.id);
         if (active) setSummary(nextSummary);
+      } catch {
+        if (active) {
+          setSummary(api.getDashboardSummary(user.id));
+          setSummaryError("Your latest updates could not load. Showing your saved application details.");
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -40,20 +46,20 @@ export function HomePage({
 
   return (
     <div className="kg-page-stack">
+      {summaryError ? <div className="kg-inline-message info" role="status">{summaryError}</div> : null}
       <Card className="kg-hero-card">
         <div className="kg-hero-copy">
           <div className="kg-brand-line">Hello {firstName(user.fullName)}</div>
-          <h2>One student platform for applying, paying, tracking, transport, and accommodation.</h2>
+          <h2>Your next chapter starts with one application.</h2>
           <p>
-            Kagie now runs on a React web shell over your current Kagie backend, so the flow stays familiar while the
-            browsing experience becomes smoother and faster.
+            Choose your institutions, keep your documents together, and follow every step of your application journey.
           </p>
           <div className="kg-action-row">
             <button type="button" className="kg-button primary" onClick={() => onNavigate("apply")}>
               Continue application
             </button>
-            <button type="button" className="kg-button secondary" onClick={() => onNavigate("apply")}>
-              Open application
+            <button type="button" className="kg-button secondary" onClick={() => onNavigate("dashboard")}>
+              View dashboard
             </button>
           </div>
         </div>
@@ -122,7 +128,7 @@ export function HomePage({
           ) : (
             <EmptyState
               title="No application yet"
-              copy="Start your React application workspace and Kagie will build your full control center from there."
+              copy="Start an application to choose your institutions and track your next steps here."
             />
           )}
         </Card>

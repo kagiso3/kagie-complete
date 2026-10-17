@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Button, Card, Chip, Field, Notice, SectionTitle, ScreenScroll } from "../components/ui";
+import { Button, Card, Chip, Field, HeroPanel, Notice, SectionTitle, ScreenScroll } from "../components/ui";
 import { useKagieData } from "../data/KagieDataProvider";
 import { colors } from "../theme";
 import type { CheckoutInput } from "../types/mobile";
@@ -18,7 +18,7 @@ export function CartScreen() {
 
   const packageLabel = useMemo(() => {
     if (!cart?.pack) return "No package selected";
-    return `${cart.pack.name} · R${cart.pack.price}`;
+    return `${cart.pack.name} | R${cart.pack.price}`;
   }, [cart?.pack]);
 
   async function handleCheckout() {
@@ -48,10 +48,12 @@ export function CartScreen() {
 
   return (
     <ScreenScroll>
-      <View style={styles.hero}>
-        <Text style={styles.heroTitle}>Cart and checkout</Text>
-        <Text style={styles.heroText}>Review the Kagie package, institutions, and payment details before submission.</Text>
-      </View>
+      <HeroPanel
+        eyebrow="Application cart"
+        title="Review before checkout"
+        copy="Confirm your package, institution shortlist, payer details, and payment notes before Kagie starts processing."
+        tone="navy"
+      />
 
       {notice ? <Notice tone={notice.tone} message={notice.text} /> : null}
 
@@ -110,21 +112,6 @@ export function CartScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    backgroundColor: "#102a56",
-    borderRadius: 28,
-    padding: 22,
-    gap: 8
-  },
-  heroTitle: {
-    color: "#ffffff",
-    fontSize: 26,
-    fontWeight: "900"
-  },
-  heroText: {
-    color: "rgba(255,255,255,0.88)",
-    lineHeight: 20
-  },
   packageLabel: {
     color: colors.text,
     fontWeight: "900",
@@ -141,7 +128,7 @@ const styles = StyleSheet.create({
   instRow: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 4
   },

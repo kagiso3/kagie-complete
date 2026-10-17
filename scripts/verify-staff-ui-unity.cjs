@@ -1,0 +1,23 @@
+const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
+const {chromium}=require('C:/Users/LENOVO/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {start}=require('./admin-test-server.cjs');
+async function main(){
+ const dir=path.join(__dirname,'../reports/ui-unity-staff');fs.mkdirSync(dir,{recursive:true});
+ for(const file of ['staff-admin','career-hub-ui','cv-revamp-builder'])require('postcss').parse(fs.readFileSync(path.join(__dirname,'../css/'+file+'.css'),'utf8'));
+ const harness=await start(),browser=await chromium.launch({channel:'chrome',headless:true}),results=[],errors=[];
+ const sizes=[{width:320,height:740},{width:390,height:844},{width:768,height:1024},{width:1024,height:768},{width:1440,height:1000}];
+ const cases=[['master','control','/master-admin/dashboard.html?page=overview'],['assistant','assigned','/assistant/dashboard.html?page=overview'],['master','queue','/master-admin/dashboard.html?page=applications'],['assistant','queue','/assistant/dashboard.html?page=assigned'],['master','permissions','/master-admin/dashboard.html?page=assistants'],['master','support','/master-admin/dashboard.html?page=messages'],['assistant','record','/assistant/applicant-view.html?id='+harness.app+'&tab=profile'],['assistant','cv-work','/assistant/dashboard.html?page=cv&request='+harness.cvRequest.id+'&cvtab=summary'],['learner','career','/more-service/career-guidance.html'],['learner','jobs','/more-service/career-guidance.html#kh-jobs'],['learner','cv','/more-service/career-guidance.html#kh-cv-builder']];
+ try{for(const size of sizes){for(const [role,name,url]of cases){
+  const context=await browser.newContext({viewport:size});
+  await context.route('**/*',async route=>{const requestUrl=route.request().url();if(!requestUrl.startsWith(harness.base)&&!requestUrl.startsWith('data:')&&!requestUrl.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js@2'))return route.abort();return route.continue();});
+  await context.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',r=>r.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.join(__dirname,'../node_modules/@supabase/supabase-js/dist/umd/supabase.js'),'utf8')}));
+  await context.route('**/js/supabase-config.js*',r=>r.fulfill({contentType:'text/javascript',body:'const client=window.KagieAPI.configureSupabase({enabled:true,url:'+JSON.stringify(harness.base)+',anonKey:"test-anon"});window.KagieAPI.setLoginPersistence(true);const establishTestIdentity=()=>client.auth.setSession({access_token:'+JSON.stringify(harness.ids[role+'Token'])+',refresh_token:"local-test-refresh"});const originalRestore=window.KagieAPI.restoreSession;window.KagieAPI.restoreSession=async function(){await establishTestIdentity();return originalRestore();};const originalResolve=window.KagieAPI.resolveSessionUser;window.KagieAPI.resolveSessionUser=async function(...args){await establishTestIdentity();return originalResolve(...args);};'}));
+  const page=await context.newPage();page.on('pageerror',e=>errors.push({url,message:e.message}));await page.goto(harness.base+url);
+  await page.waitForFunction(learner=>learner?document.querySelector('.kh-page,.kh-cvb'):window.KagieStaffData?.actor,role==='learner');
+  await page.waitForTimeout(350);
+  const layout=await page.evaluate(()=>({width:innerWidth,documentWidth:document.documentElement.scrollWidth,bodyWidth:document.body.scrollWidth,primary:document.querySelector('.btn.primary,.kh-button,.kh-cvb__btn--primary')?getComputedStyle(document.querySelector('.btn.primary,.kh-button,.kh-cvb__btn--primary')).backgroundColor:null,shell:document.querySelector('.kh-main,.main')?.getBoundingClientRect().width,title:document.querySelector('#topTitle,.kh-topbar__title,.kh-cvb__title')?.textContent}));
+  const screenshot=role+'-'+name+'-'+size.width+'.png';await page.screenshot({path:path.join(dir,screenshot),fullPage:true});results.push({role,name,url,size,layout,screenshot});console.log((layout.documentWidth<=size.width+1?'PASS ':'FAIL ')+role+' '+name+' '+size.width+'px '+layout.documentWidth);await context.close();
+ }}fs.writeFileSync(path.join(dir,'checks.json'),JSON.stringify({runAt:new Date().toISOString(),environment:'Isolated localhost HTTP, synthetic Auth, real Supabase SDK and Postgres/RLS',results,errors},null,2));assert.equal(errors.length,0,JSON.stringify(errors));assert.equal(results.filter(r=>r.layout.documentWidth>r.size.width+1).length,0,'Horizontal overflow detected');}
+ finally{await browser.close();await harness.close();}
+}
+main().catch(error=>{console.error(error);process.exit(1);});

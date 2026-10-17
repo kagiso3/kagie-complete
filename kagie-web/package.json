@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node ../scripts/sync-splash-assets.cjs && node ../scripts/sync-web-runtime.cjs",
+    "prebuild": "node ../scripts/sync-splash-assets.cjs && node ../scripts/sync-web-runtime.cjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview"

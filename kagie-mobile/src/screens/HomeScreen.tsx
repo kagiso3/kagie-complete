@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Card, DashboardSectionSkeleton, Notice, SectionTitle, ScreenScroll } from "../components/ui";
+import { Card, DashboardSectionSkeleton, HeroPanel, Notice, SectionTitle, ScreenScroll } from "../components/ui";
 import { useKagieData } from "../data/KagieDataProvider";
 import { colors } from "../theme";
 import { useSession } from "../session/SessionProvider";
@@ -51,14 +51,12 @@ export function HomeScreen() {
 
   return (
     <ScreenScroll>
-      <View style={styles.hero}>
-        <Text style={styles.eyebrow}>Kagie Android</Text>
-        <Text style={styles.title}>Welcome back, {(user?.fullName || "Student").split(" ")[0]}</Text>
-        <Text style={styles.copy}>Track your tertiary application progress, messages, and payment status from one mobile dashboard.</Text>
-        {connection.cacheSavedAt ? (
-          <Text style={styles.cacheMeta}>Cached for offline use: {formatDate(connection.cacheSavedAt)}</Text>
-        ) : null}
-      </View>
+      <HeroPanel
+        eyebrow="Learner dashboard"
+        title={`Welcome back, ${(user?.fullName || "Student").split(" ")[0]}`}
+        copy="Track your application readiness, institution choices, support messages, and payment progress in one Kagie space."
+        meta={connection.cacheSavedAt ? `Last saved on this device: ${formatDate(connection.cacheSavedAt)}` : "Live Kagie application dashboard"}
+      />
 
       {sectionLoading.summary && !dashboard ? (
         <DashboardSectionSkeleton rows={1} />
@@ -200,33 +198,6 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    backgroundColor: colors.brand,
-    borderRadius: 28,
-    padding: 22,
-    gap: 8
-  },
-  eyebrow: {
-    color: colors.gold,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1.2
-  },
-  title: {
-    color: "#ffffff",
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "900"
-  },
-  copy: {
-    color: "rgba(255,255,255,0.88)",
-    lineHeight: 21
-  },
-  cacheMeta: {
-    color: "rgba(255,255,255,0.78)",
-    fontSize: 12,
-    fontWeight: "700"
-  },
   readinessRow: {
     gap: 10
   },
@@ -289,7 +260,7 @@ const styles = StyleSheet.create({
   deadlineRow: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 10,
     flexDirection: "row",
@@ -317,7 +288,7 @@ const styles = StyleSheet.create({
   notificationRow: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 4
   },
@@ -328,7 +299,7 @@ const styles = StyleSheet.create({
   serviceRow: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 10,
     flexDirection: "row",
@@ -349,7 +320,7 @@ const styles = StyleSheet.create({
   recommendationRow: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 4
   },

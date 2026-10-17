@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kagie | Master Admin</title>
 
-  <script src="../js/backend.js"></script>
+  <script src="../js/backend.js?v=20261015-backend-audit"></script>
   <script>
     const currentUser = window.KagieAPI?.currentUser();
     if (!currentUser || currentUser.role !== "master_admin") {
@@ -23,10 +23,10 @@
       --text:#0f172a;
       --muted:#6b7280;
       --line:rgba(2,6,23,.08);
-      --red:#c90000;
-      --yellow:#f5c84c;
-      --orange:#e45a2a;
-      --blue:#2fa4ff;
+      --red:#fd0505;
+      --yellow:#ffb500;
+      --orange:#fd0505;
+      --blue:#2d9df9;
       --green:#0d9f5e;
       --shadow:0 18px 38px rgba(2,6,23,.12);
       --shadow-soft:0 10px 22px rgba(2,6,23,.08);
@@ -40,9 +40,9 @@
       font-family:"Roboto",system-ui,-apple-system,Segoe UI,Arial,sans-serif;
       color:var(--text);
       background:
-        radial-gradient(900px 480px at 20% 0%, rgba(47,164,255,.15), transparent 60%),
-        radial-gradient(900px 520px at 80% 8%, rgba(245,200,76,.16), transparent 60%),
-        radial-gradient(900px 520px at 60% 100%, rgba(228,90,42,.10), transparent 60%),
+        radial-gradient(900px 480px at 20% 0%, rgba(45, 157, 249,.15), transparent 60%),
+        radial-gradient(900px 520px at 80% 8%, rgba(255, 181, 0,.16), transparent 60%),
+        radial-gradient(900px 520px at 60% 100%, rgba(253, 5, 5,.10), transparent 60%),
         var(--bg);
       padding:18px;
     }
@@ -55,7 +55,7 @@
     }
 
     .topbar{
-      background:linear-gradient(180deg,#c90000,#af0000);
+      background:linear-gradient(180deg,#fd0505,#fd0505);
       color:#fff;
       border-radius:28px;
       box-shadow:var(--shadow);
@@ -121,7 +121,7 @@
     .hero{
       border-radius:24px;
       padding:18px;
-      background:linear-gradient(135deg, rgba(47,164,255,.95), rgba(201,0,0,.88));
+      background:linear-gradient(135deg, rgba(45, 157, 249,.95), rgba(253, 5, 5,.88));
       color:#fff;
       box-shadow:var(--shadow-soft);
       overflow:hidden;
@@ -205,10 +205,10 @@
       box-shadow:0 10px 20px rgba(2,6,23,.12);
     }
 
-    .bg-red{background:linear-gradient(135deg,var(--red),#ff4545)}
-    .bg-yellow{background:linear-gradient(135deg,var(--yellow),#f1dd7d); color:#624500}
-    .bg-blue{background:linear-gradient(135deg,var(--blue),#66c8ff)}
-    .bg-orange{background:linear-gradient(135deg,var(--orange),#ff8d5e)}
+    .bg-red{background:linear-gradient(135deg,var(--red),#fd0505)}
+    .bg-yellow{background:linear-gradient(135deg,var(--yellow),#ffb500); color:#624500}
+    .bg-blue{background:linear-gradient(135deg,var(--blue),#2d9df9)}
+    .bg-orange{background:linear-gradient(135deg,var(--orange),#fd0505)}
     .bg-green{background:linear-gradient(135deg,var(--green),#43d38a)}
 
     .stat-title{
@@ -287,7 +287,7 @@
 
     .field input:focus,
     .field select:focus{
-      box-shadow:inset 0 0 0 2px rgba(47,164,255,.35);
+      box-shadow:inset 0 0 0 2px rgba(45, 157, 249,.35);
     }
 
     .btn{
@@ -304,10 +304,10 @@
 
     .btn:hover{transform:translateY(-1px)}
 
-    .btn-blue{background:linear-gradient(135deg,var(--blue),#67caff)}
-    .btn-red{background:linear-gradient(135deg,var(--red),#ef4444)}
-    .btn-yellow{background:linear-gradient(135deg,var(--yellow),#efd977); color:#694f00}
-    .btn-orange{background:linear-gradient(135deg,var(--orange),#ff9568)}
+    .btn-blue{background:linear-gradient(135deg,var(--blue),#2d9df9)}
+    .btn-red{background:linear-gradient(135deg,var(--red),#fd0505)}
+    .btn-yellow{background:linear-gradient(135deg,var(--yellow),#ffb500); color:#694f00}
+    .btn-orange{background:linear-gradient(135deg,var(--orange),#fd0505)}
     .btn-green{background:linear-gradient(135deg,#18b36b,#4ade80)}
 
     .message-box{
@@ -371,10 +371,10 @@
       white-space:nowrap;
     }
 
-    .chip-blue{background:rgba(47,164,255,.12); color:var(--blue); border:1px solid rgba(47,164,255,.18)}
-    .chip-yellow{background:rgba(245,200,76,.18); color:#8c6b00; border:1px solid rgba(245,200,76,.25)}
-    .chip-red{background:rgba(201,0,0,.12); color:var(--red); border:1px solid rgba(201,0,0,.16)}
-    .chip-orange{background:rgba(228,90,42,.12); color:var(--orange); border:1px solid rgba(228,90,42,.16)}
+    .chip-blue{background:rgba(45, 157, 249,.12); color:var(--blue); border:1px solid rgba(45, 157, 249,.18)}
+    .chip-yellow{background:rgba(255, 181, 0,.18); color:#8c6b00; border:1px solid rgba(255, 181, 0,.25)}
+    .chip-red{background:rgba(253, 5, 5,.12); color:var(--red); border:1px solid rgba(253, 5, 5,.16)}
+    .chip-orange{background:rgba(253, 5, 5,.12); color:var(--orange); border:1px solid rgba(253, 5, 5,.16)}
     .chip-green{background:rgba(0,170,90,.12); color:#0d9f5e; border:1px solid rgba(0,170,90,.18)}
 
     .assign-box{
@@ -398,7 +398,7 @@
     }
 
     .assign-box select:focus{
-      box-shadow:inset 0 0 0 2px rgba(47,164,255,.35);
+      box-shadow:inset 0 0 0 2px rgba(45, 157, 249,.35);
     }
 
     .small-btn{
@@ -452,7 +452,7 @@
     }
 
     .search-input:focus{
-      box-shadow:inset 0 0 0 2px rgba(47,164,255,.35);
+      box-shadow:inset 0 0 0 2px rgba(45, 157, 249,.35);
     }
 
     .link-btn{
@@ -904,7 +904,7 @@
         renderAll();
       }catch(err){
         msg.textContent = err.message || "Failed to create assistant.";
-        msg.style.color = "#c90000";
+        msg.style.color = "#fd0505";
       }
     });
 

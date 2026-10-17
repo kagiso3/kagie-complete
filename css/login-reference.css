@@ -1,0 +1,149 @@
+/* Login reference, October 2026. Shared by the website and React account screen.
+   The repeated scope class takes precedence over the older account-page rules. */
+body.kagie-account-page.auth-reference,
+.kg-auth-shell.auth-reference {
+  --login-ink: #060e1b;
+  --login-muted: #65728a;
+  --login-red: #fd0505;
+  box-sizing: border-box;
+  min-height: 100svh;
+  display: block;
+  margin: 0;
+  padding: 17px 3.1vw 40px 3.45vw;
+  color: var(--login-ink);
+  background: radial-gradient(ellipse at 5% 40%, #fff 0, transparent 52%), linear-gradient(125deg, #f0f3f7, #edf0f4 65%, #f3f5f8);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.auth-reference.auth-reference *, .auth-reference.auth-reference *::before, .auth-reference.auth-reference *::after { box-sizing: border-box; }
+.auth-reference.auth-reference .auth-page-shell { width: min(1380px, 100%); margin: 0 auto; }
+.auth-reference.auth-reference .auth-site-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; height: 46px; margin: 0 15px 27px; }
+.auth-reference.auth-reference .auth-site-header .auth-brand { display: inline-flex; align-items: center; gap: 13px; margin: 0; color: var(--login-ink); background: transparent; text-decoration: none; font-size: 30px; font-weight: 750; letter-spacing: -.9px; }
+.auth-reference.auth-reference .auth-brand-mark { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 13px; border: 1px solid rgba(255,255,255,.5); background: var(--login-red); color: #fff; box-shadow: inset 0 0 10px rgba(255,255,255,.16); font-size: 33px; font-weight: 700; letter-spacing: -1px; }
+.auth-reference.auth-reference .auth-header-note { display: inline-flex; align-items: center; gap: 12px; color: var(--login-ink); font-size: 18px; font-weight: 550; }
+.auth-reference.auth-reference .auth-header-note svg { width: 29px; height: 29px; color: var(--login-red); }
+.auth-reference.auth-reference .auth-frame { display: grid; grid-template-columns: minmax(0, 1.026fr) minmax(0, 1fr); align-items: stretch; gap: 20px; }
+.auth-reference.auth-reference .auth-frame > * { min-width: 0; }
+.auth-reference.auth-reference .auth-story { position: relative; display: flex; flex-direction: column; justify-content: flex-start; align-self: stretch; gap: 0; min-height: 934px; padding: 69px 38px 37px; border: 0; border-radius: 23px; overflow: hidden; color: var(--login-ink); background: #f7f8fa url('../images/login-graduation-scene-v1.png') center bottom / auto calc(100% + 120px) no-repeat; }
+.auth-reference.auth-reference .auth-story .auth-eyebrow { display: flex; align-items: center; gap: 15px; color: #8691a5; font-size: 14px; line-height: 24px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; }
+.auth-reference.auth-reference .auth-story .auth-eyebrow::before { content: ""; width: 32px; height: 2px; border-radius: 0; background: var(--login-red); }
+.auth-reference.auth-reference .auth-story h2 { margin: 29px 0 16px; color: var(--login-ink); font-size: clamp(38px, 3.93vw, 58px); font-weight: 750; line-height: 1.14; letter-spacing: -1.9px; }
+.auth-reference.auth-reference .auth-story p { max-width: 470px; margin: 0; color: #5d697e; font-size: 20px; line-height: 1.62; }
+.auth-reference.auth-reference .auth-story-art { display: grid; gap: 17px; margin: 52px 47px 0 6px; }
+.auth-reference.auth-reference .auth-story-row { display: flex; align-items: center; gap: 23px; min-height: 105px; padding: 16px 24px 16px 18px; border: 1px solid rgba(255,255,255,.85); border-radius: 22px; background: rgba(255,255,255,.88); color: var(--login-ink); text-decoration: none; box-shadow: 0 7px 24px rgba(30,38,51,.07); backdrop-filter: blur(12px); }
+.auth-reference.auth-reference .auth-story-row:hover { background: #fff; }
+.auth-reference.auth-reference .auth-story-row > div { min-width: 0; flex: 1; }
+.auth-reference.auth-reference .auth-story-row strong { display: block; color: var(--login-ink); font-size: 22px; line-height: 1.3; font-weight: 700; letter-spacing: -.6px; }
+.auth-reference.auth-reference .auth-story-row small { display: block; margin-top: 6px; color: #5d697e; font-size: 17px; line-height: 1.4; }
+.auth-reference.auth-reference .auth-story-icon, .auth-reference.auth-reference .auth-story-icon.blue, .auth-reference.auth-reference .auth-story-icon.orange { display: grid; place-items: center; width: 71px; height: 71px; flex: 0 0 71px; border-radius: 18px; color: var(--login-red); background: linear-gradient(135deg, #ffecee, #ffe0e2); }
+.auth-reference.auth-reference .auth-story-icon svg { width: 43px; height: 43px; }
+.auth-reference.auth-reference .auth-story-chevron { display: grid; place-items: center; width: 48px; height: 48px; flex: 0 0 48px; border-radius: 50%; background: rgba(15,23,42,.08); }
+.auth-reference.auth-reference .auth-story-chevron svg { width: 24px; height: 24px; }
+.auth-reference.auth-reference .auth-story-bottom { margin: auto 0 0 6px; padding-top: 54px; }
+.auth-reference.auth-reference .auth-story-foot { display: flex; align-items: center; gap: 12px; color: var(--login-ink); font-size: 17px; line-height: 28px; }
+.auth-reference.auth-reference .auth-story-foot svg { width: 28px; height: 32px; flex: 0 0 28px; color: var(--login-red); }
+.auth-reference.auth-reference .auth-story-dots { display: flex; gap: 11px; margin-top: 30px; }
+.auth-reference.auth-reference .auth-story-dots span { display: block; width: 27px; height: 8px; border-radius: 10px; background: #cdd1d9; }
+.auth-reference.auth-reference .auth-story-dots span:first-child { width: 49px; background: var(--login-red); }
+body.kagie-account-page.auth-reference .auth-frame .auth-card,
+.auth-reference.auth-reference .auth-frame .auth-card { display: block; width: 100%; max-width: none; padding: 54px 38px 44px 48px; border: 1px solid rgba(255,255,255,.65); border-radius: 23px; background: rgba(255,255,255,.6); box-shadow: none; }
+.auth-reference.auth-reference .auth-card .auth-step-kicker { margin: 0 0 15px; color: var(--login-red); font-size: 14px; line-height: 20px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; }
+body.kagie-account-page.auth-reference .auth-frame h1,
+.auth-reference.auth-reference .auth-card h1 { margin: 0; color: var(--login-ink); font-family: inherit; font-size: 40px; line-height: 1.23; font-weight: 750; letter-spacing: -1.2px; }
+body.kagie-account-page.auth-reference .auth-frame .sub,
+.auth-reference.auth-reference .auth-card .sub { margin: 13px 0 28px; color: var(--login-muted); font-size: 20px; line-height: 1.6; }
+.auth-reference.auth-reference .auth-card :is(.auth-google-button, .kg-provider-button) { display: flex; align-items: center; justify-content: center; gap: 17px; width: 100%; min-height: 65px; margin: 0; padding: 14px 18px; border: 1px solid #b8c6d9; border-radius: 14px; background: rgba(255,255,255,.8); color: var(--login-ink); line-height: 1.4; font-family: inherit; font-size: 20px; font-weight: 650; box-shadow: none; cursor: pointer; }
+.auth-reference.auth-reference .auth-google-button svg, .auth-reference.auth-reference .kg-provider-icon, .auth-reference.auth-reference .kg-provider-icon svg { width: 26px; height: 26px; flex: 0 0 26px; }
+.auth-reference.auth-reference .kg-provider-icon.google { display: grid; place-items: center; background: transparent; }
+.auth-reference.auth-reference :is(.auth-signin-divider, .kg-account-divider) { display: flex; align-items: center; gap: 18px; margin: 24px 0 25px; color: var(--login-muted); font-size: 16px; line-height: 24px; }
+.auth-reference.auth-reference :is(.auth-signin-divider, .kg-account-divider)::before,
+.auth-reference.auth-reference :is(.auth-signin-divider, .kg-account-divider)::after { content: ""; flex: 1; height: 1px; background: #c5dff4; }
+.auth-reference.auth-reference .kg-auth-form { display: block; }
+body.kagie-account-page.auth-reference .field,
+.auth-reference.auth-reference .kg-field { display: block; margin: 0 0 27px; }
+.auth-reference.auth-reference .auth-panel > .field,
+.auth-reference.auth-reference .kg-auth-form > label.kg-field { margin-bottom: 35px; }
+.auth-reference.auth-reference .auth-panel > .field ~ .field,
+.auth-reference.auth-reference .kg-account-password-field { margin-bottom: 25px; }
+body.kagie-account-page.auth-reference :is(.auth-field-label, .auth-label-row label),
+.auth-reference.auth-reference .kg-field > span,
+.auth-reference.auth-reference .kg-field > label,
+.auth-reference.auth-reference .auth-label-row label { display: block; margin: 0 0 12px; color: var(--login-ink); font-size: 18px; line-height: 24px; font-weight: 600; }
+.auth-reference.auth-reference .auth-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+body.kagie-account-page.auth-reference .auth-label-row label,
+.auth-reference.auth-reference .auth-label-row label { margin: 0; }
+.auth-reference.auth-reference .auth-card :is(.auth-text-link, .kg-account-forgot) { min-height: 24px; margin: 0; padding: 0; color: var(--login-red); background: transparent; border: 0; font-family: inherit; font-size: 17px; line-height: 24px; font-weight: 550; text-decoration: none; cursor: pointer; }
+body.kagie-account-page.auth-reference :is(input.input, .input-wrap input),
+.auth-reference.auth-reference .auth-card .kg-input { width: 100%; height: 65px; margin: 0; padding: 16px 18px; border: 1px solid #737e8c; border-radius: 14px; background: linear-gradient(110deg, #eef5ff, #e8f1ff); color: var(--login-ink); font-family: inherit; font-size: 19px; font-weight: 400; line-height: 1.4; box-shadow: inset 0 0 0 2px rgba(255,255,255,.55); }
+.auth-reference.auth-reference .auth-card input::placeholder { color: #748095; opacity: 1; }
+.auth-reference.auth-reference .auth-card :is(.input-wrap, .kg-account-password) { position: relative; }
+.auth-reference.auth-reference .auth-card :is(.input-wrap, .kg-account-password) input { padding-right: 83px; }
+.auth-reference.auth-reference .auth-card :is(.toggle-pass, .kg-account-password-toggle) { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); min-width: 64px; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 8px; color: #6d7888; background: transparent; font-family: inherit; font-size: 17px; font-weight: 600; cursor: pointer; }
+body.kagie-account-page.auth-reference .auth-frame .remember-row,
+.auth-reference.auth-reference .auth-card .remember-row { display: flex; align-items: flex-start; gap: 16px; margin: -4px 0 26px; padding: 15px 18px; min-height: 85px; border: 1px solid #dfe4ec; border-radius: 15px; color: var(--login-ink); font-weight: 400; background: transparent; cursor: pointer; }
+.auth-reference.auth-reference .remember-row input[type="checkbox"] { appearance: auto; width: 22px; height: 22px; flex: 0 0 22px; margin: 3px 0 0; accent-color: var(--login-red); font-size: 16px; }
+.auth-reference.auth-reference .remember-copy { display: grid; gap: 5px; }
+.auth-reference.auth-reference .remember-title { font-size: 18px; line-height: 25px; font-weight: 600; }
+.auth-reference.auth-reference .remember-note { color: var(--login-muted); font-size: 16px; font-weight: 400; line-height: 23px; }
+body.kagie-account-page.auth-reference .auth-frame .btn,
+.auth-reference.auth-reference .auth-card .kg-button[type="submit"] { display: flex; align-items: center; justify-content: center; gap: 18px; width: 100%; height: auto; min-height: 65px; margin: 0; padding: 16px 20px; border: 1px solid var(--login-red); border-radius: 15px; background: linear-gradient(110deg, #fd0505, #fd0505); color: #fff; font-family: inherit; font-size: 20px; line-height: 1.4; font-weight: 650; box-shadow: none; cursor: pointer; }
+.auth-reference.auth-reference .auth-arrow { width: 27px; height: 27px; flex-shrink: 0; }
+body.kagie-account-page.auth-reference .auth-frame .links,
+.auth-reference.auth-reference .auth-card .kg-account-foot { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 28px 0 0; padding-top: 29px; border-top: 1px solid #c5dff4; color: var(--login-ink); font-size: 18px; line-height: 28px; }
+body.kagie-account-page.auth-reference .auth-frame .links a,
+.auth-reference.auth-reference .auth-card .kg-account-foot .kg-text-link { min-height: 32px; padding: 0; color: var(--login-ink); background: transparent; font-family: inherit; font-size: 18px; line-height: 32px; font-weight: 650; text-decoration: none; }
+.auth-reference.auth-reference .auth-card :is(.links a, .kg-text-link, .auth-text-link):hover { text-decoration: underline; }
+.auth-reference.auth-reference .auth-card button:disabled { cursor: not-allowed; opacity: .6; }
+.auth-reference.auth-reference :is(input, button, a):focus-visible { outline: 3px solid #2d9df9; outline-offset: 4px; }
+.auth-reference.auth-reference .auth-page-footer { display: none; }
+.auth-reference.auth-reference .auth-field-error[hidden] { display: none; }
+.auth-reference.auth-reference .auth-card .message { margin: 0 0 18px; font-size: 15px; }
+.auth-reference.auth-reference .auth-card .message:empty { display: none; }
+.auth-reference.auth-reference .auth-card .kg-inline-message { margin-bottom: 20px; }
+@media (min-width: 960px) and (max-width: 1280px) {
+  .auth-reference.auth-reference .auth-story { padding: 52px 28px 32px; }
+  .auth-reference.auth-reference .auth-story p { font-size: 18px; max-width: 370px; }
+  .auth-reference.auth-reference .auth-story-art { margin: 44px 0 0; }
+  .auth-reference.auth-reference .auth-story-row { gap: 15px; padding: 15px; }
+  .auth-reference.auth-reference .auth-story-row strong { font-size: 18px; }
+  .auth-reference.auth-reference .auth-story-row small { font-size: 15px; }
+  .auth-reference.auth-reference .auth-story-icon, .auth-reference.auth-reference .auth-story-icon.blue, .auth-reference.auth-reference .auth-story-icon.orange { width: 58px; height: 58px; flex-basis: 58px; }
+  .auth-reference.auth-reference .auth-story-chevron { width: 36px; height: 36px; flex-basis: 36px; }
+  body.kagie-account-page.auth-reference .auth-frame .auth-card, .auth-reference.auth-reference .auth-frame .auth-card { padding: 52px 30px 36px; }
+  .auth-reference.auth-reference .auth-card .sub, body.kagie-account-page.auth-reference .auth-frame .sub { font-size: 18px; }
+}
+@media (max-width: 959px) {
+  body.kagie-account-page.auth-reference, .kg-auth-shell.auth-reference { padding: 22px 22px 36px; }
+  .auth-reference.auth-reference .auth-page-shell { width: min(640px, 100%); }
+  .auth-reference.auth-reference .auth-site-header { height: auto; margin: 0 4px 26px; }
+  .auth-reference.auth-reference .auth-site-header .auth-brand { font-size: 26px; }
+  .auth-reference.auth-reference .auth-header-note { gap: 7px; font-size: 13px; }
+  .auth-reference.auth-reference .auth-header-note svg { width: 24px; height: 24px; }
+  .auth-reference.auth-reference .auth-frame { grid-template-columns: minmax(0, 1fr); }
+  .auth-reference.auth-reference .auth-story { display: none; }
+  body.kagie-account-page.auth-reference .auth-frame .auth-card, .auth-reference.auth-reference .auth-frame .auth-card { padding: 38px 32px; }
+  .auth-reference.auth-reference .auth-card h1, body.kagie-account-page.auth-reference .auth-frame h1 { font-size: 36px; }
+  .auth-reference.auth-reference .auth-card .sub, body.kagie-account-page.auth-reference .auth-frame .sub { font-size: 18px; margin-bottom: 28px; }
+}
+@media (max-width: 479px) {
+  body.kagie-account-page.auth-reference, .kg-auth-shell.auth-reference { padding: 19px 14px 24px; }
+  .auth-reference.auth-reference .auth-site-header { margin: 0 7px 23px; }
+  .auth-reference.auth-reference .auth-header-note { display: none; }
+  .auth-reference.auth-reference .auth-brand-mark { width: 41px; height: 41px; font-size: 29px; border-radius: 11px; }
+  body.kagie-account-page.auth-reference .auth-frame .auth-card, .auth-reference.auth-reference .auth-frame .auth-card { padding: 30px 21px; border-radius: 20px; }
+  .auth-reference.auth-reference .auth-card .auth-step-kicker { font-size: 11px; letter-spacing: 1.1px; }
+  .auth-reference.auth-reference .auth-card h1, body.kagie-account-page.auth-reference .auth-frame h1 { font-size: 32px; }
+  .auth-reference.auth-reference .auth-card .sub, body.kagie-account-page.auth-reference .auth-frame .sub { font-size: 16px; }
+  .auth-reference.auth-reference .auth-card :is(.auth-google-button, .kg-provider-button) { gap: 12px; min-height: 56px; font-size: 16px; }
+  .auth-reference.auth-reference :is(.auth-signin-divider, .kg-account-divider) { gap: 11px; font-size: 13px; }
+  body.kagie-account-page.auth-reference :is(.auth-field-label, .auth-label-row label), .auth-reference.auth-reference .kg-field > span, .auth-reference.auth-reference .auth-label-row label { font-size: 15px; }
+  .auth-reference.auth-reference .auth-card :is(.auth-text-link, .kg-account-forgot) { font-size: 13px; }
+  body.kagie-account-page.auth-reference :is(input.input, .input-wrap input), .auth-reference.auth-reference .auth-card .kg-input { height: 58px; font-size: 16px; }
+  .auth-reference.auth-reference .auth-card :is(.toggle-pass, .kg-account-password-toggle) { font-size: 14px; }
+  body.kagie-account-page.auth-reference .auth-frame .remember-row, .auth-reference.auth-reference .auth-card .remember-row { gap: 11px; padding: 13px; }
+  .auth-reference.auth-reference .remember-title { font-size: 15px; }
+  .auth-reference.auth-reference .remember-note { font-size: 13px; line-height: 20px; }
+  body.kagie-account-page.auth-reference .auth-frame .btn, .auth-reference.auth-reference .auth-card .kg-button[type="submit"] { min-height: 58px; font-size: 17px; }
+  body.kagie-account-page.auth-reference .auth-frame .links, .auth-reference.auth-reference .auth-card .kg-account-foot { gap: 5px; font-size: 14px; padding-top: 22px; }
+  body.kagie-account-page.auth-reference .auth-frame .links a, .auth-reference.auth-reference .auth-card .kg-account-foot .kg-text-link { font-size: 14px; }
+}

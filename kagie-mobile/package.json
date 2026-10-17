@@ -8,6 +8,7 @@
     "start": "expo start",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
+    "test:oauth": "node scripts/test-native-oauth.cjs && node scripts/test-native-oauth-app.cjs",
     "verify:android-release": "node scripts/verify-release-config.js",
     "build:android:debug": "node scripts/build-debug-apk.cjs",
     "export:apk": "node ../scripts/copy-android-apk.cjs",
@@ -25,7 +26,9 @@
     "expo-status-bar": "~55.0.5",
     "expo-system-ui": "~55.0.14",
     "react": "19.2.0",
-    "react-native": "0.83.4"
+    "react-native": "0.83.4",
+    "react-native-url-polyfill": "4.0.0",
+    "react-native-webview": "13.16.0"
   },
   "expo": {
     "install": {

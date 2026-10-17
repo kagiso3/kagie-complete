@@ -29,6 +29,7 @@ import {
   saveMarks,
   sendSupportMessage,
   setPackage,
+  submitApplicationDetails,
   submitCheckout,
   uploadDocument
 } from "./applications.service";
@@ -38,11 +39,11 @@ const router = Router();
 const marksSchema = z.array(
   z.object({
     id: z.string().optional(),
-    subject: z.string().min(2),
-    percent: z.number().min(0).max(100),
-    level: z.number().min(1).max(7)
+    subject: z.string().trim().min(2).max(200),
+    percent: z.number().int().min(0).max(100),
+    level: z.number().int().min(1).max(7)
   })
-);
+).max(40);
 
 const institutionSchema = z.object({
   institutionId: z.string().optional(),
@@ -155,6 +156,11 @@ router.post("/me/:applicationId/checkout", async (req: SupabaseAuthenticatedRequ
   return ok(res, await submitCheckout(req.supabaseAuth!.userId, params.applicationId, body), 201);
 });
 
+router.post("/me/:applicationId/submit", async (req: SupabaseAuthenticatedRequest, res) => {
+  const params = z.object({ applicationId: z.string().uuid() }).parse(req.params);
+  return ok(res, await submitApplicationDetails(req.supabaseAuth!.userId, params.applicationId));
+});
+
 router.get("/me/documents", async (req: SupabaseAuthenticatedRequest, res) => {
   return ok(res, await listDocuments(req.supabaseAuth!.userId));
 });
@@ -162,15 +168,15 @@ router.get("/me/documents", async (req: SupabaseAuthenticatedRequest, res) => {
 router.post(
   "/me/:applicationId/documents",
   express.raw({
-    type: ["application/pdf", "image/jpeg", "image/png", "application/octet-stream"],
-    limit: "20mb"
+    type: ["application/pdf", "image/jpeg", "image/png", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/octet-stream"],
+    limit: "8mb"
   }),
   async (req: SupabaseAuthenticatedRequest, res) => {
     const params = z.object({ applicationId: z.string().uuid() }).parse(req.params);
     const headerValue = (name: string) => {
       const value = req.headers[name.toLowerCase()];
       const raw = Array.isArray(value) ? value[0] : value;
-      return decodeURIComponent(String(raw || "").replace(/\+/g, "%20"));
+      try { return decodeURIComponent(String(raw || "").replace(/\+/g, "%20")); } catch { throw Object.assign(new Error("Invalid document header."), { status: 400 }); }
     };
     const fileName = z.string().min(1).parse(headerValue("x-kagie-file-name"));
     const documentType = z.string().min(2).parse(headerValue("x-kagie-document-type"));

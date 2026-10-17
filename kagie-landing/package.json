@@ -1,0 +1,29 @@
+{
+  "name": "kagie-landing",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "predev": "node ../scripts/sync-splash-assets.cjs",
+    "prebuild": "node ../scripts/sync-splash-assets.cjs",
+    "postinstall": "node scripts/prepare-wasm.mjs",
+    "dev": "next dev --webpack -p 3010",
+    "build": "next build --webpack",
+    "typecheck": "tsc --noEmit",
+    "preview": "node scripts/preview.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "1.51.0",
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@next/swc-wasm-nodejs": "16.3.8",
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.9.0"
+  }
+}

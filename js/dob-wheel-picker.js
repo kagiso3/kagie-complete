@@ -21,6 +21,15 @@
   let selected = null;
   let sheet = null;
   let installed = false;
+  let scrollFrame = null;
+  const renderTimers = new Set();
+
+  function cancelPendingRender() {
+    if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame);
+    scrollFrame = null;
+    renderTimers.forEach((timer) => window.clearTimeout(timer));
+    renderTimers.clear();
+  }
 
   function pad(value) {
     return String(value).padStart(2, "0");
@@ -153,7 +162,7 @@
       .kdob-field {
         cursor: pointer;
         caret-color: transparent;
-        background-image: linear-gradient(135deg, rgba(229,57,53,.08), rgba(255,106,61,.08));
+        background-image: linear-gradient(135deg, rgba(253, 5, 5,.08), rgba(253, 5, 5,.08));
       }
       .kdob-field::placeholder {
         color: #8e9aaf;
@@ -234,8 +243,8 @@
         height: 44px;
         transform: translateY(-50%);
         border-radius: 15px;
-        background: linear-gradient(135deg, rgba(229,57,53,.10), rgba(255,106,61,.12));
-        border: 1px solid rgba(229,57,53,.12);
+        background: linear-gradient(135deg, rgba(253, 5, 5,.10), rgba(253, 5, 5,.12));
+        border: 1px solid rgba(253, 5, 5,.12);
         pointer-events: none;
       }
       .kdob-wheel {
@@ -271,7 +280,7 @@
       .kdob-error {
         min-height: 20px;
         padding: 0 18px;
-        color: #b00020;
+        color: #fd0505;
         font-size: 12px;
         font-weight: 700;
       }
@@ -292,9 +301,9 @@
         color: #333;
       }
       .kdob-action.confirm {
-        background: linear-gradient(135deg, #E53935, #FF6A3D);
+        background: linear-gradient(135deg, #fd0505, #fd0505);
         color: #fff;
-        box-shadow: 0 14px 28px rgba(229,57,53,.22);
+        box-shadow: 0 14px 28px rgba(253, 5, 5,.22);
       }
       @keyframes kdobFade { from { opacity: 0; } to { opacity: 1; } }
       @keyframes kdobRise { to { transform: translateY(0); } }
@@ -353,7 +362,7 @@
       }
 
       const option = event.target.closest(".kdob-option");
-      if (option) {
+      if (option && selected) {
         const wheel = option.closest("[data-wheel]")?.getAttribute("data-wheel");
         const value = Number(option.getAttribute("data-wheel-value"));
         if (wheel && Number.isFinite(value)) {
@@ -371,7 +380,7 @@
 
     sheet.addEventListener("scroll", (event) => {
       const wheel = event.target.closest?.("[data-wheel]");
-      if (!wheel) return;
+      if (!selected || !sheet.classList.contains("open") || !wheel || !sheet.contains(wheel)) return;
       const kind = wheel.getAttribute("data-wheel");
       const itemHeight = 44;
       const index = Math.round(wheel.scrollTop / itemHeight);
@@ -385,7 +394,13 @@
         });
         if (kind !== "day") {
           window.clearTimeout(wheel._kdobRenderTimer);
-          wheel._kdobRenderTimer = window.setTimeout(() => render(), 120);
+          renderTimers.delete(wheel._kdobRenderTimer);
+          const timer = window.setTimeout(() => {
+            renderTimers.delete(timer);
+            if (selected && sheet.classList.contains("open") && sheet.contains(wheel)) render();
+          }, 120);
+          wheel._kdobRenderTimer = timer;
+          renderTimers.add(timer);
         }
       }
     }, true);
@@ -399,6 +414,8 @@
   }
 
   function render(options) {
+    if (!selected || !activeInput) return;
+    cancelPendingRender();
     const overlay = buildSheet();
     const wheels = overlay.querySelector(".kdob-wheels");
     const maxDate = getMaxDate(activeInput);
@@ -416,7 +433,9 @@
     ].join("");
 
     if (!options?.preserveScroll) {
-      window.requestAnimationFrame(() => {
+      scrollFrame = window.requestAnimationFrame(() => {
+        scrollFrame = null;
+        if (!selected || !overlay.classList.contains("open")) return;
         wheels.querySelectorAll(".kdob-wheel").forEach((wheel) => {
           const selectedOption = wheel.querySelector(".kdob-option.selected");
           if (selectedOption) {
@@ -465,6 +484,7 @@
   }
 
   function close() {
+    cancelPendingRender();
     if (sheet) sheet.classList.remove("open");
     activeInput = null;
     selected = null;
