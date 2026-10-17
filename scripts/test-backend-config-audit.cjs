@@ -28,7 +28,7 @@ function fixtureJwt(role) { return [Buffer.from(JSON.stringify({ alg: "HS256", t
 async function invokeConfig(env = {}, method = "GET") {
   const filename = path.join(root, "api/runtime-config.js");
   const module = { exports: {} };
-  vm.runInNewContext(fs.readFileSync(filename, "utf8"), { module, exports: module.exports, process: { env }, Buffer }, { filename });
+  vm.runInNewContext(fs.readFileSync(filename, "utf8"), { module, exports: module.exports, process: { env }, Buffer, require: createRequire(filename) }, { filename });
   const result = { statusCode: 200, headers: {}, body: null, setHeader(key, value) { this.headers[key.toLowerCase()] = value; }, end(value) { this.body = JSON.parse(value); } };
   await module.exports({ method }, result);
   return result;

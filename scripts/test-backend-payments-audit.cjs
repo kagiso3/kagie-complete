@@ -18,7 +18,7 @@ const handlers = Object.fromEntries(['yoco-create-checkout', 'yoco-webhook', 'pa
 const ids = { user: '11111111-1111-4111-8111-111111111111', app: '22222222-2222-4222-8222-222222222222', cart: '33333333-3333-4333-8333-333333333333', pack: '44444444-4444-4444-8444-444444444444', item: '55555555-5555-4555-8555-555555555555', payment: '66666666-6666-4666-8666-666666666666' };
 const envBefore = { ...process.env };
 const fetchBefore = global.fetch;
-Object.assign(process.env, { SUPABASE_URL: 'https://database.fixture.invalid', SUPABASE_SERVICE_ROLE_KEY: 'fixture-service-key', YOCO_SECRET_KEY: 'fixture-yoco-key', YOCO_WEBHOOK_SECRET: 'whsec_' + Buffer.from('isolated-webhook-secret').toString('base64'), YOCO_MODE: 'test', KAGIE_YOCO_ENABLED:'true', PAYFAST_MERCHANT_ID: '10000100', PAYFAST_MERCHANT_KEY: 'fixture-merchant-key', PAYFAST_PASSPHRASE: "fixture's salt!", PAYFAST_VALIDATE_URL: 'https://sandbox.payfast.co.za/eng/query/validate' });
+Object.assign(process.env, { SUPABASE_URL: 'https://database.fixture.invalid', SUPABASE_SERVICE_ROLE_KEY: 'fixture-service-key', YOCO_SECRET_KEY: 'sk_test_fixture_only', YOCO_WEBHOOK_SECRET: 'whsec_' + Buffer.from('isolated-webhook-secret').toString('base64'), YOCO_MODE: 'test', KAGIE_YOCO_ENABLED:'true', PAYFAST_MERCHANT_ID: '10000100', PAYFAST_MERCHANT_KEY: 'fixture-merchant-key', PAYFAST_PASSPHRASE: "fixture's salt!", PAYFAST_VALIDATE_URL: 'https://sandbox.payfast.co.za/eng/query/validate' });
 const checks = [];
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
 let state;

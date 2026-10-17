@@ -53,7 +53,7 @@
     "test:backend:repair": "node scripts/test-backend-repair-database.cjs && node scripts/test-backend-repair-workflows.cjs && node scripts/test-backend-repair-persistence.cjs && node scripts/test-backend-backup.cjs && node scripts/test-backend-dependency-regressions.cjs",
     "backup:backend:check": "node scripts/backup-backend.cjs --check",
     "backup:backend": "node scripts/backup-backend.cjs",
-    "test:yoco": "node scripts/test-yoco-repair.cjs && node scripts/test-yoco-ui.cjs",
+    "test:yoco": "node scripts/test-yoco-configuration.cjs && node scripts/test-yoco-repair.cjs && node scripts/test-yoco-ui.cjs",
     "test:yoco:postgres": "node scripts/test-yoco-postgres.cjs"
   },
   "overrides": {

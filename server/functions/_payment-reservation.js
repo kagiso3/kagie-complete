@@ -3,7 +3,7 @@ const { checkoutKey, orderSnapshot } = require('./_payment-checkout');
 async function rpc(url, key, name, body) {
   const response = await fetch(`${url}/rest/v1/rpc/${name}`, {
     method: 'POST', headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body), signal: AbortSignal.timeout(10000)
   });
   const data = await response.json().catch(() => null);
   if (!response.ok) {

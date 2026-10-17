@@ -1,3 +1,5 @@
+const { config: yocoConfig } = require('../server/functions/_yoco');
+
 function trim(value) {
   return String(value || "").trim();
 }
@@ -75,6 +77,8 @@ module.exports = async function runtimeConfig(req, res) {
   );
   // Never expose a service-role or secret key through a misnamed environment variable.
   const supabaseAnonKey = isPublicSupabaseKey(configuredSupabaseKey) ? configuredSupabaseKey : '';
+  let yocoEnabled = false;
+  try { yocoConfig(process.env); yocoEnabled = true; } catch { /* Keep checkout hidden until server configuration is valid. */ }
   const payload = {
     data: {
       appName: trim(process.env.KAGIE_APP_NAME) || "Kagie",
@@ -89,7 +93,7 @@ module.exports = async function runtimeConfig(req, res) {
         branchCode: trim(process.env.KAGIE_BANK_BRANCH_CODE) || "470010",
         referencePrefix: trim(process.env.KAGIE_PAYMENT_REFERENCE_PREFIX) || "KAG",
         verificationMessage: trim(process.env.KAGIE_PAYMENT_VERIFICATION_MESSAGE) || "After you transfer, Kagie verifies your payment manually. Use your Kagie reference and upload proof of payment.",
-        yocoEnabled: toBoolean(process.env.KAGIE_YOCO_ENABLED, false) && Boolean(trim(process.env.YOCO_SECRET_KEY) && trim(process.env.YOCO_WEBHOOK_SECRET)) && ["test", "live"].includes(trim(process.env.YOCO_MODE || process.env.YOCO_ENV)),
+        yocoEnabled,
         yocoPaymentLink: "",
         yocoProviderLabel: "Yoco secure checkout",
         payfastEnabled: toBoolean(process.env.KAGIE_PAYFAST_ENABLED, false),
